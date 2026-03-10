@@ -2406,8 +2406,8 @@ function LineupBuilderSection() {
                         </div>
                       )}
 
-                      {/* Notes */}
-                      {lineup.note(s || "").trim() && (
+                      {/* Notes - THIS IS WHERE THE FIX IS! */}
+                      {(lineup.notes || "").trim() && (
                         <div style={{ padding: "10px 14px", borderRadius: 8, background: `${C.yellow}06`, borderLeft: `3px solid ${C.yellow}30`, marginBottom: 12 }}>
                           <div style={{ fontFamily: fontBody, fontSize: 10, fontWeight: 700, color: C.yellowDim, marginBottom: 2, textTransform: "uppercase", letterSpacing: 1 }}>Coach's Notes</div>
                           <p style={{ fontFamily: fontBody, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{lineup.notes}</p>
@@ -2447,7 +2447,7 @@ function LineupBuilderSection() {
 }
 
 // ═══════════════════════════════
-//          MAIN APP
+//         MAIN APP
 // ═══════════════════════════════
 export default function App() {
   const [active, setActive] = useState("home");
