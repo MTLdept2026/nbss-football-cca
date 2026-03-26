@@ -14,7 +14,7 @@ async function loadHtml2Canvas() {
   });
 }
 
-async function captureAndDownload(el, filename = "nbss-export.png") {
+async function captureAndDownload(el, filename = "nbss-export.png", opts = {}) {
   const h2c = await loadHtml2Canvas();
   const canvas = await h2c(el, {
     backgroundColor: "#050f1e",
@@ -24,8 +24,10 @@ async function captureAndDownload(el, filename = "nbss-export.png") {
     logging: false,
     scrollX: 0,
     scrollY: 0,
-    windowWidth: el.scrollWidth,
-    windowHeight: el.scrollHeight,
+    windowWidth:  opts.width  || el.scrollWidth,
+    windowHeight: opts.height || el.scrollHeight,
+    width:        opts.width  || el.scrollWidth,
+    height:       opts.height || el.scrollHeight,
   });
   const link = document.createElement("a");
   link.download = filename;
@@ -33,7 +35,7 @@ async function captureAndDownload(el, filename = "nbss-export.png") {
   link.click();
 }
 
-async function captureAndShare(el, title = "NBSS Football CCA") {
+async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
   const h2c = await loadHtml2Canvas();
   const canvas = await h2c(el, {
     backgroundColor: "#050f1e",
@@ -43,25 +45,22 @@ async function captureAndShare(el, title = "NBSS Football CCA") {
     logging: false,
     scrollX: 0,
     scrollY: 0,
-    windowWidth: el.scrollWidth,
-    windowHeight: el.scrollHeight,
+    windowWidth:  opts.width  || el.scrollWidth,
+    windowHeight: opts.height || el.scrollHeight,
+    width:        opts.width  || el.scrollWidth,
+    height:       opts.height || el.scrollHeight,
   });
   canvas.toBlob(async (blob) => {
     if (!blob) return;
     const file = new File([blob], "nbss-share.png", { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ title, files: [file] });
-        return;
-      } catch {}
+      try { await navigator.share({ title, files: [file] }); return; } catch {}
     }
-    // Fallback: copy image to clipboard
     try {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      alert("📋 Copied to clipboard! Paste it into WhatsApp, Telegram or anywhere.");
+      alert("📋 Copied to clipboard! Paste into WhatsApp, Telegram or anywhere.");
     } catch {
-      // Final fallback: just download
-      captureAndDownload(el, "nbss-share.png");
+      captureAndDownload(el, "nbss-share.png", opts);
     }
   });
 }
@@ -1564,215 +1563,318 @@ function LegendsSection() {
 }
 
 // ══════════════════════════════════════════════════
-//  LINEUP CARD — visual pitch + full export
+//  LINEUP STORY EXPORT — fixed 540×960px (9:16)
+//  Rendered off-screen, captured by html2canvas at 2×
+//  → final PNG is 1080×1920, perfect for IG Stories
 // ══════════════════════════════════════════════════
-function LineupPitch({ lineup }) {
-  // Self-contained pitch visual used inside the export card
+
+// Fixed pixel constants for the 540px-wide canvas
+const EX = {
+  W: 540,   // canvas width
+  H: 960,   // canvas height (9:16)
+  PAD: 28,  // outer padding
+  // pitch sits between header and footer sections
+  PITCH_TOP: 210,
+  PITCH_H: 560,
+  // derived
+  get PITCH_W() { return this.W - this.PAD * 2; },
+};
+
+function StoryExportCard({ lineup }) {
   const formation = FORMATIONS[lineup.formation];
   if (!formation) return null;
+  const activeSubs = lineup.subs?.filter(s => (s || "").trim()) || [];
+  const hasNotes = (lineup.notes || "").trim().length > 0;
+
+  // Player dot size in the fixed canvas
+  const DOT = 36;
+  const NAME_W = 68;
+
   return (
     <div style={{
-      position: "relative", width: "100%", paddingBottom: "138%",
-      background: "linear-gradient(180deg, #0b5c1a 0%, #0e6b1f 48%, #0b5c1a 100%)",
-      borderRadius: 10, overflow: "hidden",
-      boxShadow: "inset 0 0 40px rgba(0,0,0,0.4)",
+      position: "relative",
+      width: EX.W,
+      height: EX.H,
+      background: C.navy,
+      overflow: "hidden",
+      fontFamily: FONT_BODY,
+      flexShrink: 0,
     }}>
-      {/* Pitch stripe texture */}
+      {/* ── Ambient glows ── */}
+      <div style={{ position: "absolute", top: -80, left: -80, width: 360, height: 360, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}10, transparent 70%)`, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -60, right: -60, width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${C.electric}08, transparent 70%)`, pointerEvents: "none" }} />
+
+      {/* ════════ TOP HEADER ════════ */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: `${EX.PAD}px ${EX.PAD}px 0` }}>
+        {/* Branding row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚽</div>
+            <div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>NBSS FOOTBALL</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, letterSpacing: 3, textTransform: "uppercase" }}>Match Lineup</div>
+            </div>
+          </div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.electric, background: `${C.electric}12`, padding: "5px 16px", borderRadius: 8, border: `1px solid ${C.electric}30`, letterSpacing: 1 }}>
+            {lineup.formation}
+          </div>
+        </div>
+
+        {/* Match title */}
+        <div style={{ background: C.navyCard, borderRadius: 12, padding: "14px 18px", border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 30, color: C.textBright, letterSpacing: 1, lineHeight: 1, marginBottom: 10 }}>
+            NBSS FC <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, background: `${C.gold}12`, padding: "3px 11px", borderRadius: 5, fontWeight: 700 }}>🏆 {lineup.competition}</span>}
+            {lineup.date       && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📅 {lineup.date}</span>}
+            {lineup.time       && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>🕐 {lineup.time}</span>}
+            {lineup.venue      && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📍 {lineup.venue}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* ════════ PITCH ════════ */}
       <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 28px, transparent 28px, transparent 56px)",
-      }} />
-      {/* SVG markings */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 100 138" preserveAspectRatio="none">
-        {/* Border */}
-        <rect x="2" y="2" width="96" height="134" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.6"/>
-        {/* Centre line */}
-        <line x1="2" y1="69" x2="98" y2="69" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5"/>
-        {/* Centre circle */}
-        <circle cx="50" cy="69" r="11" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.5"/>
-        <circle cx="50" cy="69" r="0.8" fill="rgba(255,255,255,0.35)"/>
-        {/* Top penalty box */}
-        <rect x="22" y="2" width="56" height="20" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.5"/>
-        <rect x="34" y="2" width="32" height="10" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-        {/* Top penalty spot */}
-        <circle cx="50" cy="14" r="0.8" fill="rgba(255,255,255,0.35)"/>
-        {/* Bottom penalty box */}
-        <rect x="22" y="116" width="56" height="20" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.5"/>
-        <rect x="34" y="126" width="32" height="10" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-        {/* Bottom penalty spot */}
-        <circle cx="50" cy="124" r="0.8" fill="rgba(255,255,255,0.35)"/>
-        {/* Corner arcs */}
-        <path d="M2,5 A3,3 0 0,1 5,2" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-        <path d="M95,2 A3,3 0 0,1 98,5" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-        <path d="M2,133 A3,3 0 0,0 5,136" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-        <path d="M95,136 A3,3 0 0,0 98,133" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.5"/>
-      </svg>
-
-      {/* Players */}
-      {formation.positions.map((pos, idx) => {
-        const name = (lineup.players[idx] || "").trim();
-        // Remap y from 0-100 space into 3-97 of the 138-tall viewBox percentage
-        const topPct = 2 + (pos.y / 100) * 96;
-        return (
-          <div key={idx} style={{
-            position: "absolute",
-            left: `${pos.x}%`,
-            top: `${topPct}%`,
-            transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            zIndex: 2,
-          }}>
-            {/* Player dot */}
-            <div style={{
-              width: "clamp(22px, 5.5vw, 34px)",
-              height: "clamp(22px, 5.5vw, 34px)",
-              borderRadius: "50%",
-              margin: "0 auto 2px",
-              background: name
-                ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`
-                : "rgba(255,255,255,0.18)",
-              border: `2px solid ${name ? C.gold : "rgba(255,255,255,0.35)"}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "clamp(6px, 1.4vw, 9px)",
-              fontFamily: FONT_HEAD,
-              color: name ? C.navy : "rgba(255,255,255,0.7)",
-              letterSpacing: 0.3,
-              boxShadow: name ? `0 2px 8px ${C.gold}50` : "none",
-            }}>{pos.role}</div>
-            {/* Player name */}
-            <div style={{
-              fontSize: "clamp(6px, 1.3vw, 8px)",
-              fontFamily: FONT_BODY,
-              fontWeight: 700,
-              color: name ? "#fff" : "rgba(255,255,255,0.4)",
-              textShadow: "0 1px 3px rgba(0,0,0,0.9)",
-              maxWidth: "clamp(32px, 9vw, 52px)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              lineHeight: 1.2,
-            }}>{name || "·"}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete }) {
-  const exportRef = useRef(null);
-  const activeSubs = lineup.subs?.filter(s => (s || "").trim()) || [];
-
-  return (
-    <Card glow>
-      {/* ── Export region — pitch + details + subs + notes ── */}
-      <div ref={exportRef} style={{
-        background: C.navy,
-        borderRadius: 14,
-        padding: 20,
-        fontFamily: FONT_BODY,
+        position: "absolute",
+        top: EX.PITCH_TOP,
+        left: EX.PAD,
+        width: EX.PITCH_W,
+        height: EX.PITCH_H,
+        background: "linear-gradient(180deg, #0b5c1a 0%, #0f7022 50%, #0b5c1a 100%)",
+        borderRadius: 12,
+        overflow: "hidden",
+        boxShadow: "inset 0 0 60px rgba(0,0,0,0.45)",
       }}>
-        {/* Header */}
-        <div style={{ marginBottom: 16 }}>
-          {/* NBSS branding strip */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Pitch stripe texture */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `repeating-linear-gradient(180deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 40px, transparent 40px, transparent 80px)`,
+        }} />
+
+        {/* SVG markings — viewBox matches pitch pixel size */}
+        <svg
+          style={{ position: "absolute", inset: 0 }}
+          width={EX.PITCH_W}
+          height={EX.PITCH_H}
+          viewBox={`0 0 ${EX.PITCH_W} ${EX.PITCH_H}`}
+        >
+          {/* Outer border */}
+          <rect x="8" y="8" width={EX.PITCH_W-16} height={EX.PITCH_H-16} fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="2"/>
+          {/* Centre line */}
+          <line x1="8" y1={EX.PITCH_H/2} x2={EX.PITCH_W-8} y2={EX.PITCH_H/2} stroke="rgba(255,255,255,0.28)" strokeWidth="1.5"/>
+          {/* Centre circle */}
+          <circle cx={EX.PITCH_W/2} cy={EX.PITCH_H/2} r="58" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"/>
+          <circle cx={EX.PITCH_W/2} cy={EX.PITCH_H/2} r="4" fill="rgba(255,255,255,0.4)"/>
+          {/* Top penalty area */}
+          <rect x={EX.PITCH_W*0.22} y="8" width={EX.PITCH_W*0.56} height={EX.PITCH_H*0.155} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"/>
+          {/* Top 6-yard box */}
+          <rect x={EX.PITCH_W*0.34} y="8" width={EX.PITCH_W*0.32} height={EX.PITCH_H*0.07} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1"/>
+          {/* Top penalty spot */}
+          <circle cx={EX.PITCH_W/2} cy={EX.PITCH_H*0.115} r="3.5" fill="rgba(255,255,255,0.4)"/>
+          {/* Bottom penalty area */}
+          <rect x={EX.PITCH_W*0.22} y={EX.PITCH_H-8-EX.PITCH_H*0.155} width={EX.PITCH_W*0.56} height={EX.PITCH_H*0.155} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"/>
+          {/* Bottom 6-yard box */}
+          <rect x={EX.PITCH_W*0.34} y={EX.PITCH_H-8-EX.PITCH_H*0.07} width={EX.PITCH_W*0.32} height={EX.PITCH_H*0.07} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1"/>
+          {/* Bottom penalty spot */}
+          <circle cx={EX.PITCH_W/2} cy={EX.PITCH_H-EX.PITCH_H*0.115} r="3.5" fill="rgba(255,255,255,0.4)"/>
+          {/* Corner arcs */}
+          {[[8,8,1,1],[EX.PITCH_W-8,8,-1,1],[8,EX.PITCH_H-8,1,-1],[EX.PITCH_W-8,EX.PITCH_H-8,-1,-1]].map(([cx,cy,sx,sy],i) => (
+            <path key={i} d={`M${cx+sx*20},${cy} A20,20 0 0,${sx===sy?0:1} ${cx},${cy+sy*20}`} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"/>
+          ))}
+        </svg>
+
+        {/* Player tokens */}
+        {formation.positions.map((pos, idx) => {
+          const name = (lineup.players[idx] || "").trim();
+          // pos.x and pos.y are 0-100 percentages of the pitch
+          const px = (pos.x / 100) * EX.PITCH_W;
+          const py = (pos.y / 100) * EX.PITCH_H;
+          return (
+            <div key={idx} style={{
+              position: "absolute",
+              left: px,
+              top: py,
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: NAME_W,
+              zIndex: 3,
+            }}>
+              {/* Dot */}
               <div style={{
-                width: 28, height: 28, borderRadius: 7,
-                background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
-              }}>⚽</div>
-              <div>
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.textBright, letterSpacing: 1.5, lineHeight: 1 }}>NBSS FOOTBALL</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 9, color: C.textDim, letterSpacing: 2, textTransform: "uppercase" }}>Match Lineup</div>
-              </div>
+                width: DOT, height: DOT, borderRadius: "50%",
+                margin: "0 auto 4px",
+                background: name
+                  ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`
+                  : "rgba(255,255,255,0.15)",
+                border: `2.5px solid ${name ? C.gold : "rgba(255,255,255,0.3)"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: FONT_HEAD, fontSize: 10, color: name ? C.navy : "rgba(255,255,255,0.6)",
+                letterSpacing: 0.5,
+                boxShadow: name ? `0 3px 12px ${C.gold}60` : "none",
+              }}>{pos.role}</div>
+              {/* Name */}
+              <div style={{
+                fontFamily: FONT_BODY, fontWeight: 700, fontSize: 10,
+                color: name ? "#ffffff" : "rgba(255,255,255,0.35)",
+                textShadow: "0 1px 4px rgba(0,0,0,1)",
+                overflow: "hidden", textOverflow: "ellipsis",
+                whiteSpace: "nowrap", lineHeight: 1.2,
+              }}>{name || ""}</div>
             </div>
-            <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.electric, background: `${C.electric}12`, padding: "3px 12px", borderRadius: 6, border: `1px solid ${C.electric}25`, letterSpacing: 1 }}>
-              {lineup.formation}
-            </span>
-          </div>
+          );
+        })}
+      </div>
 
-          {/* Match details */}
-          <div style={{ background: C.navyCard, borderRadius: 10, padding: "12px 16px", border: `1px solid ${C.navyBorder}` }}>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 26, color: C.textBright, letterSpacing: 1, marginBottom: 6 }}>
-              NBSS FC <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {lineup.competition && (
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, background: `${C.gold}12`, padding: "3px 10px", borderRadius: 5, fontWeight: 700 }}>
-                  🏆 {lineup.competition}
-                </span>
-              )}
-              {lineup.date && (
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>
-                  📅 {lineup.date}
-                </span>
-              )}
-              {lineup.venue && (
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>
-                  📍 {lineup.venue}
-                </span>
-              )}
-              {lineup.time && (
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>
-                  🕐 {lineup.time}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Pitch */}
-        <LineupPitch lineup={lineup} />
-
-        {/* Filled count */}
-        <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, marginBottom: activeSubs.length || (lineup.notes || "").trim() ? 14 : 0 }}>
-          {filled}/11 starters named
-        </div>
-
-        {/* Substitutes */}
+      {/* ════════ BOTTOM PANEL ════════ */}
+      <div style={{
+        position: "absolute",
+        top: EX.PITCH_TOP + EX.PITCH_H + 16,
+        left: EX.PAD,
+        right: EX.PAD,
+        bottom: EX.PAD,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}>
+        {/* Subs */}
         {activeSubs.length > 0 && (
-          <div style={{ marginBottom: (lineup.notes || "").trim() ? 14 : 0 }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>Substitutes</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>Substitutes</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {activeSubs.map((s, i) => (
-                <span key={i} style={{
-                  fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600,
-                  padding: "5px 14px", borderRadius: 7,
-                  background: C.navyCard, color: C.textMid,
-                  border: `1px solid ${C.navyBorder}`,
-                }}>
-                  <span style={{ color: C.textDim, fontSize: 10, marginRight: 4 }}>{i + 12}</span>{s}
+                <span key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, padding: "5px 14px", borderRadius: 7, background: C.navyCard, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>
+                  <span style={{ color: C.textDim, fontSize: 10, marginRight: 5 }}>{i + 12}</span>{s}
                 </span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Coach notes */}
-        {(lineup.notes || "").trim() && (
-          <div style={{ padding: "12px 16px", borderRadius: 10, background: `${C.gold}07`, borderLeft: `3px solid ${C.gold}50` }}>
+        {/* Notes */}
+        {hasNotes && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: `${C.gold}08`, borderLeft: `3px solid ${C.gold}60`, flex: 1 }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 5 }}>Coach's Notes</div>
             <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{lineup.notes}</p>
           </div>
         )}
+
+        {/* Footer watermark */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 4 }}>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 2 }}>NBSS FC</span>
+          <span style={{ color: C.navyBorder, fontSize: 12 }}>·</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 1 }}>GamePlan</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete }) {
+  const storyRef = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const activeSubs = lineup.subs?.filter(s => (s || "").trim()) || [];
+
+  const storyOpts = { width: EX.W, height: EX.H };
+
+  const handleSaveStory = async () => {
+    if (!storyRef.current || saving) return;
+    setSaving(true);
+    try {
+      await captureAndDownload(
+        storyRef.current,
+        `nbss-lineup-${(lineup.opponent || "lineup").replace(/\s+/g, "-").toLowerCase()}.png`,
+        storyOpts
+      );
+    } catch { alert("Screenshot failed. Try again."); }
+    setSaving(false);
+  };
+
+  const handleShareStory = async () => {
+    if (!storyRef.current || sharing) return;
+    setSharing(true);
+    try {
+      await captureAndShare(
+        storyRef.current,
+        `NBSS vs ${lineup.opponent || "TBD"} — Lineup`,
+        storyOpts
+      );
+    } catch { alert("Share failed. Try Save Story instead."); }
+    setSharing(false);
+  };
+
+  return (
+    <Card glow>
+      {/* ── Visible summary card (in-page preview) ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+          <div>
+            <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>
+              NBSS FC <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
+            </h3>
+            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+              {lineup.date        && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.navyBorder}` }}>{lineup.date}</span>}
+              {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, background: `${C.gold}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.competition}</span>}
+              <span style={{ fontFamily: FONT_HEAD, fontSize: 11, color: C.electric, background: `${C.electric}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.formation}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact player grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 5, marginBottom: activeSubs.length ? 10 : 0 }}>
+          {FORMATIONS[lineup.formation]?.positions.map((pos, idx) => (
+            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: C.surfaceSubtle, borderRadius: 6 }}>
+              <span style={{ fontFamily: FONT_HEAD, fontSize: 10, color: C.gold, width: 28, flexShrink: 0 }}>{pos.role}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(lineup.players[idx] || "").trim() || "—"}</span>
+            </div>
+          ))}
+        </div>
+
+        {activeSubs.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 4, alignSelf: "center" }}>Subs:</span>
+            {activeSubs.map((s, i) => (
+              <span key={i} style={{ fontFamily: FONT_BODY, fontSize: 12, padding: "2px 9px", borderRadius: 5, background: C.surfaceSubtle, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>{s}</span>
+            ))}
+          </div>
+        )}
+
+        {(lineup.notes || "").trim() && (
+          <div style={{ padding: "9px 13px", borderRadius: 8, background: `${C.gold}06`, borderLeft: `3px solid ${C.gold}30` }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{lineup.notes}</p>
+          </div>
+        )}
       </div>
 
-      {/* Action buttons — outside export region */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16, alignItems: "center" }}>
+      {/* Action bar */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <GoldButton onClick={onEdit} style={{ fontSize: 12, padding: "8px 16px" }}>Edit ✎</GoldButton>
         <GoldButton secondary onClick={onDuplicate} style={{ fontSize: 12, padding: "8px 16px" }}>Duplicate</GoldButton>
-        <button onClick={onDelete} style={{
-          padding: "8px 16px", borderRadius: 8, background: `${C.danger}10`,
-          color: C.danger, border: `1px solid ${C.danger}20`,
-          fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer",
-        }}>Delete</button>
-        <div style={{ marginLeft: "auto" }}>
-          <ShareSaveBar
-            targetRef={exportRef}
-            filename={`nbss-lineup-${(lineup.opponent || "lineup").replace(/\s+/g, "-").toLowerCase()}.png`}
-            title={`NBSS vs ${lineup.opponent || "TBD"} — Lineup`}
-          />
+        <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 8, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
+            {sharing ? "⏳" : "↗"} Share
+          </button>
+          <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)", border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
+            {saving ? "⏳" : "📸"} Save Story
+          </button>
+        </div>
+      </div>
+
+      {/* ── Hidden 9:16 story card — rendered off-screen, captured by html2canvas ── */}
+      <div style={{
+        position: "fixed",
+        left: "-9999px",
+        top: 0,
+        width: EX.W,
+        height: EX.H,
+        overflow: "hidden",
+        pointerEvents: "none",
+        zIndex: -1,
+      }}>
+        <div ref={storyRef} style={{ width: EX.W, height: EX.H }}>
+          <StoryExportCard lineup={lineup} />
         </div>
       </div>
     </Card>
