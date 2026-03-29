@@ -376,7 +376,7 @@ const LEGENDS_GLOBAL = [
   { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "🌟", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer" },
   { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "⚡", stat: "World Cup winner at 19 · Donates all national team earnings to charity" },
   { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "🧤", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping" },
-  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups" },
+  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", flag: "br", lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups" },
   { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "🔥", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno" },
 ];
 
@@ -1727,6 +1727,19 @@ function SquadSection() {
 // ══════════════════════════════════════════════════
 //  LEGENDS
 // ══════════════════════════════════════════════════
+function BadgeIcon({ legend, size = 28 }) {
+  if (legend.flag) {
+    return (
+      <img
+        src={`https://flagcdn.com/w40/${legend.flag}.png`}
+        alt={`${legend.name} flag`}
+        style={{ width: size, height: "auto", borderRadius: 3, display: "block" }}
+      />
+    );
+  }
+  return <>{legend.badge}</>;
+}
+
 function LegendsSection() {
   const [tab, setTab] = useState("global");
   const [active, setActive] = useState(0);
@@ -1750,8 +1763,8 @@ function LegendsSection() {
             borderRadius: 12, padding: "14px 8px", cursor: "pointer", textAlign: "center",
             transition: "all 0.2s",
           }}>
-            <span style={{ fontSize: 28, display: "block" }}>{l.badge}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: active === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
+            <span style={{ fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center" }}><BadgeIcon legend={l} size={28} /></span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: active === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
               {l.shortName}
             </span>
           </button>
@@ -1762,10 +1775,10 @@ function LegendsSection() {
       <Card glow style={{ borderLeft: `4px solid ${C.gold}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 20, flexWrap: "wrap" }}>
           <span style={{ fontSize: 52, width: 76, height: 76, display: "flex", alignItems: "center", justifyContent: "center", background: `${C.gold}10`, borderRadius: 18, border: `1px solid ${C.gold}20` }}>
-            {legends[active].badge}
+            <BadgeIcon legend={legends[active]} size={52} />
           </span>
           <div>
-            <h2 style={{ fontFamily: FONT_HEAD, fontSize: 34, color: C.textBright, margin: 0, letterSpacing: 2 }}>{legends[active].name.toUpperCase()}</h2>
+            <h2 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 5vw, 34px)", color: C.textBright, margin: 0, letterSpacing: 2 }}>{legends[active].name.toUpperCase()}</h2>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
               {tab !== "sg" && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legends[active].era}</span>}
               {legends[active].recipe && (() => {
@@ -1777,8 +1790,8 @@ function LegendsSection() {
             </div>
           </div>
         </div>
-        <div style={{ padding: "20px 24px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_SERIF, fontSize: 17, color: C.textBright, lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
+        <div style={{ padding: "20px 20px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: C.textBright, lineHeight: 1.85, margin: 0 }}>
             {legends[active].lesson}
           </p>
         </div>
