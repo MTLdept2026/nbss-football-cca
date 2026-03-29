@@ -3030,12 +3030,13 @@ function ClusterAttendance() {
   const [sessionDate, setSessionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState("");
   const [divFilter, setDivFilter] = useState(""); // "" | "B Div" | "C Div"
+  // presentIds: plain object { [playerId]: true } — avoids Set-in-state React issues
   const [presentIds, setPresentIds] = useState(() => {
     const today = new Date().toISOString().slice(0, 10);
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance) || "{}");
-      return new Set(saved[today] || []);
-    } catch { return new Set(); }
+      return (saved[today] || []).reduce((acc, id) => { acc[id] = true; return acc; }, {});
+    } catch { return {}; }
   });
 
   // Roster edit state
@@ -3055,20 +3056,20 @@ function ClusterAttendance() {
   const sessionKey = sessionDate;
 
   // Persist present set whenever it changes
-  const savePresent = (nextSet) => {
-    setAttendanceLog(prev => ({ ...prev, [sessionKey]: [...nextSet] }));
-    setPresentIds(new Set(nextSet));
+  const savePresent = (nextObj) => {
+    setAttendanceLog(prev => ({ ...prev, [sessionKey]: Object.keys(nextObj) }));
+    setPresentIds(nextObj);
   };
 
   const togglePresent = (id) => {
-    const next = new Set(presentIds);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    const next = { ...presentIds };
+    if (next[id]) delete next[id]; else next[id] = true;
     savePresent(next);
   };
 
   const markAllSchool = (school, present) => {
-    const next = new Set(presentIds);
-    roster.filter(p => p.school === school).forEach(p => present ? next.add(p.id) : next.delete(p.id));
+    const next = { ...presentIds };
+    roster.filter(p => p.school === school).forEach(p => { if (present) next[p.id] = true; else delete next[p.id]; });
     savePresent(next);
   };
 
@@ -3077,8 +3078,7 @@ function ClusterAttendance() {
     const id = `walkin-${Date.now()}`;
     const player = { id, name: walkInName.trim(), school: walkInSchool, year: "", jersey: "", position: "", walkIn: true };
     setRoster(prev => [...prev, player]);
-    const next = new Set(presentIds);
-    next.add(id);
+    const next = { ...presentIds, [id]: true };
     savePresent(next);
     setWalkInName("");
   };
@@ -3097,8 +3097,8 @@ function ClusterAttendance() {
 
   const deletePlayer = (id) => {
     setRoster(prev => prev.filter(p => p.id !== id));
-    const next = new Set(presentIds);
-    next.delete(id);
+    const next = { ...presentIds };
+    delete next[id];
     savePresent(next);
   };
 
@@ -3111,8 +3111,8 @@ function ClusterAttendance() {
   const activeRoster = divFilter ? roster.filter(p => p.div === divFilter) : roster;
   const schools = SCHOOLS.filter(s => activeRoster.some(p => p.school === s));
   const filtered = activeRoster.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.school.toLowerCase().includes(search.toLowerCase()) || (p.jersey && p.jersey.toString().includes(search)));
-  const presentList = activeRoster.filter(p => presentIds.has(p.id));
-  const absentList = activeRoster.filter(p => !presentIds.has(p.id));
+  const presentList = activeRoster.filter(p => !!presentIds[p.id]);
+  const absentList = activeRoster.filter(p => !presentIds[p.id]);
 
   const inputSt = { ...INPUT_STYLE, padding: "10px 12px", fontSize: 14, flex: 1 };
   const selectSt = { ...inputSt, cursor: "pointer" };
@@ -3169,7 +3169,7 @@ function ClusterAttendance() {
           <input type="date" value={sessionDate} onChange={e => {
             setSessionDate(e.target.value);
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance) || "{}");
-            setPresentIds(new Set(saved[e.target.value] || []));
+            setPresentIds((saved[e.target.value] || []).reduce((acc, id) => { acc[id] = true; return acc; }, {}));
           }} style={{ ...INPUT_STYLE, padding: "7px 10px", fontSize: 13, width: "auto" }} />
         </div>
       </div>
@@ -3193,8 +3193,8 @@ function ClusterAttendance() {
           {/* Stats bar */}
           <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
             {[
-              { label: "Present", val: presentIds.size, color: C.success },
-              { label: "Absent", val: roster.length - presentIds.size, color: C.danger },
+              { label: "Present", val: Object.keys(presentIds).length, color: C.success },
+              { label: "Absent", val: roster.length - Object.keys(presentIds).length, color: C.danger },
               { label: "Total", val: roster.length, color: C.electric },
             ].map(s => (
               <div key={s.label} style={{ flex: 1, minWidth: 90, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
@@ -3219,7 +3219,7 @@ function ClusterAttendance() {
           {schools.map(school => {
             const schoolPlayers = filtered.filter(p => p.school === school);
             if (schoolPlayers.length === 0) return null;
-            const schoolPresent = schoolPlayers.filter(p => presentIds.has(p.id)).length;
+            const schoolPresent = schoolPlayers.filter(p => !!presentIds[p.id]).length;
             return (
               <div key={school} style={{ marginBottom: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -3236,7 +3236,7 @@ function ClusterAttendance() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
                   {schoolPlayers.map(player => {
-                    const isPresent = presentIds.has(player.id);
+                    const isPresent = !!presentIds[player.id];
                     return (
                       <button key={player.id} onClick={() => togglePresent(player.id)} style={{
                         background: isPresent ? "rgba(34,211,165,0.12)" : C.navyCard,
@@ -3453,7 +3453,7 @@ function ClusterAttendance() {
             {Object.keys(attendanceLog).sort().reverse().slice(0, 10).map(date => {
               const ids = attendanceLog[date] || [];
               return (
-                <div key={date} onClick={() => { setSessionDate(date); setPresentIds(new Set(ids)); setView("take"); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.navyBorder}`, cursor: "pointer" }}>
+                <div key={date} onClick={() => { setSessionDate(date); setPresentIds((ids || []).reduce((acc, id) => { acc[id] = true; return acc; }, {})); setView("take"); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.navyBorder}`, cursor: "pointer" }}>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>
                     {new Date(date).toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short" })}
                   </span>
