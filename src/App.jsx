@@ -347,12 +347,18 @@ const MINDSET_CARDS = [
 ];
 
 const GROWTH_MINDSET_FRAMEWORK = [
-  { fixed: "I'm not good at this.", growth: "I'm not good at this YET.", icon: "🌱" },
-  { fixed: "I made a mistake — I'm terrible.", growth: "Mistakes help me learn and improve.", icon: "🔬" },
-  { fixed: "He's so talented, I'll never be that good.", growth: "His success shows me what's possible with effort.", icon: "🪜" },
-  { fixed: "This drill is too hard.", growth: "This drill is challenging — that means I'm growing.", icon: "💪" },
-  { fixed: "I give up.", growth: "Let me try a different strategy.", icon: "♟️" },
-  { fixed: "Feedback is criticism.", growth: "Feedback is a gift that helps me get better.", icon: "🎁" },
+  { phase: "Pre-Game", fixed: "What if I mess up in front of everyone?", growth: "Nerves mean I care — I'll channel this energy into focus.", icon: "🫁" },
+  { phase: "Pre-Game", fixed: "The other team looks way better than us.", growth: "We don't know until we play. Let's bring our best.", icon: "👀" },
+  { phase: "Pre-Game", fixed: "I always play badly in big matches.", growth: "Big matches are chances to show what I've been building.", icon: "🔥" },
+  { phase: "During Game", fixed: "I made a mistake — the whole team is watching.", growth: "Flush it in 5 seconds. The next ball is what matters.", icon: "🔄" },
+  { phase: "During Game", fixed: "He's faster than me — I can't win this duel.", growth: "I'll use positioning and timing to stay in the game.", icon: "♟️" },
+  { phase: "During Game", fixed: "Coach is watching and I'm playing terribly.", growth: "This is exactly when I show my mental strength.", icon: "💪" },
+  { phase: "Post-Game", fixed: "We lost. I was useless.", growth: "What can I take from today to be better next session?", icon: "📓" },
+  { phase: "Post-Game", fixed: "I'm just not talented enough for this level.", growth: "Today showed me exactly what I need to work on.", icon: "🌱" },
+  { phase: "Post-Game", fixed: "Feedback from coach is embarrassing.", growth: "Feedback is a gift — it shortens the path to improvement.", icon: "🎁" },
+  { phase: "General", fixed: "I'm not good at this.", growth: "I'm not good at this YET.", icon: "🪜" },
+  { phase: "General", fixed: "He's so talented, I'll never be that good.", growth: "His success shows me what's possible with effort.", icon: "🔬" },
+  { phase: "General", fixed: "This drill is too hard.", growth: "This drill is challenging — that means I'm growing.", icon: "⚡" },
 ];
 
 const FITNESS_TESTS = [
@@ -365,22 +371,22 @@ const FITNESS_TESTS = [
 ];
 
 const LEGENDS_GLOBAL = [
-  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", lesson: "Rejected by multiple clubs as a teenager. Didn't make it big until age 26 at Liverpool. Late bloomers exist — patience and persistence pay off.", badge: "🏔️", stat: "UCL + PL winner" },
-  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", lesson: "Left Egypt with a dream and was told he wasn't good enough at Chelsea. Moved to Roma, rebuilt himself, then became Liverpool's king. Never let one setback define you.", badge: "👑", stat: "PL Golden Boot × 3" },
-  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", lesson: "Youngest ever Euros goalscorer at 16. Proof that your generation can make history right NOW. Age is not a barrier to greatness.", badge: "🌟", stat: "Euro 2024 champion at 16" },
-  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", lesson: "World Cup winner at 19. Donates all his international match fees to charity. Excellence with humility — speed on the pitch, grace off it.", badge: "⚡", stat: "World Cup winner at 19" },
-  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", lesson: "Revolutionised goalkeeping — a sweeper-keeper who plays like an outfield player. Came back from a broken leg at 36. Resilience redefined.", badge: "🧤", stat: "World Cup + 10× Bundesliga" },
-  { name: "Pelé", shortName: "Pelé", era: "1956–1977", lesson: "Learned to play with a sock stuffed with newspapers because he couldn't afford a ball. Became the greatest of his era through pure love of the game.", badge: "🇧🇷", stat: "3× World Cup winner" },
-  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", lesson: "El Fenómeno — the original Ronaldo. Overcame devastating knee injuries that would have ended most careers. At his peak, he was unstoppable.", badge: "🔥", stat: "2× World Cup + 2× Ballon d'Or" },
+  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", recipe: "Resilience", lesson: "Virgil van Dijk's path to becoming the world's best central defender is not a story of instant recognition or early success. It is a story of doors closing, of people saying not good enough, and of a man who refused to accept that verdict. As a teenager, he was released from his club's youth academy. Coaches looked at him and decided he wasn't ready — too raw, not quite there. He dropped into lower levels, kept working, kept growing, and made his way back up through Groningen, Celtic, and Southampton before Liverpool paid a world-record fee for a centre-back. He was 26 years old when that move happened. What followed was nothing short of extraordinary. He anchored Liverpool's defence through a Champions League-winning season, a Premier League title, and consistently formed one of the most formidable defensive partnerships the game has seen. But the chapter of his story that speaks loudest about Resilience is what happened after his ACL injury in 2020 — an injury so severe that it robbed him of almost an entire season. Many wondered if he would ever return as the same player. He came back better. Resilience isn't dramatic or loud. It's the quiet decision to turn up, do the work, and let the results follow. Van Dijk is the definition of that.", badge: "🏔️", stat: "UCL + PL winner · World-record fee for a defender" },
+  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", recipe: "Resilience", lesson: "When Mohamed Salah left Egypt as a young man with a dream, nobody could have predicted what would follow. He was signed by Chelsea — one of the world's biggest clubs — but was given almost no opportunity to play. He sat on the bench, watched weeks pass, and when chances finally came, they didn't stick. Chelsea loaned him, then sold him on. To many observers, it looked like the end of a story that had barely started. Salah chose to see it as a beginning. He moved to Fiorentina, then Roma, and it was there that the world finally began to see the full scope of what this man could do. His pace, his directness, his ability to score from angles that seemed impossible — it was all being built, refined, tested. When Liverpool came calling, the rest is history. In his first season at Anfield, he broke the Premier League's single-season scoring record. He won the Champions League, the Premier League, multiple Golden Boots. He became the most feared attacker in the world. But the detail that elevates him further is how he has quietly given back to his home village in Egypt — building hospitals, improving infrastructure, transforming lives long before it was fashionable. His career teaches Resilience in its truest form: that one rejection, or five, means nothing if you refuse to stop.", badge: "👑", stat: "PL Golden Boot × 4 · Champions League winner" },
+  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "🌟", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer" },
+  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "⚡", stat: "World Cup winner at 19 · Donates all national team earnings to charity" },
+  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "🧤", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping" },
+  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups" },
+  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "🔥", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno" },
 ];
 
 const LEGENDS_SG = [
-  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "🇸🇬", stat: "Singapore's greatest player ever · scored vs Inter Milan" },
-  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🌏", stat: "First SG player in Norwegian top flight" },
-  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998" },
-  { name: "Aleksandar Đurić", shortName: "Đurić", era: "1996–2013", lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer" },
-  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner" },
-  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one that can be developed through relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you.", badge: "🎯", stat: "Scored vs Manchester United" },];
+  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", recipe: "Excellence", lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "⭐", stat: "Singapore's greatest player ever · Scored vs Inter Milan" },
+  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🚀", stat: "First SG player in Norwegian top flight" },
+  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998" },
+  { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer" },
+  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner" },
+  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "🎯", stat: "Scored vs Manchester United · Nearly two decades serving the Lions" },];
 
 const BADGES = [
   { id: "first_log", name: "First Touch", desc: "Logged your first session", icon: "🏅", xp: 50 },
@@ -453,6 +459,14 @@ const QUIZ_QUESTIONS = [
   { q: "In a 'negative split' 2.4km run, what happens?", opts: ["You run the first half faster", "You run the second half faster than the first", "You sprint the whole way", "You walk the last 400m"], correct: 1, explain: "A negative split means running the second half faster than the first — the smartest pacing strategy." },
   { q: "What's the 'golden window' in nutrition?", opts: ["The best time to eat breakfast", "The 30–45 minutes after training when your body absorbs nutrients best", "Eating only golden-coloured food", "Fasting before a match"], correct: 1, explain: "The 30–45 minutes after training is when your muscles are primed to absorb protein and carbs for recovery." },
   { q: "When did Singapore last win the AFF Suzuki Cup?", opts: ["2004", "2007", "2012", "Singapore hasn't won it"], correct: 2, explain: "Singapore won the AFF Suzuki Cup in 2004, 2007, and 2012 — a proud part of Singapore football history!" },
+  { q: "What does VAR stand for?", opts: ["Video Assisted Referee", "Video Assistant Referee", "Virtual Action Review", "Visual Accuracy Review"], correct: 1, explain: "VAR is the Video Assistant Referee system, used to review key match decisions like goals, penalties, and red cards." },
+  { q: "Which Singapore player famously scored against Manchester United?", opts: ["Fandi Ahmad", "Shahril Ishak", "Nazri Nasir", "Indra Sahdan"], correct: 3, explain: "Indra Sahdan scored against Manchester United — a goal that put Singapore football on the world stage." },
+  { q: "What is a 'box-to-box midfielder'?", opts: ["A midfielder who only defends", "A midfielder who covers the full pitch — defending in their own box and attacking the opponent's", "A midfielder who stays in the centre circle", "A midfielder used only at corners"], correct: 1, explain: "A box-to-box midfielder contributes both defensively and offensively, covering the entire length of the pitch. Think Kante or Gerrard." },
+  { q: "What does 'CAM' stand for in football positions?", opts: ["Centre Attacking Midfielder", "Central Area Marker", "Counter Attack Midfielder", "Corner Assist Man"], correct: 0, explain: "CAM stands for Central Attacking Midfielder — the creative No. 10 role, linking midfield to attack." },
+  { q: "What is 'carbo-loading' and when should a player do it?", opts: ["Eating lots of protein the night before a match", "Increasing carbohydrate intake in the 1–2 days before a big match to maximise energy stores", "Eating only carbs all week", "Skipping meals before a match to feel lighter"], correct: 1, explain: "Carbo-loading tops up your glycogen (energy) stores before a big match. Think pasta, rice, or bread the night before." },
+  { q: "How many substitutions are allowed per team in a standard competitive match?", opts: ["3", "4", "5", "Unlimited"], correct: 2, explain: "Since 2020, FIFA allows 5 substitutions per team in most competitions — a change introduced during the COVID period and made permanent." },
+  { q: "A defender deliberately handles the ball on the goal line to stop a certain goal. What happens?", opts: ["A penalty is given only", "A free kick outside the box", "The player is red-carded and a penalty is awarded", "A yellow card and a penalty"], correct: 2, explain: "Denying a goal with a deliberate handball results in a red card (straight) plus a penalty — the most severe punishment in football." },
+  { q: "What does it mean to play with 'Passion' — the P in NBSS's RECIPE values?", opts: ["Playing only when you feel like it", "Giving maximum effort and loving what you do, in every session, every match", "Scoring goals every game", "Being the loudest player on the pitch"], correct: 1, explain: "Passion means total commitment — loving the process, not just the result. It's what separates those who improve from those who stagnate." },
 ];
 
 const GOAL_CATEGORIES = [
@@ -968,10 +982,161 @@ function NutritionSection() {
 }
 
 // ══════════════════════════════════════════════════
+//  BOX BREATHING TIMER
+// ══════════════════════════════════════════════════
+function BoxBreathingTimer() {
+  const PHASES = [
+    { label: "INHALE", duration: 4, color: C.electric, instruction: "Breathe in slowly through your nose" },
+    { label: "HOLD", duration: 4, color: C.gold, instruction: "Hold your breath gently" },
+    { label: "EXHALE", duration: 4, color: C.success, instruction: "Breathe out slowly through your mouth" },
+    { label: "HOLD", duration: 4, color: "#a855f7", instruction: "Hold and prepare for the next breath" },
+  ];
+
+  const [running, setRunning] = useState(false);
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(4);
+  const [rounds, setRounds] = useState(0);
+  const totalRounds = 5;
+  const [done, setDone] = useState(false);
+  const intervalRef = useRef(null);
+
+  const phase = PHASES[phaseIdx];
+  const progress = (phase.duration - secondsLeft) / phase.duration;
+
+  const reset = () => {
+    clearInterval(intervalRef.current);
+    setRunning(false);
+    setPhaseIdx(0);
+    setSecondsLeft(4);
+    setRounds(0);
+    setDone(false);
+  };
+
+  useEffect(() => {
+    if (!running) return;
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          setPhaseIdx(pIdx => {
+            const next = (pIdx + 1) % 4;
+            if (next === 0) {
+              setRounds(r => {
+                const newR = r + 1;
+                if (newR >= totalRounds) {
+                  clearInterval(intervalRef.current);
+                  setRunning(false);
+                  setDone(true);
+                }
+                return newR;
+              });
+            }
+            return next;
+          });
+          return 4;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current);
+  }, [running]);
+
+  const circumference = 2 * Math.PI * 52;
+  const dashOffset = circumference * (1 - progress);
+
+  return (
+    <Card style={{ marginBottom: 28 }}>
+      <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>BOX BREATHING TIMER</h3>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 24px" }}>4-4-4-4 breathing to calm nerves before kick-off. Complete {totalRounds} rounds.</p>
+
+      {/* Phase steps */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
+        {PHASES.map((p, i) => (
+          <div key={i} style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            padding: "8px 14px", borderRadius: 10,
+            background: running && phaseIdx === i ? `${p.color}18` : C.surfaceSubtle,
+            border: `1px solid ${running && phaseIdx === i ? p.color + "50" : C.navyBorder}`,
+            transition: "all 0.4s",
+          }}>
+            <span style={{ fontFamily: FONT_HEAD, fontSize: 11, color: running && phaseIdx === i ? p.color : C.textDim, letterSpacing: 1 }}>{p.label}</span>
+            <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: running && phaseIdx === i ? p.color : C.textDim }}>{p.duration}s</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Circle timer */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
+        <div style={{ position: "relative", width: 140, height: 140 }}>
+          <svg width="140" height="140" style={{ transform: "rotate(-90deg)" }}>
+            <circle cx="70" cy="70" r="52" fill="none" stroke={`${phase.color}15`} strokeWidth="8" />
+            <circle
+              cx="70" cy="70" r="52" fill="none"
+              stroke={running || done ? phase.color : C.navyBorder}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={running ? dashOffset : circumference}
+              style={{ transition: "stroke-dashoffset 0.9s linear, stroke 0.4s" }}
+            />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            {done ? (
+              <span style={{ fontSize: 32 }}>✅</span>
+            ) : (
+              <>
+                <span style={{ fontFamily: FONT_HEAD, fontSize: 38, color: running ? phase.color : C.textDim, lineHeight: 1, transition: "color 0.4s" }}>
+                  {secondsLeft}
+                </span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: running ? phase.color : C.textDim, fontWeight: 700, letterSpacing: 1, marginTop: 2, textTransform: "uppercase", transition: "color 0.4s" }}>
+                  {running ? phase.label : "READY"}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Round dots */}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          {Array.from({ length: totalRounds }).map((_, i) => (
+            <div key={i} style={{
+              width: 10, height: 10, borderRadius: "50%",
+              background: i < rounds ? C.success : (running && i === rounds ? phase.color : C.navyBorder),
+              transition: "all 0.4s",
+              boxShadow: running && i === rounds ? `0 0 8px ${phase.color}60` : "none",
+            }} />
+          ))}
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "10px 0 0", textAlign: "center" }}>
+          {done ? "Well done! You've completed 5 rounds. 🎉" : running ? phase.instruction : "Press Start when you're ready"}
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+        {done ? (
+          <GoldButton onClick={reset}>Repeat</GoldButton>
+        ) : (
+          <>
+            <GoldButton onClick={() => setRunning(r => !r)}>
+              {running ? "⏸ Pause" : rounds === 0 ? "▶ Start" : "▶ Resume"}
+            </GoldButton>
+            {(running || rounds > 0) && (
+              <GoldButton secondary onClick={reset}>Reset</GoldButton>
+            )}
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  MINDSET
 // ══════════════════════════════════════════════════
 function MindsetSection() {
   const [activeCard, setActiveCard] = useState(null);
+  const [flippedCards, setFlippedCards] = useState({});
+  const [mindsetFilter, setMindsetFilter] = useState("All");
   const [journalEntries, setJournalEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
   const [journalForm, setJournalForm] = useState({ date: new Date().toISOString().slice(0, 10), fixed: "", growth: "", reflection: "" });
   const [showJournal, setShowJournal] = useState(false);
@@ -983,6 +1148,15 @@ function MindsetSection() {
     setJournalForm({ date: new Date().toISOString().slice(0, 10), fixed: "", growth: "", reflection: "" });
     setShowJournal(false);
   };
+
+  const toggleFlip = (i) => setFlippedCards(prev => ({ ...prev, [i]: !prev[i] }));
+
+  const phaseFilters = ["All", "Pre-Game", "During Game", "Post-Game", "General"];
+  const phaseColors = { "Pre-Game": C.electric, "During Game": C.gold, "Post-Game": C.success, "General": "#a855f7" };
+
+  const filteredFramework = mindsetFilter === "All"
+    ? GROWTH_MINDSET_FRAMEWORK
+    : GROWTH_MINDSET_FRAMEWORK.filter(item => item.phase === mindsetFilter);
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
@@ -1014,22 +1188,73 @@ function MindsetSection() {
         ))}
       </div>
 
-      {/* Growth Mindset Framework */}
+      {/* Box Breathing Timer */}
+      <BoxBreathingTimer />
+
+      {/* Fixed vs Growth Mindset — Flippable Cards */}
       <Card style={{ marginBottom: 28 }}>
-        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>FIXED vs GROWTH MINDSET</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 20px" }}>Spot the fixed mindset. Flip it to growth.</p>
-        <div style={{ display: "grid", gap: 10 }}>
-          {GROWTH_MINDSET_FRAMEWORK.map((item, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 12, alignItems: "center", padding: "12px 16px", background: C.surfaceSubtle, borderRadius: 10 }}>
-              <div style={{ padding: "8px 12px", borderRadius: 8, background: `${C.danger}08`, border: `1px solid ${C.danger}15` }}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.danger, margin: 0 }}>{item.fixed}</p>
-              </div>
-              <span style={{ fontSize: 18, textAlign: "center" }}>{item.icon}</span>
-              <div style={{ padding: "8px 12px", borderRadius: 8, background: `${C.success}08`, border: `1px solid ${C.success}15` }}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, margin: 0 }}>{item.growth}</p>
-              </div>
-            </div>
+        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>FIXED vs GROWTH MINDSET</h3>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 16px" }}>Tap a card to flip from fixed thinking to growth thinking.</p>
+
+        {/* Phase filter pills */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {phaseFilters.map(f => (
+            <button key={f} onClick={() => { setMindsetFilter(f); setFlippedCards({}); }} style={{
+              padding: "6px 14px", borderRadius: 20, cursor: "pointer", border: "none",
+              fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+              background: mindsetFilter === f ? (phaseColors[f] || C.electric) : C.surfaceSubtle,
+              color: mindsetFilter === f ? C.navy : C.textDim,
+              transition: "all 0.2s",
+            }}>{f}</button>
           ))}
+        </div>
+
+        {/* Flip cards grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+          {filteredFramework.map((item, i) => {
+            const isFlipped = !!flippedCards[i];
+            const phaseColor = phaseColors[item.phase] || C.electric;
+            return (
+              <div key={i} onClick={() => toggleFlip(i)} style={{ perspective: 800, cursor: "pointer", height: 130 }}>
+                <div style={{
+                  position: "relative", width: "100%", height: "100%",
+                  transformStyle: "preserve-3d",
+                  transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                  transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}>
+                  {/* Front — Fixed mindset */}
+                  <div style={{
+                    position: "absolute", inset: 0, backfaceVisibility: "hidden",
+                    borderRadius: 12, padding: "14px 16px",
+                    background: `${C.danger}08`, border: `1px solid ${C.danger}25`,
+                    display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span style={{ fontSize: 22 }}>{item.icon}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: phaseColor, background: `${phaseColor}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.phase}</span>
+                    </div>
+                    <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.danger, margin: 0, lineHeight: 1.5 }}>"{item.fixed}"</p>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textAlign: "right" }}>Tap to flip →</span>
+                  </div>
+                  {/* Back — Growth mindset */}
+                  <div style={{
+                    position: "absolute", inset: 0, backfaceVisibility: "hidden",
+                    transform: "rotateY(180deg)",
+                    borderRadius: 12, padding: "14px 16px",
+                    background: `${C.success}08`, border: `1px solid ${C.success}30`,
+                    display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span style={{ fontSize: 22 }}>🌱</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: C.success, background: `${C.success}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Growth</span>
+                    </div>
+                    <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, margin: 0, lineHeight: 1.5 }}>"{item.growth}"</p>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textAlign: "right" }}>← Tap to flip back</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -1541,8 +1766,13 @@ function LegendsSection() {
           </span>
           <div>
             <h2 style={{ fontFamily: FONT_HEAD, fontSize: 34, color: C.textBright, margin: 0, letterSpacing: 2 }}>{legends[active].name.toUpperCase()}</h2>
-            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legends[active].era}</span>
+            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {tab !== "sg" && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legends[active].era}</span>}
+              {legends[active].recipe && (() => {
+                const recipeColors = { Respect: C.electric, Resilience: "#f97316", Care: C.success, Integrity: "#a855f7", Passion: C.danger, Excellence: C.gold };
+                const rc = recipeColors[legends[active].recipe] || C.gold;
+                return <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: rc, background: `${rc}15`, padding: "3px 10px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>RECIPE · {legends[active].recipe}</span>;
+              })()}
               <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, background: `${C.gold}10`, padding: "3px 10px", borderRadius: 6, fontWeight: 700, border: `1px solid ${C.gold}20` }}>{legends[active].stat}</span>
             </div>
           </div>
@@ -2369,7 +2599,7 @@ function HubOverview({ setHubTab }) {
   const cards = [
     { id: "schedule", title: "CCA Schedule", desc: "Training dates, match fixtures and important dates.", icon: "📅", color: C.electric },
     { id: "recovery", title: "Recovery Zone", desc: "Stretching, foam rolling, sleep tips.", icon: "🧊", color: C.success },
-    { id: "quiz", title: "Football IQ Quiz", desc: "12 questions on tactics, rules & SG football.", icon: "🧠", color: C.gold },
+    { id: "quiz", title: "Football IQ Quiz", desc: `${QUIZ_QUESTIONS.length} questions on tactics, rules & SG football.`, icon: "🧠", color: C.gold },
     { id: "goals", title: "Goal Wall", desc: "Set personal goals. Track them. Crush them.", icon: "🎯", color: C.danger },
   ];
   return (
