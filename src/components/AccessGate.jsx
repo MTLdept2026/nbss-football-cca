@@ -1,28 +1,41 @@
 // src/components/AccessGate.jsx
-// Drop this file into your src/components/ folder.
-// Then wrap your app with it in main.jsx or App.jsx (see instructions below).
+// Uses cookies instead of localStorage — works across browser AND home screen (PWA) on iOS/Android.
 
 import { useEffect, useState } from "react";
 
 const TOKEN = "majulahnavalites";
-const STORAGE_KEY = "nbssfc_access";
+const COOKIE_NAME = "nbssfc_access";
+const COOKIE_DAYS = 400; // ~13 months — survives the school year
 
+// --- Cookie helpers ---
+function setCookie(name, value, days) {
+  const expires = new Date();
+  expires.setDate(expires.getDate() + days);
+  document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`;
+}
+
+function getCookie(name) {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="));
+  return match ? match.split("=")[1] : null;
+}
+
+// --- Gate component ---
 export default function AccessGate({ children }) {
   const [granted, setGranted] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check URL for token
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("ref");
 
     if (urlToken === TOKEN) {
-      localStorage.setItem(STORAGE_KEY, "true");
-      // Clean token from URL without page reload
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      setCookie(COOKIE_NAME, "true", COOKIE_DAYS);
+      // Clean token from URL without reload
+      window.history.replaceState({}, "", window.location.pathname);
       setGranted(true);
-    } else if (localStorage.getItem(STORAGE_KEY) === "true") {
+    } else if (getCookie(COOKIE_NAME) === "true") {
       setGranted(true);
     }
 
@@ -34,11 +47,11 @@ export default function AccessGate({ children }) {
   return <LockedScreen />;
 }
 
+// --- Locked screen ---
 function LockedScreen() {
   return (
     <div style={styles.overlay}>
       <div style={styles.card}>
-        {/* Crest / Badge */}
         <div style={styles.badge}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
             <path
