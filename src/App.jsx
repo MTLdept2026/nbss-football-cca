@@ -3025,11 +3025,6 @@ const SEED_ROSTER = [
 
 function ClusterAttendance() {
   const [roster, setRoster] = usePersistedState(STORAGE_KEYS.roster, []);
-
-  // Auto-seed roster on first load if empty
-  useEffect(() => {
-    if (roster.length === 0) setRoster(SEED_ROSTER);
-  }, []); // eslint-disable-line
   const [attendanceLog, setAttendanceLog] = usePersistedState(STORAGE_KEYS.attendance, {});
   const [view, setView] = useState("take"); // "take" | "roster" | "summary"
   const [sessionDate, setSessionDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -3051,6 +3046,11 @@ function ClusterAttendance() {
   // Walk-in state
   const [walkInName, setWalkInName] = useState("");
   const [walkInSchool, setWalkInSchool] = useState(SCHOOLS[0]);
+
+  // Auto-seed roster on first load if empty
+  useEffect(() => {
+    if (roster.length === 0) setRoster(SEED_ROSTER);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sessionKey = sessionDate;
 
