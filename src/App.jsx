@@ -563,6 +563,8 @@ function Pill({ children, active, onClick, color = C.gold }) {
       fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600,
       transition: "all 0.2s ease",
       boxShadow: active ? `0 4px 16px ${color}30` : "none",
+      whiteSpace: "nowrap",
+      flexShrink: 0,
     }}>{children}</button>
   );
 }
