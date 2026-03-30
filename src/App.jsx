@@ -1694,7 +1694,7 @@ function TrackerSection() {
         const last = acwrData[acwrData.length - 1];
         const acwrColor = last.acwr > 1.5 ? C.danger : last.acwr > 1.3 ? C.orange : last.acwr < 0.8 ? C.electric : C.success;
         return (
-          <Card style={{ marginBottom: 24 }}>
+          <Card style={{ marginBottom: 24, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>⚡ TRAINING LOAD — ACWR</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1705,8 +1705,9 @@ function TrackerSection() {
               </div>
             </div>
             <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Acute:Chronic Workload Ratio (7-day vs 28-day). Target: 0.8 – 1.3 ✅</p>
+            <div style={{ width: "100%", overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={acwrData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <LineChart data={acwrData} margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
                 <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
                 <YAxis domain={[0, 2.5]} tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
@@ -1719,6 +1720,7 @@ function TrackerSection() {
                 <Line type="monotone" dataKey="acwr" stroke={C.gold} strokeWidth={2} dot={{ fill: C.gold, r: 3 }} activeDot={{ r: 5 }} name="ACWR" />
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </Card>
         );
       })()}
@@ -2438,12 +2440,63 @@ function LineupBuilderSection() {
   const [drawPaths, setDrawPaths] = useState([]);
   const [activePath, setActivePath] = useState(null);
   const pitchRef = useRef(null);
+  const DRAW_STROKE = "rgba(255,90,90,0.95)";
+  const ACTIVE_DRAW_STROKE = "rgba(255,160,50,0.9)";
 
   const getXY = (e) => {
     const rect = pitchRef.current.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 140 };
+  };
+  const getArrowShape = (path) => {
+    if (!path || path.length < 2) return null;
+
+    const tip = path[path.length - 1];
+    let anchor = path[path.length - 2];
+
+    for (let i = path.length - 2; i >= 0; i -= 1) {
+      const candidate = path[i];
+      const dx = tip.x - candidate.x;
+      const dy = tip.y - candidate.y;
+      if (Math.hypot(dx, dy) >= 4) {
+        anchor = candidate;
+        break;
+      }
+    }
+
+    const dx = tip.x - anchor.x;
+    const dy = tip.y - anchor.y;
+    const length = Math.hypot(dx, dy);
+    if (!length) return null;
+
+    const ux = dx / length;
+    const uy = dy / length;
+    const px = -uy;
+    const py = ux;
+    const headLength = 5.2;
+    const headWidth = 2.6;
+    const shaftEnd = {
+      x: tip.x - ux * (headLength * 0.9),
+      y: tip.y - uy * (headLength * 0.9),
+    };
+    const base = {
+      x: tip.x - ux * headLength,
+      y: tip.y - uy * headLength,
+    };
+    const left = {
+      x: base.x + px * headWidth,
+      y: base.y + py * headWidth,
+    };
+    const right = {
+      x: base.x - px * headWidth,
+      y: base.y - py * headWidth,
+    };
+
+    return {
+      shaftPoints: [...path.slice(0, -1), shaftEnd].map((p) => `${p.x},${p.y}`).join(" "),
+      headPoints: `${tip.x},${tip.y} ${left.x},${left.y} ${right.x},${right.y}`,
+    };
   };
   const onDrawStart = (e) => { if (!drawMode) return; e.preventDefault(); setActivePath([getXY(e)]); };
   const onDrawMove = (e) => { if (!drawMode || !activePath) return; e.preventDefault(); setActivePath(prev => [...prev, getXY(e)]); };
@@ -2491,11 +2544,6 @@ function LineupBuilderSection() {
               style={{ position: "relative", width: "100%", paddingBottom: "140%", background: "linear-gradient(180deg, #0a4a0a 0%, #0d5a0d 50%, #0a4a0a 100%)", borderRadius: 12, border: `2px solid ${drawMode ? C.danger : C.navyBorder}`, overflow: "hidden", cursor: drawMode ? "crosshair" : "default", userSelect: "none", touchAction: drawMode ? "none" : "auto" }}>
               {/* Pitch markings + drawing layer */}
               <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 100 140" preserveAspectRatio="none">
-                <defs>
-                  <marker id="arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 5 2, 0 4" fill="rgba(255,80,80,0.95)" />
-                  </marker>
-                </defs>
                 <rect x="0" y="0" width="100" height="140" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
                 <line x1="0" y1="70" x2="100" y2="70" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
                 <circle cx="50" cy="70" r="10" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
@@ -2504,12 +2552,26 @@ function LineupBuilderSection() {
                 <rect x="25" y="120" width="50" height="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.4" />
                 <rect x="35" y="130" width="30" height="10" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.4" />
                 {/* Drawn tactical paths */}
-                {drawPaths.map((path, pi) => (
-                  <polyline key={pi} points={path.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="rgba(255,90,90,0.95)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" markerEnd="url(#arrowhead)" />
-                ))}
-                {activePath && (
-                  <polyline points={activePath.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="rgba(255,160,50,0.9)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                )}
+                {drawPaths.map((path, pi) => {
+                  const arrow = getArrowShape(path);
+                  if (!arrow) return null;
+                  return (
+                    <g key={pi}>
+                      <polyline points={arrow.shaftPoints} fill="none" stroke={DRAW_STROKE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <polygon points={arrow.headPoints} fill={DRAW_STROKE} />
+                    </g>
+                  );
+                })}
+                {activePath && (() => {
+                  const arrow = getArrowShape(activePath);
+                  if (!arrow) return null;
+                  return (
+                    <g>
+                      <polyline points={arrow.shaftPoints} fill="none" stroke={ACTIVE_DRAW_STROKE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <polygon points={arrow.headPoints} fill={ACTIVE_DRAW_STROKE} />
+                    </g>
+                  );
+                })()}
               </svg>
               {formation.positions.map((pos, idx) => (
                 <div key={idx} style={{ position: "absolute", left: `${pos.x}%`, top: `${pos.y}%`, transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 1 }}>
