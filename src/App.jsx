@@ -180,6 +180,9 @@ const STORAGE_KEYS = {
   roster: "nbss-cluster-roster", attendance: "nbss-attendance-log",
 };
 
+const ATTENDANCE_TEACHER_PASSWORD = "enitamur2026";
+const ATTENDANCE_TEACHER_SESSION_KEY = "nbss-attendance-teacher-access";
+
 function usePersistedState(key, defaultVal) {
   const [state, setState] = useState(() => {
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : defaultVal; }
@@ -3469,6 +3472,115 @@ function ClusterAttendance() {
   );
 }
 
+function TeacherAttendanceGate({ children }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [granted, setGranted] = useState(() => {
+    try { return sessionStorage.getItem(ATTENDANCE_TEACHER_SESSION_KEY) === "true"; }
+    catch { return false; }
+  });
+
+  const unlockAttendance = (e) => {
+    e.preventDefault();
+    if (password === ATTENDANCE_TEACHER_PASSWORD) {
+      try { sessionStorage.setItem(ATTENDANCE_TEACHER_SESSION_KEY, "true"); } catch {}
+      setGranted(true);
+      setPassword("");
+      setError("");
+      return;
+    }
+    setError("Incorrect password. Teacher access only.");
+  };
+
+  const relockAttendance = () => {
+    try { sessionStorage.removeItem(ATTENDANCE_TEACHER_SESSION_KEY); } catch {}
+    setGranted(false);
+    setPassword("");
+    setError("");
+  };
+
+  if (granted) {
+    return (
+      <div style={{ display: "grid", gap: 16 }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+          flexWrap: "wrap", padding: "14px 16px", borderRadius: 14,
+          background: "rgba(34,211,165,0.08)", border: `1px solid ${C.success}33`,
+        }}>
+          <div>
+            <div style={{ fontFamily: FONT_HEAD, color: C.textBright, fontSize: 16 }}>Teacher Access Enabled</div>
+            <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13 }}>
+              Attendance is unlocked for this browser tab.
+            </div>
+          </div>
+          <button onClick={relockAttendance} style={{
+            padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.gold}44`,
+            background: "rgba(240,180,41,0.12)", color: C.goldLight,
+            fontFamily: FONT_BODY, fontWeight: 800, cursor: "pointer",
+          }}>
+            Lock Attendance
+          </button>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${C.navyCard}, ${C.navyDeep})`,
+      border: `1px solid ${C.navyBorder}`, borderRadius: 24, padding: 24,
+      boxShadow: "0 24px 50px rgba(0,0,0,0.28)",
+    }}>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16,
+        padding: "8px 12px", borderRadius: 999, background: "rgba(56,189,248,0.1)",
+        border: "1px solid rgba(56,189,248,0.2)", color: C.electric,
+        fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}>
+        Teacher Only
+      </div>
+      <h3 style={{ margin: "0 0 8px", fontFamily: FONT_HEAD, color: C.textBright, fontSize: 28 }}>
+        Attendance Tab Locked
+      </h3>
+      <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
+        Enter the teacher password to view and manage cluster attendance. Access stays unlocked only for this tab.
+      </p>
+      <form onSubmit={unlockAttendance} style={{ display: "grid", gap: 14, maxWidth: 420 }}>
+        <div>
+          <label style={labelStyle}>Teacher Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError("");
+            }}
+            placeholder="Enter password"
+            style={inputStyle}
+          />
+        </div>
+        {error && (
+          <div style={{
+            padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13,
+            color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
+          }}>
+            {error}
+          </div>
+        )}
+        <button type="submit" style={{
+          width: "fit-content", padding: "12px 18px", borderRadius: 10, border: "none",
+          background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep,
+          fontFamily: FONT_BODY, fontSize: 14, fontWeight: 900, cursor: "pointer",
+        }}>
+          Unlock Attendance
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════
 //  TEAM HUB
 // ══════════════════════════════════════════════════
@@ -3497,7 +3609,11 @@ function TeamHubSection() {
       {hubTab === "recovery" && <RecoveryZone />}
       {hubTab === "quiz" && <FootballIQQuiz />}
       {hubTab === "goals" && <GoalWall />}
-      {hubTab === "attendance" && <ClusterAttendance />}
+      {hubTab === "attendance" && (
+        <TeacherAttendanceGate>
+          <ClusterAttendance />
+        </TeacherAttendanceGate>
+      )}
     </section>
   );
 }
