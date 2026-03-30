@@ -2559,7 +2559,7 @@ function LineupBuilderSection() {
 
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
         <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
-          {drawMode ? "âœï¸ Drawing On â€” Tap Pitch" : "âœï¸ Draw Tactics"}
+          {drawMode ? "Drawing On - Tap Pitch" : "Draw Tactics"}
         </button>
         {isCompactLayout && !fullscreen && (
           <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.28)", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
@@ -2567,10 +2567,10 @@ function LineupBuilderSection() {
           </button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>â†© Undo</button>
+          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>ðŸ—‘ Clear</button>
+          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
         )}
       </div>
 
@@ -2645,7 +2645,7 @@ function LineupBuilderSection() {
         ))}
       </div>
       <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, textAlign: "center" }}>
-        {fullscreen ? "Draw with more room, then tap Done to return." : `${filled}/11 starters Â· ${subCount} subs`}
+        {fullscreen ? "Draw with more room, then tap Close to return." : `${filled}/11 starters | ${subCount} subs`}
       </p>
     </div>
   );
@@ -2793,7 +2793,7 @@ function LineupBuilderSection() {
 
       {viewMode === "builder" && isCompactLayout && isDrawFullscreen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(5,15,30,0.98)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 18px)", overflowY: "auto" }}>
-          <div style={{ maxWidth: 620, margin: "0 auto" }}>
+          <div style={{ width: "100%", maxWidth: isTabletLayout ? 920 : 620, margin: "0 auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>TACTICS BOARD</div>
