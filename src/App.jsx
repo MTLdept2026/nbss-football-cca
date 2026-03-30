@@ -2408,8 +2408,46 @@ function LineupBuilderSection() {
   const [current, setCurrent] = useState({ ...EMPTY_MATCH });
   const [viewMode, setViewMode] = useState("builder");
   const [editingId, setEditingId] = useState(null);
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window !== "undefined" ? window.innerWidth : 1280);
+  const [isDrawFullscreen, setIsDrawFullscreen] = useState(false);
 
   const formation = FORMATIONS[current.formation];
+  const isPhoneLayout = viewportWidth <= 768;
+  const isTabletLayout = viewportWidth > 768 && viewportWidth <= 1180;
+  const isCompactLayout = isPhoneLayout || isTabletLayout;
+  const builderColumns = isPhoneLayout ? "1fr" : isTabletLayout ? "minmax(0, 1.15fr) minmax(340px, 0.85fr)" : "1fr 1fr";
+  const builderGap = isPhoneLayout ? 18 : isTabletLayout ? 22 : 24;
+  const formColumns = isPhoneLayout ? "1fr" : "1fr 1fr";
+  const pitchMaxWidth = isPhoneLayout ? 440 : isTabletLayout ? 720 : "none";
+  const pitchAspectRatio = isPhoneLayout ? "132%" : isTabletLayout ? "122%" : "140%";
+  const playerBadgeSize = isPhoneLayout ? 36 : isTabletLayout ? 40 : 32;
+  const playerRoleSize = isPhoneLayout ? 10 : isTabletLayout ? 11 : 9;
+  const playerNameSize = isPhoneLayout ? 8.5 : isTabletLayout ? 9 : 8;
+  const playerNameWidth = isPhoneLayout ? 42 : isTabletLayout ? 54 : 36;
+
+  useEffect(() => {
+    const syncLayout = () => setViewportWidth(window.innerWidth);
+    syncLayout();
+    window.addEventListener("resize", syncLayout);
+    return () => window.removeEventListener("resize", syncLayout);
+  }, []);
+
+  useEffect(() => {
+    if (!isCompactLayout) setIsDrawFullscreen(false);
+  }, [isCompactLayout]);
+
+  useEffect(() => {
+    if (viewMode !== "builder") setIsDrawFullscreen(false);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (!isDrawFullscreen || typeof document === "undefined") return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isDrawFullscreen]);
 
   const updatePlayer = (idx, name) => { const p = [...current.players]; p[idx] = name; setCurrent({ ...current, players: p }); };
   const updateSub = (idx, name) => { const s = [...current.subs]; s[idx] = name; setCurrent({ ...current, subs: s }); };
@@ -2501,9 +2539,119 @@ function LineupBuilderSection() {
   const onDrawStart = (e) => { if (!drawMode) return; e.preventDefault(); setActivePath([getXY(e)]); };
   const onDrawMove = (e) => { if (!drawMode || !activePath) return; e.preventDefault(); setActivePath(prev => [...prev, getXY(e)]); };
   const onDrawEnd = () => { if (activePath && activePath.length > 1) setDrawPaths(prev => [...prev, activePath]); setActivePath(null); };
+  const renderPitchPanel = (fullscreen = false) => (
+    <div style={{ width: "100%", maxWidth: fullscreen ? (isTabletLayout ? 860 : 560) : pitchMaxWidth, margin: "0 auto" }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+          <label style={labelStyle}>Formation</label>
+          {fullscreen && (
+            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
+              Full-screen tactics board
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", flexWrap: isPhoneLayout ? "nowrap" : "wrap", gap: 6, overflowX: isPhoneLayout ? "auto" : "visible", paddingBottom: isPhoneLayout ? 4 : 0 }}>
+          {Object.keys(FORMATIONS).map(f => (
+            <Pill key={f} active={current.formation === f} onClick={() => setCurrent({ ...current, formation: f })} color={C.electric}>{f}</Pill>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
+          {drawMode ? "âœï¸ Drawing On â€” Tap Pitch" : "âœï¸ Draw Tactics"}
+        </button>
+        {isCompactLayout && !fullscreen && (
+          <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.28)", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+            {isTabletLayout ? "Expand Pitch" : "Full Screen"}
+          </button>
+        )}
+        {drawPaths.length > 0 && (
+          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>â†© Undo</button>
+        )}
+        {drawPaths.length > 0 && (
+          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>ðŸ—‘ Clear</button>
+        )}
+      </div>
+
+      <div ref={pitchRef}
+        onMouseDown={onDrawStart} onMouseMove={onDrawMove} onMouseUp={onDrawEnd} onMouseLeave={onDrawEnd}
+        onTouchStart={onDrawStart} onTouchMove={onDrawMove} onTouchEnd={onDrawEnd}
+        style={{
+          position: "relative",
+          width: "100%",
+          ...(fullscreen
+            ? { height: isTabletLayout ? "calc(100vh - 210px)" : "calc(100vh - 220px)", minHeight: isTabletLayout ? 560 : 440, maxHeight: isTabletLayout ? 980 : 820 }
+            : { paddingBottom: pitchAspectRatio }),
+          background: "linear-gradient(180deg, #0a4a0a 0%, #0d5a0d 50%, #0a4a0a 100%)",
+          borderRadius: 14,
+          border: `2px solid ${drawMode ? C.danger : C.navyBorder}`,
+          overflow: "hidden",
+          cursor: drawMode ? "crosshair" : "default",
+          userSelect: "none",
+          touchAction: drawMode ? "none" : "auto",
+          boxShadow: fullscreen || isCompactLayout ? "0 10px 30px rgba(0,0,0,0.22)" : "none",
+        }}>
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 100 140" preserveAspectRatio="none">
+          <rect x="0" y="0" width="100" height="140" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+          <line x1="0" y1="70" x2="100" y2="70" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+          <circle cx="50" cy="70" r="10" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+          <rect x="25" y="0" width="50" height="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.4" />
+          <rect x="35" y="0" width="30" height="10" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.4" />
+          <rect x="25" y="120" width="50" height="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.4" />
+          <rect x="35" y="130" width="30" height="10" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.4" />
+          {drawPaths.map((path, pi) => {
+            const arrow = getArrowShape(path);
+            if (!arrow) return null;
+            return (
+              <g key={pi}>
+                <polyline points={arrow.shaftPoints} fill="none" stroke={DRAW_STROKE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <polygon points={arrow.headPoints} fill={DRAW_STROKE} />
+              </g>
+            );
+          })}
+          {activePath && (() => {
+            const arrow = getArrowShape(activePath);
+            if (!arrow) return null;
+            return (
+              <g>
+                <polyline points={arrow.shaftPoints} fill="none" stroke={ACTIVE_DRAW_STROKE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <polygon points={arrow.headPoints} fill={ACTIVE_DRAW_STROKE} />
+              </g>
+            );
+          })()}
+        </svg>
+        {formation.positions.map((pos, idx) => (
+          <div key={idx} style={{ position: "absolute", left: `${pos.x}%`, top: `${pos.y}%`, transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 1 }}>
+            <div style={{
+              width: fullscreen ? (isTabletLayout ? 44 : 40) : playerBadgeSize,
+              height: fullscreen ? (isTabletLayout ? 44 : 40) : playerBadgeSize,
+              borderRadius: "50%",
+              margin: "0 auto 3px",
+              background: current.players[idx]?.trim() ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : "rgba(255,255,255,0.15)",
+              border: `2px solid ${current.players[idx]?.trim() ? C.gold : "rgba(255,255,255,0.3)"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: fullscreen ? (isTabletLayout ? 12 : 11) : playerRoleSize,
+              fontFamily: FONT_HEAD,
+              color: current.players[idx]?.trim() ? C.navy : "rgba(255,255,255,0.6)",
+              letterSpacing: 0.5,
+            }}>{pos.role}</div>
+            <div style={{ fontSize: fullscreen ? (isTabletLayout ? 9.5 : 9) : playerNameSize, fontFamily: FONT_BODY, color: "rgba(255,255,255,0.7)", fontWeight: 600, textShadow: "0 1px 2px rgba(0,0,0,0.8)", maxWidth: fullscreen ? (isTabletLayout ? 68 : 52) : playerNameWidth, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {current.players[idx]?.trim() || ""}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, textAlign: "center" }}>
+        {fullscreen ? "Draw with more room, then tap Done to return." : `${filled}/11 starters Â· ${subCount} subs`}
+      </p>
+    </div>
+  );
 
   return (
-    <section style={{ padding: "100px 24px 80px", maxWidth: 1000, margin: "0 auto" }}>
+    <section style={{ padding: isPhoneLayout ? "88px 16px 64px" : isTabletLayout ? "92px 20px 72px" : "100px 24px 80px", maxWidth: isTabletLayout ? 1120 : 1000, margin: "0 auto" }}>
       <SectionHeader icon="📋" title="LINEUP BUILDER" subtitle="Plan formations, assign positions, save match lineups" accent={C.electric} />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
@@ -2512,12 +2660,13 @@ function LineupBuilderSection() {
       </div>
 
       {viewMode === "builder" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: builderColumns, gap: builderGap, alignItems: "start" }}>
           {/* Left: Pitch */}
-          <div>
+          {!(isCompactLayout && isDrawFullscreen) && (
+          <div style={{ width: "100%", maxWidth: pitchMaxWidth, margin: isPhoneLayout ? "0 auto" : 0 }}>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Formation</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ display: "flex", flexWrap: isPhoneLayout ? "nowrap" : "wrap", gap: 6, overflowX: isPhoneLayout ? "auto" : "visible", paddingBottom: isPhoneLayout ? 4 : 0 }}>
                 {Object.keys(FORMATIONS).map(f => (
                   <Pill key={f} active={current.formation === f} onClick={() => setCurrent({ ...current, formation: f })} color={C.electric}>{f}</Pill>
                 ))}
@@ -2525,10 +2674,15 @@ function LineupBuilderSection() {
             </div>
 
             {/* Draw mode controls */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
               <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
                 {drawMode ? "✏️ Drawing On — Tap Pitch" : "✏️ Draw Tactics"}
               </button>
+              {isCompactLayout && (
+                <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.28)", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+                  {isTabletLayout ? "Expand Pitch" : "Full Screen"}
+                </button>
+              )}
               {drawPaths.length > 0 && (
                 <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>↩ Undo</button>
               )}
@@ -2541,7 +2695,7 @@ function LineupBuilderSection() {
             <div ref={pitchRef}
               onMouseDown={onDrawStart} onMouseMove={onDrawMove} onMouseUp={onDrawEnd} onMouseLeave={onDrawEnd}
               onTouchStart={onDrawStart} onTouchMove={onDrawMove} onTouchEnd={onDrawEnd}
-              style={{ position: "relative", width: "100%", paddingBottom: "140%", background: "linear-gradient(180deg, #0a4a0a 0%, #0d5a0d 50%, #0a4a0a 100%)", borderRadius: 12, border: `2px solid ${drawMode ? C.danger : C.navyBorder}`, overflow: "hidden", cursor: drawMode ? "crosshair" : "default", userSelect: "none", touchAction: drawMode ? "none" : "auto" }}>
+              style={{ position: "relative", width: "100%", paddingBottom: pitchAspectRatio, background: "linear-gradient(180deg, #0a4a0a 0%, #0d5a0d 50%, #0a4a0a 100%)", borderRadius: 14, border: `2px solid ${drawMode ? C.danger : C.navyBorder}`, overflow: "hidden", cursor: drawMode ? "crosshair" : "default", userSelect: "none", touchAction: drawMode ? "none" : "auto", boxShadow: isCompactLayout ? "0 10px 30px rgba(0,0,0,0.22)" : "none" }}>
               {/* Pitch markings + drawing layer */}
               <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 100 140" preserveAspectRatio="none">
                 <rect x="0" y="0" width="100" height="140" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
@@ -2576,14 +2730,14 @@ function LineupBuilderSection() {
               {formation.positions.map((pos, idx) => (
                 <div key={idx} style={{ position: "absolute", left: `${pos.x}%`, top: `${pos.y}%`, transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 1 }}>
                   <div style={{
-                    width: 32, height: 32, borderRadius: "50%", margin: "0 auto 3px",
+                    width: playerBadgeSize, height: playerBadgeSize, borderRadius: "50%", margin: "0 auto 3px",
                     background: current.players[idx]?.trim() ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : "rgba(255,255,255,0.15)",
                     border: `2px solid ${current.players[idx]?.trim() ? C.gold : "rgba(255,255,255,0.3)"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, fontFamily: FONT_HEAD, color: current.players[idx]?.trim() ? C.navy : "rgba(255,255,255,0.6)",
+                    fontSize: playerRoleSize, fontFamily: FONT_HEAD, color: current.players[idx]?.trim() ? C.navy : "rgba(255,255,255,0.6)",
                     letterSpacing: 0.5,
                   }}>{pos.role}</div>
-                  <div style={{ fontSize: 8, fontFamily: FONT_BODY, color: "rgba(255,255,255,0.7)", fontWeight: 600, textShadow: "0 1px 2px rgba(0,0,0,0.8)", maxWidth: 36, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: playerNameSize, fontFamily: FONT_BODY, color: "rgba(255,255,255,0.7)", fontWeight: 600, textShadow: "0 1px 2px rgba(0,0,0,0.8)", maxWidth: playerNameWidth, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {current.players[idx]?.trim() || ""}
                   </div>
                 </div>
@@ -2591,10 +2745,11 @@ function LineupBuilderSection() {
             </div>
             <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, textAlign: "center" }}>{filled}/11 starters · {subCount} subs</p>
           </div>
+          )}
 
           {/* Right: Form */}
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: formColumns, gap: 12, marginBottom: 14 }}>
               <div><label style={labelStyle}>Opponent</label><input value={current.opponent} onChange={e => setCurrent({ ...current, opponent: e.target.value })} placeholder="vs School Name" style={inputStyle} /></div>
               <div><label style={labelStyle}>Date</label><input type="date" value={current.date} onChange={e => setCurrent({ ...current, date: e.target.value })} style={inputStyle} /></div>
               <div><label style={labelStyle}>Competition</label><input value={current.competition} onChange={e => setCurrent({ ...current, competition: e.target.value })} placeholder="National Schools" style={inputStyle} /></div>
@@ -2632,6 +2787,23 @@ function LineupBuilderSection() {
             <GoldButton onClick={saveLineup} style={{ width: "100%" }}>
               {editingId ? "Update Lineup ✓" : "Save Lineup ✓"}
             </GoldButton>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "builder" && isCompactLayout && isDrawFullscreen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(5,15,30,0.98)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 18px)", overflowY: "auto" }}>
+          <div style={{ maxWidth: 620, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>TACTICS BOARD</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Full-screen pitch for cleaner arrows and easier touches</div>
+              </div>
+              <button onClick={() => setIsDrawFullscreen(false)} style={{ padding: "8px 14px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: C.textBright }}>
+                Close
+              </button>
+            </div>
+            {renderPitchPanel(true)}
           </div>
         </div>
       )}
