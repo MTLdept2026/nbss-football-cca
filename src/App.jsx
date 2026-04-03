@@ -1138,8 +1138,38 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
           </div>
         </div>
 
-        {/* Right side: theme toggle + hamburger */}
+        {/* Right side: Instagram link, theme toggle + hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <a
+            href="https://www.instagram.com/nbssfootball/"
+            target="_blank"
+            rel="noreferrer"
+            title="Open @nbssfootball on Instagram"
+            style={{
+              background: C.surfaceSubtle,
+              border: `1px solid ${C.navyBorder}`,
+              color: C.textBright,
+              height: 36,
+              borderRadius: 10,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              padding: "0 12px",
+              fontSize: 13,
+              fontFamily: FONT_BODY,
+              fontWeight: 700,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 15, lineHeight: 1 }}>📷</span>
+            <span>@nbssfootball</span>
+          </a>
+
           {/* Theme toggle — always visible */}
           <button
             onClick={onToggleTheme}
@@ -1174,19 +1204,6 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
               onMouseLeave={e => { if (active !== g.id) { e.currentTarget.style.color = C.textMid; e.currentTarget.style.background = "transparent"; } }}
             >{g.label}</button>
           ))}
-          {/* Theme toggle inside mobile menu too */}
-          <button
-            onClick={() => { onToggleTheme(); setOpen(false); }}
-            style={{
-              background: isDark ? `${C.gold}18` : `${C.electric}14`,
-              border: `1px solid ${isDark ? C.gold + "35" : C.electric + "35"}`,
-              color: isDark ? C.gold : C.electric,
-              padding: "7px 14px", borderRadius: 8, cursor: "pointer",
-              fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500,
-              transition: "all 0.2s", display: "none",
-            }}
-            className="mob-theme-btn"
-          >{isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}</button>
         </div>
       </div>
     </nav>
@@ -6258,7 +6275,6 @@ export default function App() {
             box-shadow: 0 12px 40px rgba(0,0,0,0.15);
           }
           .nav-l.nav-open { display: flex !important; }
-          .mob-theme-btn { display: flex !important; }
         }
       `}</style>
 
