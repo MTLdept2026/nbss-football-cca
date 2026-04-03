@@ -1526,6 +1526,121 @@ function HeroSection({ setActive, profile, sessions }) {
 // ══════════════════════════════════════════════════
 //  TRAINING
 // ══════════════════════════════════════════════════
+function PerformanceHome({ setActive, profile, sessions }) {
+  const C = useTheme();
+  const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
+  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const sorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recent = sorted.slice(0, 4);
+  const last = recent[0] || null;
+  const streak = (() => {
+    if (!sorted.length) return 0;
+    let count = 0;
+    let cur = new Date();
+    cur.setHours(0, 0, 0, 0);
+    for (const s of sorted) {
+      const d = new Date(s.date);
+      d.setHours(0, 0, 0, 0);
+      if (Math.round((cur - d) / 86400000) <= 1) { count++; cur = d; } else break;
+    }
+    return count;
+  })();
+  const daysSinceLast = last ? Math.round((new Date() - new Date(last.date)) / 86400000) : null;
+  const avgRating = sessions?.length ? sessions.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) / sessions.length : null;
+  const recentAvg = recent.length ? recent.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) / recent.length : null;
+  const latestReady = sorted.find(s => s.readinessScore != null)?.readinessScore ?? null;
+  const latestSleep = (() => { const s = sorted.find(x => x.sleep != null); return s ? Number(s.sleep) : null; })();
+  const latestEnergy = (() => { const s = sorted.find(x => x.energy != null); return s ? Number(s.energy) : null; })();
+  const weeklyLoad = sorted.reduce((sum, s) => {
+    const diff = (new Date() - new Date(s.date)) / 86400000;
+    return diff >= 0 && diff < 7 ? sum + (Number(s.load) || 0) : sum;
+  }, 0);
+  const acwrData = computeACWR(sessions || []);
+  const latestACWR = acwrData.length ? acwrData[acwrData.length - 1].acwr : null;
+  const { xp, earned } = computeXpAndBadges(sessions || [], growthEntries || []);
+  const level = getLevel(xp);
+  const name = squad.name?.trim() || profile?.name?.trim() || "Player";
+  const position = squad.position?.trim() || profile?.position?.trim() || "Midfielder";
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const d = new Date(`${value}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
+  };
+  const stats = [
+    { label: "Sessions", value: sessions?.length ?? 0, sub: "Total logged", color: C.gold },
+    { label: "Avg Rating", value: avgRating !== null ? avgRating.toFixed(1) : "-", sub: "All sessions", color: C.electric },
+    { label: "Streak", value: streak || "-", sub: "Current run", color: C.success },
+    { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "-", sub: "Latest status", color: latestReady !== null && latestReady < 60 ? C.danger : C.goldLight },
+    { label: "Weekly Load", value: weeklyLoad || "-", sub: "Last 7 days", color: C.orange },
+    { label: "XP", value: xp, sub: `Level ${level.level}`, color: C.success },
+  ];
+
+  return (
+    <section style={{ minHeight: "100vh", padding: "96px 24px 72px", background: C.navy, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, opacity: 0.035, backgroundImage: `linear-gradient(135deg, transparent 0%, transparent 48%, ${C.gold} 49%, transparent 50%)`, backgroundSize: "140px 140px", pointerEvents: "none" }} />
+      <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+          <div style={{ borderRadius: 24, padding: 28, background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 100%)`, border: `1px solid ${C.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase", marginBottom: 12 }}>Player Performance</div>
+            <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(46px, 8vw, 86px)", color: C.textBright, margin: 0, lineHeight: 0.92, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: C.textMid, lineHeight: 1.65, margin: "18px 0 0" }}>{position} · Level {level.level} {level.title}. This homepage is now built around your work, your load, and your recent form.</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 24 }}>
+              <GoldButton onClick={() => setActive("progress")} style={{ minWidth: 150 }}>Open Progress</GoldButton>
+              <GoldButton onClick={() => setActive("train")} secondary style={{ minWidth: 150 }}>Training Lab</GoldButton>
+              <GoldButton onClick={() => setActive("match")} secondary style={{ minWidth: 150 }}>Match Day</GoldButton>
+            </div>
+          </div>
+
+          <Card style={{ borderRadius: 24, padding: 28, boxShadow: "0 18px 60px rgba(0,0,0,0.22)" }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Today's status</div>
+            <h2 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Performance snapshot</h2>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[{ label: "Recent form", value: recentAvg !== null ? `${recentAvg.toFixed(1)}/5` : "No data", note: recentAvg !== null ? `Last ${recent.length} sessions` : "Start logging sessions", color: C.gold }, { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "Not tracked", note: latestReady !== null ? (latestReady >= 75 ? "Body looks ready" : latestReady >= 60 ? "Train smart today" : "Recovery first") : "Log sleep, energy, soreness", color: latestReady !== null && latestReady < 60 ? C.danger : C.success }, { label: "ACWR", value: latestACWR !== null ? latestACWR.toFixed(2) : "Not available", note: latestACWR !== null ? (latestACWR > 1.3 ? "Load is climbing" : latestACWR < 0.8 ? "Load is low" : "Load is balanced") : "Add duration and RPE", color: latestACWR !== null && latestACWR > 1.3 ? C.orange : C.electric }].map((item, idx) => (
+                <div key={idx} style={{ padding: "15px 16px", borderRadius: 16, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.4 }}>{item.label}</div>
+                    <div style={{ fontFamily: FONT_HEAD, fontSize: 26, color: item.color }}>{item.value}</div>
+                  </div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, marginTop: 8, lineHeight: 1.6 }}>{item.note}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 20 }}>
+          {stats.map((card, idx) => (
+            <div key={idx} style={{ padding: "18px 16px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${card.color}` }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20, marginTop: 20 }}>
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recent sessions</h3>
+              <button onClick={() => setActive("progress")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open full log</button>
+            </div>
+            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
+          </Card>
+
+          <Card style={{ borderRadius: 20 }}>
+            <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>What needs attention</h3>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[`${daysSinceLast === null ? "No sessions logged yet." : daysSinceLast === 0 ? "You trained today." : `Last session was ${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago.`}`, `${latestSleep !== null || latestEnergy !== null ? `Recovery inputs: sleep ${latestSleep ?? "-"} / energy ${latestEnergy ?? "-"}.` : "Recovery inputs are not being tracked yet."}`, `${latestACWR !== null ? `Current ACWR is ${latestACWR.toFixed(2)}.` : "Training load is not unlocked yet."}`, `${earned.length} badge${earned.length === 1 ? "" : "s"} earned so far.`].map((text, idx) => (
+                <div key={idx} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.65 }}>{text}</div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TrainingSection() {
   const C = useTheme();
   const [level, setLevel] = useState("beginner");
@@ -6273,7 +6388,7 @@ export default function App() {
 
       <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} />
 
-      {active === "home"     && <HeroSection setActive={setActive} profile={profile} sessions={sessions} />}
+      {active === "home"     && <PerformanceHome setActive={setActive} profile={profile} sessions={sessions} />}
       {active === "train"    && <TrainGroup />}
       {active === "match"    && <MatchGroup />}
       {active === "progress" && <ProgressGroup profile={profile} setActive={setActive} />}
