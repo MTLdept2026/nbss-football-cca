@@ -1,9 +1,15 @@
 // src/components/AccessGate.jsx
 // Uses cookies instead of localStorage — works across browser AND home screen (PWA) on iOS/Android.
+//
+// SECURITY NOTE: The access token is loaded from an environment variable (VITE_ACCESS_TOKEN).
+// Vite inlines env vars into the client bundle at build time — this is NOT server-side secret
+// storage. The benefit is the token is NOT in source code / git history, and can be rotated
+// via Netlify Environment Variables without a code change.
+// For higher security requirements, replace this gate with a proper auth backend.
 
 import { useEffect, useState } from "react";
 
-const TOKEN = "majulahnavalites";
+const TOKEN = import.meta.env.VITE_ACCESS_TOKEN ?? "";
 const COOKIE_NAME = "nbssfc_access";
 const COOKIE_DAYS = 400; // ~13 months — survives the school year
 
@@ -47,108 +53,85 @@ export default function AccessGate({ children }) {
   return <LockedScreen />;
 }
 
-// --- Locked screen ---
+// ── Nothing Design Language — locked screen ──
+// OLED black · Space Mono labels · Space Grotesk body · no color except data status
+// Flat surfaces · border separation · no shadows · no blur · no gradients
+const FONT_HEAD  = "'Doto', 'Space Mono', monospace";
+const FONT_BODY  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
+const FONT_SERIF = "'Space Mono', monospace";
+
 function LockedScreen() {
   return (
-    <div style={styles.overlay}>
-      <div style={styles.card}>
-        <div style={styles.badge}>
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-            <path
-              d="M24 4L6 12V24C6 33.94 13.94 43.26 24 46C34.06 43.26 42 33.94 42 24V12L24 4Z"
-              fill="oklch(22% 0.04 240)"
-              stroke="oklch(65% 0.18 140)"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M18 24L22 28L30 20"
-              stroke="oklch(65% 0.18 140)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #000000; }
+      `}</style>
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000000",
+        padding: "24px",
+      }}>
+        <div style={{
+          background: "#111111",
+          border: "1px solid #222222",
+          borderRadius: 8,
+          padding: "48px 40px",
+          maxWidth: 420,
+          width: "100%",
+        }}>
+          {/* Flat monochrome mark */}
+          <div style={{ marginBottom: 32, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 4,
+              background: "#FFFFFF",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: 11, color: "#000000", letterSpacing: "0.08em" }}>GP</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: "#FFFFFF", letterSpacing: "0.06em" }}>GAMEPLAN</div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#666666", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>NBSS Football CCA</div>
+            </div>
+          </div>
 
-        <p style={styles.schoolLabel}>NAVAL BASE SECONDARY SCHOOL</p>
-        <h1 style={styles.title}>Football CCA</h1>
+          {/* Divider */}
+          <div style={{ height: 1, background: "#222222", marginBottom: 28 }} />
 
-        <div style={styles.divider} />
+          {/* Status indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D71921", flexShrink: 0 }} />
+            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#D71921", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Restricted Access
+            </span>
+          </div>
 
-        <p style={styles.body}>
-          This platform is exclusively for members of the NBSS Football CCA.
-        </p>
-        <p style={styles.body}>
-          Access is granted via an invite link distributed by your teacher-in-charge.
-          If you are a member and do not have the link, please approach your coach or CCA leader.
-        </p>
+          {/* Headline */}
+          <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(28px, 6vw, 40px)", color: "#FFFFFF", letterSpacing: "0.02em", lineHeight: 0.95, marginBottom: 20 }}>
+            MEMBERS ONLY
+          </div>
 
-        <div style={styles.footer}>
-          <span style={styles.footerText}>Restricted Access &nbsp;·&nbsp; NBSS FC</span>
+          {/* Body text */}
+          <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "#999999", marginBottom: 12 }}>
+            This platform is exclusively for members of the NBSS Football CCA.
+          </p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "#999999", marginBottom: 0 }}>
+            Access is granted via an invite link from your teacher-in-charge. Approach your coach or CCA leader if you are a member without a link.
+          </p>
+
+          {/* Footer */}
+          <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #222222" }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#444444", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Naval Base Secondary School · Football CCA
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
-
-const styles = {
-  overlay: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "oklch(14% 0.02 240)",
-    fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-    padding: "24px",
-  },
-  card: {
-    background: "oklch(19% 0.03 240)",
-    border: "1px solid oklch(30% 0.04 240)",
-    borderRadius: "12px",
-    padding: "48px 40px",
-    maxWidth: "420px",
-    width: "100%",
-    textAlign: "center",
-  },
-  badge: {
-    display: "flex",
-    justifyContent: "center",
-    marginBottom: "20px",
-  },
-  schoolLabel: {
-    fontSize: "10px",
-    fontWeight: "700",
-    letterSpacing: "0.2em",
-    color: "oklch(55% 0.08 240)",
-    textTransform: "uppercase",
-    margin: "0 0 8px 0",
-  },
-  title: {
-    fontSize: "26px",
-    fontWeight: "700",
-    color: "oklch(92% 0.02 240)",
-    margin: "0 0 24px 0",
-    letterSpacing: "-0.02em",
-  },
-  divider: {
-    height: "1px",
-    background: "oklch(30% 0.04 240)",
-    margin: "0 0 24px 0",
-  },
-  body: {
-    fontSize: "14px",
-    lineHeight: "1.7",
-    color: "oklch(62% 0.04 240)",
-    margin: "0 0 12px 0",
-  },
-  footer: {
-    marginTop: "32px",
-    paddingTop: "20px",
-    borderTop: "1px solid oklch(25% 0.03 240)",
-  },
-  footerText: {
-    fontSize: "11px",
-    color: "oklch(40% 0.04 240)",
-    letterSpacing: "0.05em",
-  },
-};

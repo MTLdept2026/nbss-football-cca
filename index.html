@@ -3,43 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Primary meta -->
-    <title>NBSS Football CCA</title>
-    <meta name="description" content="Naval Base Secondary School Football CCA — Training, Nutrition, Mindset, Fitness and Progress Tracking for student athletes." />
-
-    <!-- Theme colour -->
-    <meta name="theme-color" content="#050f1e" />
-    <meta name="msapplication-TileColor" content="#050f1e" />
-
-    <!-- PWA manifest (must be at root — served from /public in Vite) -->
     <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
+    <meta name="theme-color" content="#050f1e" />
+    <title>NBSS Football CCA — GamePlan</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-
+    <!-- ── FONTS ── -->
+    <!-- Preconnect reduces latency on first font request -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!--
-      Apple home screen icons.
-      iOS Safari ignores the web manifest entirely for home screen icons.
-      It ONLY reads <link rel="apple-touch-icon">.
-      The icon must be a flat square PNG — iOS applies its own rounded mask.
-      Providing both 180 and 192 ensures coverage across all iOS versions.
+      Bebas Neue       — display / hero numbers (condensed athletic)
+      Instrument Sans  — body text (premium humanist sans, replaces DM Sans)
+      DM Sans          — body fallback
+      Playfair Display — editorial serif for insight / coaching guidance moments
     -->
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
 
-    <!-- iOS PWA display settings -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="NBSS FC" />
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="NBSS Football CCA" />
-    <meta property="og:description" content="Naval Base Secondary School Football CCA — Train. Grow. Compete. Together." />
-    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <!-- ── GLOBAL RENDERING BASELINE ── -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html {
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Enable kerning, ligatures, and contextual alternates across all text */
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+      }
+      body { margin: 0; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

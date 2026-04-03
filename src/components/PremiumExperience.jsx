@@ -15,13 +15,15 @@ function useIsMobile(breakpoint = 700) {
 }
 
 function SurfaceTabs({ theme, bodyFont, items, active, setActive }) {
+  // Nothing design: flat tab bar, underline-only active indicator, Space Mono ALL CAPS
   return (
     <div style={{
       display: "flex",
-      gap: 8,
-      flexWrap: "wrap",
+      gap: 0,
+      overflowX: "auto",
       padding: "14px 0 0",
       marginBottom: 24,
+      borderBottom: `1px solid ${theme.navyBorder}`,
     }}>
       {items.map((item) => (
         <button
@@ -29,17 +31,21 @@ function SurfaceTabs({ theme, bodyFont, items, active, setActive }) {
           type="button"
           onClick={() => setActive(item.id)}
           style={{
-            padding: "9px 16px",
-            borderRadius: 999,
+            padding: "10px 16px",
+            borderRadius: 0,
             cursor: "pointer",
-            border: `1px solid ${active === item.id ? theme.gold : theme.navyBorder}`,
-            background: active === item.id ? `${theme.gold}18` : theme.navyCard,
-            color: active === item.id ? theme.gold : theme.textMid,
-            fontFamily: bodyFont,
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-            transition: "all 0.2s ease",
+            border: "none",
+            borderBottom: `2px solid ${active === item.id ? theme.gold : "transparent"}`,
+            background: "transparent",
+            color: active === item.id ? theme.gold : theme.textDim,
+            fontFamily: "'Space Mono', 'JetBrains Mono', monospace",
+            fontSize: 11,
+            fontWeight: 400,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            transition: "color 0.15s, border-color 0.15s",
           }}
         >
           {item.label}
@@ -51,7 +57,7 @@ function SurfaceTabs({ theme, bodyFont, items, active, setActive }) {
 
 function SurfaceShell({ theme, children }) {
   return (
-    <section style={{ minHeight: "100vh", padding: "96px 24px 72px", background: theme.navy, position: "relative", overflow: "hidden" }}>
+    <section style={{ minHeight: "100vh", padding: "96px 24px 88px", background: theme.navy, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: `linear-gradient(135deg, transparent 0%, transparent 48%, ${theme.gold} 49%, transparent 50%)`, backgroundSize: "160px 160px", pointerEvents: "none" }} />
       <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {children}
