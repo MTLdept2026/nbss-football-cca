@@ -1133,8 +1133,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
             boxShadow: `0 4px 16px ${C.gold}40`,
           }}>⚽</div>
           <div>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>NBSS FOOTBALL</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 9, color: C.textDim, letterSpacing: 3, textTransform: "uppercase" }}>GamePlan Platform</div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>GamePlan</div>
           </div>
         </div>
 
@@ -1149,25 +1148,19 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
               background: C.surfaceSubtle,
               border: `1px solid ${C.navyBorder}`,
               color: C.textBright,
+              width: 36,
               height: 36,
               borderRadius: 10,
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 6,
-              padding: "0 12px",
-              fontSize: 13,
-              fontFamily: FONT_BODY,
-              fontWeight: 700,
               textDecoration: "none",
-              whiteSpace: "nowrap",
               transition: "all 0.2s",
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 15, lineHeight: 1 }}>📷</span>
-            <span>@nbssfootball</span>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>📷</span>
           </a>
 
           {/* Theme toggle — always visible */}
