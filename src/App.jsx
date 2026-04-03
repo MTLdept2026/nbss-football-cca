@@ -7418,6 +7418,9 @@ function CoachDashboardPage({ setActive }) {
     return () => { active = false; };
   }, []);
 
+  const squadDirective = activeIssues.length ? getAvailabilityDirective(activeIssues) : "Squad availability is clear enough to plan the next block aggressively.";
+  const loadDirective = getLoadDirective(latestLoad?.acwr ?? null);
+
   const clubBadge = (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       <div style={{
