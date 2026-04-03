@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 
 // ── SCREENSHOT / SHARE UTILITY ──
@@ -35,6 +35,15 @@ async function captureAndDownload(el, filename = "nbss-export.png", opts = {}) {
   link.click();
 }
 
+function canvasToBlob(canvas, type = "image/png") {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Could not create image blob."));
+    }, type);
+  });
+}
+
 async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
   const h2c = await loadHtml2Canvas();
   const canvas = await h2c(el, {
@@ -50,66 +59,116 @@ async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
     width:        opts.width  || el.scrollWidth,
     height:       opts.height || el.scrollHeight,
   });
-  canvas.toBlob(async (blob) => {
-    if (!blob) return;
+  const blob = await canvasToBlob(canvas);
+  if (typeof File !== "undefined") {
     const file = new File([blob], "nbss-share.png", { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ title, files: [file] }); return; } catch {}
+      await navigator.share({ title, files: [file] });
+      return "shared";
     }
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      alert("📋 Copied to clipboard! Paste into WhatsApp, Telegram or anywhere.");
-    } catch {
-      captureAndDownload(el, "nbss-share.png", opts);
-    }
-  });
+  }
+  if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    return "copied";
+  }
+  await captureAndDownload(el, "nbss-share.png", opts);
+  return "downloaded";
 }
 
 // Reusable Share+Save action bar
 function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
+  const C = useTheme();
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [toast, setToast] = useState(null); // { msg, type: "success"|"error" }
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleSave = async () => {
     if (!targetRef.current) return;
     setSaving(true);
     try { await captureAndDownload(targetRef.current, filename || "nbss-export.png"); }
-    catch (e) { alert("Screenshot failed. Try again."); }
+    catch (e) { showToast("Screenshot failed — please try again.", "error"); }
     setSaving(false);
   };
 
   const handleShare = async () => {
     if (!targetRef.current) return;
     setSharing(true);
-    try { await captureAndShare(targetRef.current, title || "NBSS Football CCA"); }
-    catch (e) { alert("Share failed. Try the Save Photo option instead."); }
+    try {
+      const outcome = await captureAndShare(targetRef.current, title || "NBSS Football CCA");
+      showToast(
+        outcome === "copied"
+          ? "Image copied to clipboard!"
+          : outcome === "downloaded"
+            ? "Sharing unsupported here, so the image was downloaded."
+            : "Shared successfully!"
+      );
+    }
+    catch (e) { showToast("Share failed — use Save Photo instead.", "error"); }
     setSharing(false);
   };
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", ...s }}>
-      <button onClick={handleShare} disabled={sharing} style={{
-        display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
-        background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)",
-        border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8",
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer",
-        transition: "all 0.2s",
-      }}>
-        {sharing ? "⏳ Sharing…" : "↗ Share"}
-      </button>
-      <button onClick={handleSave} disabled={saving} style={{
-        display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
-        background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)",
-        border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429",
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
-        transition: "all 0.2s",
-      }}>
-        {saving ? "⏳ Saving…" : "📸 Save Photo"}
-      </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, ...s }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={handleShare} disabled={sharing} style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
+          background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)",
+          border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8",
+          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer",
+          transition: "all 0.2s",
+        }}>
+          {sharing ? "Sharing…" : "↗ Share"}
+        </button>
+        <button onClick={handleSave} disabled={saving} style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
+          background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)",
+          border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429",
+          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
+          transition: "all 0.2s",
+        }}>
+          {saving ? "Saving…" : "📸 Save Photo"}
+        </button>
+      </div>
+      {toast && (
+        <div style={{
+          padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: "'DM Sans', sans-serif",
+          background: toast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
+          border: `1px solid ${toast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
+          color: toast.type === "error" ? "#f87171" : "#22d3a5",
+          animation: "slideIn 0.2s ease",
+        }}>{toast.msg}</div>
+      )}
     </div>
   );
 }
 
+
+// ── IMAGE COMPRESSION UTILITY ──
+// Crops to square, resizes to maxSize px, returns base64 JPEG
+function compressImage(file, maxSize = 220) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = maxSize;
+      canvas.height = maxSize;
+      const ctx = canvas.getContext("2d");
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, maxSize, maxSize);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.src = url;
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  NBSS FOOTBALL CCA — PREMIUM EDITION
@@ -117,59 +176,82 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
 // ═══════════════════════════════════════════════════════════════
 
 // ── DESIGN SYSTEM ──
-const C = {
-  // Core palette
+const DARK_C = {
   navy: "#050f1e",
   navyDeep: "#020810",
   navyCard: "#0c1a2e",
   navyBorder: "#1a2d45",
   navyHover: "#142338",
-
-  // Accent
   gold: "#f0b429",
   goldLight: "#ffd166",
   goldDim: "#b8861e",
   goldGlow: "rgba(240,180,41,0.15)",
-
-  // Secondary accent
   electric: "#38bdf8",
   electricDim: "#0284c7",
   electricGlow: "rgba(56,189,248,0.12)",
-
-  // Semantic
   success: "#22d3a5",
   danger: "#f87171",
   orange: "#fb923c",
-
-  // Text
   textBright: "#f8fafc",
   textMid: "#94a3b8",
   textDim: "#475569",
-
-  // Surfaces
   surface: "#0a1628",
   surfaceRaised: "#0e1f35",
   surfaceBorder: "#1e3050",
   surfaceSubtle: "rgba(255,255,255,0.04)",
 };
 
+const LIGHT_C = {
+  navy: "#f0f4f8",
+  navyDeep: "#e2e8f0",
+  navyCard: "#ffffff",
+  navyBorder: "#dce3ec",
+  navyHover: "#edf2f7",
+  gold: "#c07d0a",
+  goldLight: "#d4920e",
+  goldDim: "#a06808",
+  goldGlow: "rgba(192,125,10,0.12)",
+  electric: "#0284c7",
+  electricDim: "#0369a1",
+  electricGlow: "rgba(2,132,199,0.10)",
+  success: "#059669",
+  danger: "#dc2626",
+  orange: "#d97706",
+  textBright: "#0f172a",
+  textMid: "#334155",
+  textDim: "#64748b",
+  surface: "#f8fafc",
+  surfaceRaised: "#f1f5f9",
+  surfaceBorder: "#cbd5e1",
+  surfaceSubtle: "rgba(0,0,0,0.04)",
+};
+
+// ── THEME CONTEXT ──
+const ThemeContext = createContext(DARK_C);
+const useTheme = () => useContext(ThemeContext);
+
+// Fallback for module-level usage (StoryExportCard always uses dark)
+const C = DARK_C;
+
 const FONT_HEAD = "'Bebas Neue', sans-serif";
 const FONT_BODY = "'DM Sans', sans-serif";
 const FONT_SERIF = "'Playfair Display', serif";
 
-// ── SHARED STYLES ──
-const labelStyle = {
+// ── SHARED STYLES (theme-aware helpers) ──
+const makeLabelStyle = (C) => ({
   fontFamily: FONT_BODY, fontSize: 10, color: C.textDim,
   fontWeight: 700, textTransform: "uppercase", letterSpacing: "2px",
   display: "block", marginBottom: 6,
-};
-
-const inputStyle = {
+});
+const makeInputStyle = (C) => ({
   width: "100%", padding: "11px 14px", borderRadius: 10,
   background: C.navyCard, border: `1px solid ${C.navyBorder}`,
   color: C.textBright, fontFamily: FONT_BODY, fontSize: 14, outline: "none",
   boxSizing: "border-box", transition: "border-color 0.2s",
-};
+});
+// Module-level fallbacks (used by StoryExportCard which always uses dark theme)
+const labelStyle = makeLabelStyle(DARK_C);
+const inputStyle = makeInputStyle(DARK_C);
 
 // ── STORAGE ──
 const STORAGE_KEYS = {
@@ -178,6 +260,7 @@ const STORAGE_KEYS = {
   quizScores: "nbss-quiz-scores", lineups: "nbss-lineups",
   fitnessResults: "nbss-fitness-results", profile: "nbss-profile",
   roster: "nbss-cluster-roster", attendance: "nbss-attendance-log",
+  matchHistory: "nbss-match-history", wellnessLog: "nbss-wellness-log",
 };
 
 const ATTENDANCE_TEACHER_PASSWORD = "enitamur2026";
@@ -314,6 +397,163 @@ const TRAINING_DATA = {
   },
 };
 
+// ── POSITION-SPECIFIC DRILLS ──
+const POSITION_DRILLS = {
+  GK: {
+    label: "Goalkeeper", icon: "🧤", color: "#22d3a5",
+    focus: "Distribution, shot-stopping angles and decision-making under pressure.",
+    drills: [
+      { text: "Set-position + reaction dive (3×8 each side)", video: "https://www.youtube.com/results?search_query=goalkeeper+reaction+dive+drill" },
+      { text: "Distribution — driven throws to flanks (3×10)", video: "https://www.youtube.com/results?search_query=goalkeeper+distribution+driven+throw+drill" },
+      { text: "1v1 angle narrowing — close down attacker (3×6)", video: "https://www.youtube.com/results?search_query=goalkeeper+1v1+angle+narrowing+drill" },
+      { text: "Cross claiming — jump + call 'Keeper!' (3×10)", video: "https://www.youtube.com/results?search_query=goalkeeper+cross+claiming+drill" },
+    ],
+  },
+  CB: {
+    label: "Centre Back", icon: "🏔️", color: "#38bdf8",
+    focus: "Aerial dominance, blocking channels and composure in possession from the back.",
+    drills: [
+      { text: "Heading duels — timed jumps (3×10)", video: "https://www.youtube.com/results?search_query=centre+back+heading+drill+aerial+duel" },
+      { text: "Covering + intercepting through balls (3×8)", video: "https://www.youtube.com/results?search_query=centre+back+intercept+through+ball+drill" },
+      { text: "Switch of play from deep — long diagonal (3×10)", video: "https://www.youtube.com/results?search_query=centre+back+long+diagonal+pass+drill" },
+      { text: "Press trigger — step + block passing lane (3×5 scenarios)", video: "https://www.youtube.com/results?search_query=centre+back+press+trigger+drill" },
+    ],
+  },
+  LB: {
+    label: "Left Back", icon: "🏃", color: "#fb923c",
+    focus: "Overlapping runs, recovery pace and delivery from wide areas.",
+    drills: [
+      { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
+      { text: "Recovery sprint + 1v1 defending (3×6)", video: "https://www.youtube.com/results?search_query=full+back+recovery+sprint+defending+drill" },
+      { text: "Inside cut onto stronger foot + shot (2×8)", video: "https://www.youtube.com/results?search_query=full+back+inside+cut+finish+drill" },
+      { text: "Whipped first-time cross from byline (3×8)", video: "https://www.youtube.com/results?search_query=whipped+cross+byline+football+drill" },
+    ],
+  },
+  RB: {
+    label: "Right Back", icon: "🏃", color: "#fb923c",
+    focus: "Overlapping runs, recovery pace and delivery from wide areas.",
+    drills: [
+      { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
+      { text: "Recovery sprint + 1v1 defending (3×6)", video: "https://www.youtube.com/results?search_query=full+back+recovery+sprint+defending+drill" },
+      { text: "Inside cut onto stronger foot + shot (2×8)", video: "https://www.youtube.com/results?search_query=full+back+inside+cut+finish+drill" },
+      { text: "Whipped first-time cross from byline (3×8)", video: "https://www.youtube.com/results?search_query=whipped+cross+byline+football+drill" },
+    ],
+  },
+  CDM: {
+    label: "Defensive Mid", icon: "🛡️", color: "#38bdf8",
+    focus: "Screening the defence, winning second balls and playing simple under pressure.",
+    drills: [
+      { text: "Interception reads — shadow ball through middle (3×8)", video: "https://www.youtube.com/results?search_query=defensive+midfielder+interception+drill" },
+      { text: "Win the second ball — box-to-box shuttle (3×3min)", video: "https://www.youtube.com/results?search_query=defensive+mid+second+ball+winning+drill" },
+      { text: "Pivot + split pass under pressure (3×10)", video: "https://www.youtube.com/results?search_query=pivot+pass+defensive+midfielder+drill" },
+      { text: "Covering runs when CB steps (3×5 scenarios)", video: "https://www.youtube.com/results?search_query=defensive+midfielder+cover+shadow+drill" },
+    ],
+  },
+  CM: {
+    label: "Central Mid", icon: "♟️", color: "#f0b429",
+    focus: "Box-to-box engine: pressing, receiving on the half-turn and arriving late into the box.",
+    drills: [
+      { text: "Half-turn receive + drive forward (3×12)", video: "https://www.youtube.com/results?search_query=central+midfielder+half+turn+receive+drill" },
+      { text: "Box-to-box pressing shuttle (4×2min)", video: "https://www.youtube.com/results?search_query=box+to+box+midfielder+pressing+drill" },
+      { text: "Late runs into box + finish (3×8)", video: "https://www.youtube.com/results?search_query=central+mid+late+run+box+finish" },
+      { text: "Vertical combination play in tight space (3×3min)", video: "https://www.youtube.com/results?search_query=combination+play+central+midfield+drill" },
+    ],
+  },
+  CAM: {
+    label: "Attacking Mid", icon: "🎨", color: "#f0b429",
+    focus: "Creating in tight spaces, vision, and timing runs in behind the defensive line.",
+    drills: [
+      { text: "Turn + shoot in the pocket (3×10)", video: "https://www.youtube.com/results?search_query=attacking+midfielder+turn+shoot+pocket+drill" },
+      { text: "Through-ball timing — split the defence (3×8)", video: "https://www.youtube.com/results?search_query=attacking+mid+split+pass+drill" },
+      { text: "Tight rondo — 1-2 touch in triangle (3×3min)", video: "https://www.youtube.com/results?search_query=tight+space+rondo+attacking+midfielder" },
+      { text: "Dribble through pressure + switch (3×8)", video: "https://www.youtube.com/results?search_query=CAM+dribble+through+pressure+switch+play" },
+    ],
+  },
+  LW: {
+    label: "Left Wing", icon: "⚡", color: "#fb923c",
+    focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
+    drills: [
+      { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
+      { text: "Receive wide + cut inside + shoot (3×10)", video: "https://www.youtube.com/results?search_query=winger+cut+inside+shoot+drill" },
+      { text: "Underlap run combination with fullback (3×6)", video: "https://www.youtube.com/results?search_query=winger+underlap+combination+fullback+drill" },
+      { text: "Crossing on the run — whipped + floated (3×8 each)", video: "https://www.youtube.com/results?search_query=winger+crossing+run+whipped+floated" },
+    ],
+  },
+  RW: {
+    label: "Right Wing", icon: "⚡", color: "#fb923c",
+    focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
+    drills: [
+      { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
+      { text: "Receive wide + cut inside + shoot (3×10)", video: "https://www.youtube.com/results?search_query=winger+cut+inside+shoot+drill" },
+      { text: "Underlap run combination with fullback (3×6)", video: "https://www.youtube.com/results?search_query=winger+underlap+combination+fullback+drill" },
+      { text: "Crossing on the run — whipped + floated (3×8 each)", video: "https://www.youtube.com/results?search_query=winger+crossing+run+whipped+floated" },
+    ],
+  },
+  ST: {
+    label: "Striker", icon: "🎯", color: "#f87171",
+    focus: "Movement to lose your marker, clinical finishing and hold-up play.",
+    drills: [
+      { text: "Movement to lose defender — check + spin (3×10)", video: "https://www.youtube.com/results?search_query=striker+movement+check+spin+lose+defender" },
+      { text: "Hold-up play under pressure + lay-off (3×10)", video: "https://www.youtube.com/results?search_query=striker+hold+up+play+drill+football" },
+      { text: "Penalty-box finishing — 6 angles (3×8)", video: "https://www.youtube.com/results?search_query=striker+penalty+box+finishing+angles+drill" },
+      { text: "Offside line timing — break at pass (3×8)", video: "https://www.youtube.com/results?search_query=striker+offside+line+timing+run+drill" },
+    ],
+  },
+};
+
+// Position aliases for PositionFinder output → POSITION_DRILLS key
+const POSITION_ALIAS = {
+  "Goalkeeper": "GK", "Centre Back": "CB", "Left Back": "LB", "Right Back": "RB",
+  "Defensive Mid": "CDM", "Central Mid": "CM", "Attacking Mid": "CAM",
+  "Left Winger": "LW", "Right Winger": "RW", "Striker": "ST",
+  "GK": "GK", "CB": "CB", "LB": "LB", "RB": "RB", "CDM": "CDM",
+  "CM": "CM", "CAM": "CAM", "LW": "LW", "RW": "RW", "ST": "ST",
+};
+
+// ── PRE-SESSION WARM-UP STEPS ──
+const WARM_UP_STEPS = [
+  { name: "Light jog", duration: "2 min", desc: "Easy pace around the pitch or in a 20m box. Get blood flowing.", icon: "🏃" },
+  { name: "High knees", duration: "30 sec", desc: "Drive your knees up to hip height with a quick cadence. Activates hip flexors.", icon: "⬆️" },
+  { name: "Butt kicks", duration: "30 sec", desc: "Heel flicks up toward your glutes. Warms up the hamstrings.", icon: "👟" },
+  { name: "Leg swings (front-back)", duration: "20 each leg", desc: "Hold a post or wall. Swing one leg forward and back freely — increase range each rep.", icon: "🦵" },
+  { name: "Leg swings (side-side)", duration: "20 each leg", desc: "Same position, now swing the leg across your body and out wide.", icon: "↔️" },
+  { name: "Hip circles", duration: "10 each direction", desc: "Hands on hips, draw a big circle with your hips. Open then close the hip joint.", icon: "⭕" },
+  { name: "Ankle rolls", duration: "10 each ankle", desc: "Stand on one foot, roll the raised ankle slowly in full circles.", icon: "🦶" },
+  { name: "Lateral shuffles", duration: "30 sec each way", desc: "Side-step quickly over ~5m. Stay low, light on your feet.", icon: "↔️" },
+  { name: "Accelerations (3×20m)", duration: "Build to ~80% pace", desc: "Short sprint — don't go flat out yet. Just prime the engine.", icon: "⚡" },
+];
+
+// ── POST-SESSION COOL-DOWN STEPS ──
+// These reuse RECOVERY_STRETCHES data but as structured steps
+const COOL_DOWN_STEPS = [
+  { name: "Walk & breathe", duration: "2 min", desc: "Slow walk to gradually lower your heart rate. Breathe in through nose, out through mouth.", icon: "🧘" },
+  { name: "Hamstring stretch", duration: "30 sec each leg", desc: "Sit, extend one leg, reach for toes without bouncing.", icon: "🦵" },
+  { name: "Quad stretch", duration: "30 sec each leg", desc: "Standing, pull heel to glute. Keep knees together.", icon: "🦿" },
+  { name: "Hip flexor lunge", duration: "30 sec each side", desc: "Kneeling lunge — push hips gently forward.", icon: "🏋️" },
+  { name: "Calf stretch", duration: "30 sec each", desc: "Lean against a wall, back leg straight, heel flat on floor.", icon: "🦶" },
+  { name: "Child's pose", duration: "60 sec", desc: "Kneel, sit back on heels, stretch arms forward. Breathe deeply.", icon: "🧘" },
+  { name: "Neck & shoulder rolls", duration: "10 each direction", desc: "Slow, controlled circles. Release tension from the session.", icon: "🔄" },
+];
+
+// ── PRE-MATCH ROUTINE ITEMS ──
+const PRE_MATCH_ITEMS = [
+  { id: "sleep", label: "Slept 8+ hrs (ideally 2 nights before counts most)", icon: "😴", category: "Recovery" },
+  { id: "hydration", label: "Drank 500ml water in the 2 hours before kick-off", icon: "💧", category: "Fuelling" },
+  { id: "meal", label: "Ate pre-match meal 2–3 hrs before (carbs, light on fat)", icon: "🍚", category: "Fuelling" },
+  { id: "kit", label: "Kit bag packed — boots, shin guards, jersey, water bottle", icon: "🎒", category: "Preparation" },
+  { id: "warmup", label: "Completed dynamic warm-up 15–20 min before kick-off", icon: "🏃", category: "Physical" },
+  { id: "gameplan", label: "Reviewed the formation and your role in it", icon: "📋", category: "Tactical" },
+  { id: "breathing", label: "Done 3 rounds of box breathing (4-4-4-4)", icon: "🫁", category: "Mental" },
+  { id: "intention", label: "Set your intention for the match (one focus word)", icon: "🎯", category: "Mental" },
+];
+
+// ── INJURY BODY LOCATIONS ──
+const BODY_LOCATIONS = [
+  "Head / Neck", "Shoulder", "Upper Arm", "Elbow", "Forearm / Wrist",
+  "Chest", "Lower Back", "Hip / Groin", "Thigh (Quadriceps)",
+  "Thigh (Hamstring)", "Knee", "Shin", "Calf", "Ankle", "Foot / Toe",
+];
+
 const FOOD_DB = [
   { name: "Chicken rice", cal: 600, carb: "high", protein: "med", fat: "med", pre: "green", post: "green", match: "green", note: "Great staple. Go for smaller portion pre-training." },
   { name: "Nasi lemak", cal: 700, carb: "high", protein: "med", fat: "high", pre: "amber", post: "amber", match: "red", note: "High fat content slows digestion. Not ideal before intense activity." },
@@ -378,20 +618,20 @@ const FITNESS_TESTS = [
 ];
 
 const LEGENDS_GLOBAL = [
-  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", recipe: "Resilience", lesson: "Virgil van Dijk's path to becoming the world's best central defender is not a story of instant recognition or early success. It is a story of doors closing, of people saying not good enough, and of a man who refused to accept that verdict. As a teenager, he was released from his club's youth academy. Coaches looked at him and decided he wasn't ready — too raw, not quite there. He dropped into lower levels, kept working, kept growing, and made his way back up through Groningen, Celtic, and Southampton before Liverpool paid a world-record fee for a centre-back. He was 26 years old when that move happened. What followed was nothing short of extraordinary. He anchored Liverpool's defence through a Champions League-winning season, a Premier League title, and consistently formed one of the most formidable defensive partnerships the game has seen. But the chapter of his story that speaks loudest about Resilience is what happened after his ACL injury in 2020 — an injury so severe that it robbed him of almost an entire season. Many wondered if he would ever return as the same player. He came back better. Resilience isn't dramatic or loud. It's the quiet decision to turn up, do the work, and let the results follow. Van Dijk is the definition of that.", badge: "🏔️", stat: "UCL + PL winner · World-record fee for a defender" },
-  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", recipe: "Resilience", lesson: "When Mohamed Salah left Egypt as a young man with a dream, nobody could have predicted what would follow. He was signed by Chelsea — one of the world's biggest clubs — but was given almost no opportunity to play. He sat on the bench, watched weeks pass, and when chances finally came, they didn't stick. Chelsea loaned him, then sold him on. To many observers, it looked like the end of a story that had barely started. Salah chose to see it as a beginning. He moved to Fiorentina, then Roma, and it was there that the world finally began to see the full scope of what this man could do. His pace, his directness, his ability to score from angles that seemed impossible — it was all being built, refined, tested. When Liverpool came calling, the rest is history. In his first season at Anfield, he broke the Premier League's single-season scoring record. He won the Champions League, the Premier League, multiple Golden Boots. He became the most feared attacker in the world. But the detail that elevates him further is how he has quietly given back to his home village in Egypt — building hospitals, improving infrastructure, transforming lives long before it was fashionable. His career teaches Resilience in its truest form: that one rejection, or five, means nothing if you refuse to stop.", badge: "👑", stat: "PL Golden Boot × 4 · Champions League winner" },
-  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "🌟", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer" },
-  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "⚡", stat: "World Cup winner at 19 · Donates all national team earnings to charity" },
-  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "🧤", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping" },
-  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", flag: "br", lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups" },
-  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "🔥", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno" },
+  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Virgil van Dijk's path to becoming the world's best central defender is not a story of instant recognition or early success. It is a story of doors closing, of people saying not good enough, and of a man who refused to accept that verdict. As a teenager, he was released from his club's youth academy. Coaches looked at him and decided he wasn't ready — too raw, not quite there. He dropped into lower levels, kept working, kept growing, and made his way back up through Groningen, Celtic, and Southampton before Liverpool paid a world-record fee for a centre-back. He was 26 years old when that move happened. What followed was nothing short of extraordinary. He anchored Liverpool's defence through a Champions League-winning season, a Premier League title, and consistently formed one of the most formidable defensive partnerships the game has seen. But the chapter of his story that speaks loudest about Resilience is what happened after his ACL injury in 2020 — an injury so severe that it robbed him of almost an entire season. Many wondered if he would ever return as the same player. He came back better. Resilience isn't dramatic or loud. It's the quiet decision to turn up, do the work, and let the results follow. Van Dijk is the definition of that.", badge: "🏔️", stat: "UCL + PL winner · World-record fee for a defender", reflectionPrompt: "Van Dijk was told 'not good enough' and kept going anyway. Think of a time you faced rejection or failure — in football, school, or life. What did you do? Looking back now, what would the resilient version of you do differently?" },
+  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", recipe: "Resilience", recipeValues: ["Resilience", "Care"], lesson: "When Mohamed Salah left Egypt as a young man with a dream, nobody could have predicted what would follow. He was signed by Chelsea — one of the world's biggest clubs — but was given almost no opportunity to play. He sat on the bench, watched weeks pass, and when chances finally came, they didn't stick. Chelsea loaned him, then sold him on. To many observers, it looked like the end of a story that had barely started. Salah chose to see it as a beginning. He moved to Fiorentina, then Roma, and it was there that the world finally began to see the full scope of what this man could do. His pace, his directness, his ability to score from angles that seemed impossible — it was all being built, refined, tested. When Liverpool came calling, the rest is history. In his first season at Anfield, he broke the Premier League's single-season scoring record. He won the Champions League, the Premier League, multiple Golden Boots. He became the most feared attacker in the world. But the detail that elevates him further is how he has quietly given back to his home village in Egypt — building hospitals, improving infrastructure, transforming lives long before it was fashionable. His career teaches Resilience in its truest form: that one rejection, or five, means nothing if you refuse to stop.", badge: "👑", stat: "PL Golden Boot × 4 · Champions League winner", reflectionPrompt: "Salah turned rejection at Chelsea into a platform to change lives in Egypt. Think of one door that has recently closed for you. What is your 'Salah pivot' — the shift in mindset that turns that setback into a new direction?" },
+  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "🌟", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer", reflectionPrompt: "Yamal plays with total freedom and joy — no hesitation, no fear. When was the last time you played or trained with that same fearless energy? What holds you back from expressing yourself fully on the pitch?" },
+  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", recipeValues: ["Excellence", "Care"], lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "⚡", stat: "World Cup winner at 19 · Donates all national team earnings to charity", reflectionPrompt: "Mbappé uses his platform to give back quietly and consistently. Even as a student, you have a platform — your voice, your actions, your presence in this team. How could you use it right now to lift someone else?" },
+  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", recipeValues: ["Excellence", "Resilience"], lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "🧤", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping", reflectionPrompt: "Neuer redefined what his position could be by refusing to accept the traditional limits. Are there any expectations — about your position, your role in the team, or your ability — that you've accepted without questioning? What could YOU redefine?" },
+  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", flag: "br", recipeValues: ["Passion", "Resilience"], lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups", reflectionPrompt: "Pelé had almost nothing — no ball, no resources — and still showed up with everything. Think about the access and opportunities you have compared to him. Are you using them with that same unconditional passion? What would it look like if you truly played like you meant it?" },
+  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "🔥", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno", reflectionPrompt: "Ronaldo came back from knee injuries that would have ended most careers — not once, but three times. Think about the hardest setback you've faced in sport or life. What actually helped you get back up? What do you need more of to face the next challenge?" },
 ];
 
 const LEGENDS_SG = [
-  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", recipe: "Excellence", lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "⭐", stat: "Singapore's greatest player ever · Scored vs Inter Milan" },
-  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🚀", stat: "First SG player in Norwegian top flight" },
-  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998" },
-  { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer" },
+  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "⭐", stat: "Singapore's greatest player ever · Scored vs Inter Milan", reflectionPrompt: "Fandi gave a whole generation of Singaporeans the belief that it was possible. Who in your life has given YOU that belief — that you could be more than you thought? And looking at your team right now, who could YOU give that same belief to?" },
+  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", recipeValues: ["Integrity", "Resilience"], lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🚀", stat: "First SG player in Norwegian top flight", reflectionPrompt: "Ikhsan built his own identity despite carrying one of football's biggest names in Singapore. What expectations or comparisons do you carry — from family, friends, or your own past performance? How do you stay true to who you are within that pressure?" },
+  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", recipeValues: ["Resilience", "Passion"], lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998", reflectionPrompt: "Nazri was told his asthma might stop him from playing sport — it didn't stop him, it became his origin story. What is the 'asthma' in your football journey — the challenge, doubt, or obstacle you've been told is too big? How are you writing your own comeback story?" },
+  { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", recipeValues: ["Resilience", "Integrity"], lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer", reflectionPrompt: "Đurić arrived with nothing but hunger and eventually gave everything for his adopted home. What do YOU give everything for right now? Name one area — training, school, a relationship, a goal — that truly deserves more of your complete effort. What's stopping you?" },
   { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner" },
   { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "🎯", stat: "Scored vs Manchester United · Nearly two decades serving the Lions" },];
 
@@ -534,6 +774,7 @@ const EMPTY_MATCH = {
 // ══════════════════════════════════════════════════
 
 function SectionHeader({ icon, title, subtitle, accent }) {
+  const C = useTheme();
   const accentColor = accent || C.gold;
   return (
     <div style={{ marginBottom: 40 }}>
@@ -553,7 +794,8 @@ function SectionHeader({ icon, title, subtitle, accent }) {
   );
 }
 
-function Pill({ children, active, onClick, color = C.gold }) {
+function Pill({ children, active, onClick, color = "#f0b429" }) {
+  const C = useTheme();
   return (
     <button onClick={onClick} style={{
       padding: "8px 18px", borderRadius: 24, cursor: "pointer",
@@ -570,6 +812,7 @@ function Pill({ children, active, onClick, color = C.gold }) {
 }
 
 function GoldButton({ children, onClick, style: s = {}, secondary }) {
+  const C = useTheme();
   return (
     <button onClick={onClick} style={{
       padding: "12px 24px", borderRadius: 10, cursor: "pointer",
@@ -585,6 +828,7 @@ function GoldButton({ children, onClick, style: s = {}, secondary }) {
 }
 
 function Card({ children, style: s = {}, glow }) {
+  const C = useTheme();
   return (
     <div style={{
       background: C.navyCard, border: `1px solid ${C.navyBorder}`,
@@ -599,15 +843,32 @@ function Card({ children, style: s = {}, glow }) {
 //  ONBOARDING MODAL
 // ══════════════════════════════════════════════════
 function OnboardingModal({ onComplete }) {
+  const C = useTheme();
+  const labelStyle = makeLabelStyle(C);
+  const inputStyle = makeInputStyle(C);
+  // step 1 = role, step 2 = name/(position for players), step 3 = level (players only), step 4 = goal
   const [step, setStep] = useState(1);
+  const [role, setRole] = useState("player"); // "player" | "coach"
   const [name, setName] = useState("");
   const [position, setPosition] = useState("Midfielder");
   const [level, setLevel] = useState("beginner");
   const [goal, setGoal] = useState("");
   const positions = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 
+  // Coaches skip step 3 (level selection). Total visible steps: players = 4, coaches = 3.
+  const totalSteps = role === "coach" ? 3 : 4;
+  // Map actual step number to displayed progress dot index
+  const displayStep = role === "coach" && step === 4 ? 3 : step;
+
   const handleComplete = () => {
-    onComplete({ name: name.trim() || "Player", position, level, firstGoal: goal, onboarded: true });
+    onComplete({
+      name: name.trim() || (role === "coach" ? "Coach" : "Player"),
+      position: role === "coach" ? "Coach/Teacher" : position,
+      level: role === "coach" ? null : level,
+      firstGoal: goal,
+      role,
+      onboarded: true,
+    });
   };
 
   return (
@@ -618,28 +879,65 @@ function OnboardingModal({ onComplete }) {
           <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 2 }}>NBSS FOOTBALL</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginTop: 2 }}>GamePlan Platform</div>
         </div>
+        {/* Progress bar — dots scale with role */}
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 24 }}>
-          {[1,2,3].map(s => <div key={s} style={{ height: 4, flex: 1, maxWidth: 80, borderRadius: 2, background: step >= s ? C.gold : C.navyBorder, transition: "background 0.3s" }} />)}
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div key={i} style={{ height: 4, flex: 1, maxWidth: 80, borderRadius: 2, background: displayStep > i ? C.gold : C.navyBorder, transition: "background 0.3s" }} />
+          ))}
         </div>
         <Card glow>
+          {/* ── STEP 1: Role Selection ── */}
           {step === 1 && (
+            <>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHO ARE YOU?</div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>Select your role so we can tailor the platform for you.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+                {[
+                  { key: "player", icon: "⚽", label: "Player", desc: "Train, track progress, earn XP" },
+                  { key: "coach",  icon: "📋", label: "Coach / Teacher", desc: "Manage squad, lineups & attendance" },
+                ].map(r => (
+                  <div key={r.key} onClick={() => setRole(r.key)} style={{
+                    padding: "18px 16px", borderRadius: 14, cursor: "pointer", textAlign: "center",
+                    background: role === r.key ? `${C.gold}12` : C.navyCard,
+                    border: `2px solid ${role === r.key ? C.gold : C.navyBorder}`,
+                    transition: "all 0.2s",
+                  }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>{r.icon}</div>
+                    <div style={{ fontFamily: FONT_HEAD, fontSize: 15, color: role === r.key ? C.gold : C.textBright, letterSpacing: 0.5, marginBottom: 4 }}>{r.label.toUpperCase()}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.4 }}>{r.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <GoldButton onClick={() => setStep(2)} style={{ width: "100%" }}>Next →</GoldButton>
+            </>
+          )}
+
+          {/* ── STEP 2: Name + Position (players) / Name only (coaches) ── */}
+          {step === 2 && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHAT'S YOUR NAME?</div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We'll personalise your experience from day one.</p>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Your name</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aryan" style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(2)} />
+              <div style={{ marginBottom: role === "player" ? 16 : 0 }}>
+                <label style={labelStyle}>{role === "coach" ? "Your name" : "Your name"}</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder={role === "coach" ? "e.g. Mr Herwanto" : "e.g. Aryan"} style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(role === "coach" ? 4 : 3)} />
               </div>
-              <div>
-                <label style={labelStyle}>Your position</label>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {positions.map(p => <Pill key={p} active={position === p} onClick={() => setPosition(p)} color={C.gold}>{p}</Pill>)}
+              {role === "player" && (
+                <div style={{ marginTop: 16 }}>
+                  <label style={labelStyle}>Your position</label>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {positions.map(p => <Pill key={p} active={position === p} onClick={() => setPosition(p)} color={C.gold}>{p}</Pill>)}
+                  </div>
                 </div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
+                <GoldButton onClick={() => setStep(1)} secondary style={{ flex: 1 }}>← Back</GoldButton>
+                <GoldButton onClick={() => setStep(role === "coach" ? 4 : 3)} style={{ flex: 2 }}>Next →</GoldButton>
               </div>
-              <GoldButton onClick={() => setStep(2)} style={{ marginTop: 24, width: "100%" }}>Next →</GoldButton>
             </>
           )}
-          {step === 2 && (
+
+          {/* ── STEP 3: Training Level (players only) ── */}
+          {step === 3 && role === "player" && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHAT'S YOUR LEVEL?</div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We'll set up your training program accordingly.</p>
@@ -650,29 +948,38 @@ function OnboardingModal({ onComplete }) {
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                <GoldButton onClick={() => setStep(1)} secondary style={{ flex: 1 }}>← Back</GoldButton>
-                <GoldButton onClick={() => setStep(3)} style={{ flex: 2 }}>Next →</GoldButton>
+                <GoldButton onClick={() => setStep(2)} secondary style={{ flex: 1 }}>← Back</GoldButton>
+                <GoldButton onClick={() => setStep(4)} style={{ flex: 2 }}>Next →</GoldButton>
               </div>
             </>
           )}
-          {step === 3 && (
+
+          {/* ── STEP 4: Goal (both roles, different prompts) ── */}
+          {step === 4 && (
             <>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>SET YOUR FIRST GOAL</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 16 }}>What do you want to achieve this term?</p>
-              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="e.g. Run 2.4km under 12 minutes" style={{ ...inputStyle, marginBottom: 12 }} />
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>
+                {role === "coach" ? "SET A TEAM FOCUS" : "SET YOUR FIRST GOAL"}
+              </div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 16 }}>
+                {role === "coach" ? "What's your primary focus for the team this term?" : "What do you want to achieve this term?"}
+              </p>
+              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder={role === "coach" ? "e.g. Qualify for the next round" : "e.g. Run 2.4km under 12 minutes"} style={{ ...inputStyle, marginBottom: 12 }} />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                {["Master the Cruyff turn", "Run 2.4km under 12 min", "Complete 20 juggles", "Score in a match", "Improve beep test by 1 level"].map(ex => (
+                {(role === "coach"
+                  ? ["Win cluster championship", "Improve team fitness", "Develop B Div squad", "Build team discipline", "Rotate squad evenly"]
+                  : ["Master the Cruyff turn", "Run 2.4km under 12 min", "Complete 20 juggles", "Score in a match", "Improve beep test by 1 level"]
+                ).map(ex => (
                   <button key={ex} onClick={() => setGoal(ex)} style={{ padding: "5px 12px", borderRadius: 20, cursor: "pointer", background: goal === ex ? `${C.electric}20` : C.navyCard, border: `1px solid ${goal === ex ? C.electric : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: goal === ex ? C.electric : C.textMid }}>{ex}</button>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <GoldButton onClick={() => setStep(2)} secondary style={{ flex: 1 }}>← Back</GoldButton>
+                <GoldButton onClick={() => setStep(role === "coach" ? 2 : 3)} secondary style={{ flex: 1 }}>← Back</GoldButton>
                 <GoldButton onClick={handleComplete} style={{ flex: 2 }}>Let's Go 🔥</GoldButton>
               </div>
             </>
           )}
         </Card>
-        {step === 3 && (
+        {step === 4 && (
           <button onClick={handleComplete} style={{ background: "none", border: "none", color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, cursor: "pointer", display: "block", margin: "12px auto 0", textDecoration: "underline" }}>Skip for now</button>
         )}
       </div>
@@ -684,6 +991,7 @@ function OnboardingModal({ onComplete }) {
 //  GROUP WRAPPERS (sub-navigation for 5-group nav)
 // ══════════════════════════════════════════════════
 function SubNav({ items, active, setActive, color }) {
+  const C = useTheme();
   return (
     <div style={{ position: "sticky", top: 64, zIndex: 900, background: "rgba(5,15,30,0.97)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderBottom: `1px solid ${C.navyBorder}`, padding: "10px 24px", display: "flex", gap: 6, overflowX: "auto" }}>
       {items.map(t => <Pill key={t.id} active={active === t.id} onClick={() => setActive(t.id)} color={color}>{t.label}</Pill>)}
@@ -692,15 +1000,18 @@ function SubNav({ items, active, setActive, color }) {
 }
 
 function TrainGroup() {
+  const C = useTheme();
   const [sub, setSub] = useState("training");
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.success} active={sub} setActive={setSub} items={[
         { id: "training", label: "🏃 Training Lab" },
+        { id: "warmup",   label: "🔥 Warm-Up" },
         { id: "fitness",  label: "💪 Fitness Tests" },
         { id: "mindset",  label: "🧠 Mindset" },
       ]} />
       {sub === "training" && <TrainingSection />}
+      {sub === "warmup"   && <WarmUpSection />}
       {sub === "fitness"  && <FitnessSection />}
       {sub === "mindset"  && <MindsetSection />}
     </div>
@@ -708,29 +1019,247 @@ function TrainGroup() {
 }
 
 function MatchGroup() {
-  const [sub, setSub] = useState("lineup");
+  const C = useTheme();
+  const [sub, setSub] = useState("prematch");
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
+        { id: "prematch",  label: "⚡ Pre-Match" },
+        { id: "history",   label: "📊 Match History" },
         { id: "lineup",    label: "📋 Lineup Builder" },
         { id: "nutrition", label: "⛽ Nutrition" },
       ]} />
+      {sub === "prematch"  && <PreMatchSection />}
+      {sub === "history"   && <MatchHistorySection />}
       {sub === "lineup"    && <LineupBuilderSection />}
       {sub === "nutrition" && <NutritionSection />}
     </div>
   );
 }
 
-function ProgressGroup() {
-  const [sub, setSub] = useState("tracker");
+// ══════════════════════════════════════════════════
+//  TEAM REPORT SECTION  (coach-only)
+// ══════════════════════════════════════════════════
+function TeamReportSection() {
+  const C = useTheme();
+  const exportRef = useRef(null);
+  const [roster]       = usePersistedState(STORAGE_KEYS.roster, []);
+  const [attendanceLog] = usePersistedState(STORAGE_KEYS.attendance, {});
+
+  // ── derived stats ──────────────────────────────
+  const allDates   = Object.keys(attendanceLog).sort();
+  const totalSessions = allDates.length;
+  const recentDates   = allDates.slice(-10).reverse();   // up to 10 most recent
+
+  // Per-player attendance count
+  const attendCount = {};
+  allDates.forEach(d => {
+    (attendanceLog[d] || []).forEach(id => {
+      attendCount[id] = (attendCount[id] || 0) + 1;
+    });
+  });
+
+  const squadPlayers = roster.filter(p => !p.walkIn);
+  const totalPlayers = squadPlayers.length;
+
+  // Division breakdown
+  const bDiv = squadPlayers.filter(p => p.div === "B Div");
+  const cDiv = squadPlayers.filter(p => p.div === "C Div");
+
+  // School breakdown
+  const bySchool = {};
+  squadPlayers.forEach(p => {
+    bySchool[p.school] = (bySchool[p.school] || 0) + 1;
+  });
+  const schoolEntries = Object.entries(bySchool).sort((a, b) => b[1] - a[1]);
+
+  // Overall attendance rate
+  const avgRate = totalSessions > 0 && totalPlayers > 0
+    ? Math.round((Object.values(attendCount).reduce((s, n) => s + n, 0) / (totalSessions * totalPlayers)) * 100)
+    : null;
+
+  // Top attenders (top 5 by count, exclude walk-ins)
+  const topAttenders = squadPlayers
+    .map(p => ({ ...p, count: attendCount[p.id] || 0 }))
+    .filter(p => p.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Per-school rate (last 10 sessions)
+  const schoolRates = SCHOOLS.filter(s => bySchool[s]).map(school => {
+    const schoolIds = squadPlayers.filter(p => p.school === school).map(p => p.id);
+    if (schoolIds.length === 0 || recentDates.length === 0) return { school, rate: null };
+    let present = 0, possible = recentDates.length * schoolIds.length;
+    recentDates.forEach(d => {
+      const ids = attendanceLog[d] || [];
+      schoolIds.forEach(id => { if (ids.includes(id)) present++; });
+    });
+    return { school, rate: Math.round((present / possible) * 100) };
+  }).filter(x => x.rate !== null);
+
+  // ── helpers ────────────────────────────────────
+  const accent   = C.gold;
+  const headStyle = { fontFamily: FONT_HEAD, letterSpacing: 1, color: C.textBright };
+  const dimStyle  = { fontFamily: FONT_BODY, fontSize: 12, color: C.textDim };
+  const valStyle  = { fontFamily: FONT_HEAD, fontSize: 22, color: accent, letterSpacing: 1 };
+
+  const StatBox = ({ label, value, sub }) => (
+    <div style={{ flex: 1, minWidth: 100, padding: "16px 14px", borderRadius: 12, background: `${accent}08`, border: `1px solid ${accent}18`, textAlign: "center" }}>
+      <div style={valStyle}>{value ?? "—"}</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 2 }}>{label}</div>
+      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, opacity: 0.7, marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+
+  const Bar = ({ pct, color = accent }) => (
+    <div style={{ flex: 1, height: 6, borderRadius: 3, background: `${color}20`, overflow: "hidden" }}>
+      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.4s ease" }} />
+    </div>
+  );
+
+  return (
+    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
+      <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
+        <SectionHeader icon="📋" title="TEAM REPORT" subtitle="Squad snapshot — attendance, breakdown and top contributors" accent={accent} />
+
+        {/* ── Summary stats row ── */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+          <StatBox label="Players on roster" value={totalPlayers} />
+          <StatBox label="Sessions recorded" value={totalSessions} />
+          <StatBox label="Overall attendance" value={avgRate !== null ? `${avgRate}%` : null} sub={totalSessions > 0 ? `last ${totalSessions} session${totalSessions === 1 ? "" : "s"}` : null} />
+        </div>
+
+        {/* ── Division breakdown ── */}
+        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>DIVISION BREAKDOWN</div>
+          {[{ label: "B Div", players: bDiv, color: C.electric }, { label: "C Div", players: cDiv, color: C.green || "#4ade80" }].map(({ label, players, color }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, width: 46 }}>{label}</div>
+              <Bar pct={totalPlayers > 0 ? (players.length / totalPlayers) * 100 : 0} color={color} />
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 15, color, width: 36, textAlign: "right" }}>{players.length}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── School breakdown ── */}
+        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>BY SCHOOL</div>
+          {schoolEntries.length === 0 && <div style={dimStyle}>No players on roster yet.</div>}
+          {schoolEntries.map(([school, count]) => {
+            const schoolRate = schoolRates.find(s => s.school === school);
+            return (
+              <div key={school} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, width: 160, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {school === "Chung Cheng High (Yishun)" ? "CCHY" : school}
+                </div>
+                <Bar pct={totalPlayers > 0 ? (count / totalPlayers) * 100 : 0} />
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: accent, width: 24, textAlign: "right" }}>{count}</div>
+                {schoolRate && (
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 42, textAlign: "right" }}>{schoolRate.rate}% att.</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Recent sessions ── */}
+        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>RECENT SESSIONS (last {Math.min(10, totalSessions)})</div>
+          {recentDates.length === 0 && <div style={dimStyle}>No sessions recorded yet.</div>}
+          {recentDates.map(date => {
+            const ids = attendanceLog[date] || [];
+            const pct = totalPlayers > 0 ? Math.round((ids.length / totalPlayers) * 100) : 0;
+            const isToday = date === new Date().toISOString().slice(0, 10);
+            return (
+              <div key={date} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: isToday ? accent : C.textBright, width: 100, flexShrink: 0, fontWeight: isToday ? 700 : 400 }}>
+                  {isToday ? "TODAY" : date}
+                </div>
+                <Bar pct={pct} color={pct >= 75 ? (C.green || "#4ade80") : pct >= 50 ? accent : "#f87171"} />
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, width: 56, textAlign: "right" }}>{ids.length}/{totalPlayers}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 38, textAlign: "right" }}>{pct}%</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Top attenders ── */}
+        {topAttenders.length > 0 && (
+          <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
+            <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>🏅 TOP CONTRIBUTORS</div>
+            {topAttenders.map((p, i) => {
+              const rate = totalSessions > 0 ? Math.round((p.count / totalSessions) * 100) : 0;
+              const medals = ["🥇", "🥈", "🥉", "4.", "5."];
+              return (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontFamily: FONT_HEAD, fontSize: 16, width: 28, flexShrink: 0 }}>{medals[i]}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name} <span style={{ color: C.textDim, fontSize: 11 }}>({p.school === "Chung Cheng High (Yishun)" ? "CCHY" : p.school})</span>
+                  </div>
+                  <Bar pct={rate} />
+                  <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: accent, width: 36, textAlign: "right" }}>{p.count}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 36, textAlign: "right" }}>{rate}%</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Generated timestamp ── */}
+        <div style={{ textAlign: "center", padding: "4px 0 12px" }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
+            NBSS Football CCA · GamePlan · {new Date().toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        </div>
+      </div>
+
+      {totalSessions > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <ShareSaveBar targetRef={exportRef} filename="nbss-team-report.png" title="NBSS Football CCA — Team Report" />
+        </div>
+      )}
+
+      {totalSessions === 0 && (
+        <div style={{ marginTop: 20, padding: "18px 20px", borderRadius: 12, background: `${accent}08`, border: `1px dashed ${accent}30`, textAlign: "center" }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>
+            No attendance sessions recorded yet. Take attendance in the <strong style={{ color: C.electric }}>Hub → Attendance</strong> tab to populate this report.
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProgressGroup({ profile }) {
+  const C = useTheme();
+  const isCoach = profile?.role === "coach";
+  const [sub, setSub] = useState(isCoach ? "report" : "tracker");
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
-        { id: "tracker", label: "📊 Tracker" },
-        { id: "squad",   label: "🎮 Squad" },
+        ...(!isCoach ? [{ id: "tracker", label: "📊 Tracker" }] : []),
+        ...(!isCoach ? [{ id: "wellness", label: "🩹 Wellness" }] : []),
+        { id: "squad", label: "👥 Squad" },
+        ...(isCoach ? [{ id: "report", label: "📋 Report" }] : []),
       ]} />
-      {sub === "tracker" && <TrackerSection />}
-      {sub === "squad"   && <SquadSection />}
+      {sub === "tracker" && !isCoach && <TrackerSection />}
+      {sub === "wellness" && !isCoach && <WellnessSection />}
+      {sub === "report" && isCoach && <TeamReportSection />}
+      {sub === "squad" && (
+        <div>
+          {isCoach && (
+            <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 0" }}>
+              <div style={{ padding: "14px 18px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20`, display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 16 }}>📋</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.electric, fontWeight: 600 }}>
+                  Coach view — managing the squad roster. Personal XP tracking is available to players.
+                </span>
+              </div>
+            </div>
+          )}
+          <SquadSection />
+        </div>
+      )}
     </div>
   );
 }
@@ -738,7 +1267,8 @@ function ProgressGroup() {
 // ══════════════════════════════════════════════════
 //  NAVBAR
 // ══════════════════════════════════════════════════
-function Navbar({ active, setActive }) {
+function Navbar({ active, setActive, isDark, onToggleTheme }) {
+  const C = useTheme();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -747,10 +1277,14 @@ function Navbar({ active, setActive }) {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
+  const navBg = isDark
+    ? (scrolled ? "rgba(5,15,30,0.96)" : "rgba(5,15,30,0.85)")
+    : (scrolled ? "rgba(240,244,248,0.97)" : "rgba(240,244,248,0.90)");
+
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
-      background: scrolled ? "rgba(5,15,30,0.96)" : "rgba(5,15,30,0.85)",
+      background: navBg,
       backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
       transition: "all 0.3s ease",
@@ -769,10 +1303,27 @@ function Navbar({ active, setActive }) {
           </div>
         </div>
 
-        {/* Desktop Nav */}
-        <button className="mob-btn" onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontSize: 18, cursor: "pointer", padding: "6px 10px", borderRadius: 8 }}>
-          {open ? "✕" : "☰"}
-        </button>
+        {/* Right side: theme toggle + hamburger */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Theme toggle — always visible */}
+          <button
+            onClick={onToggleTheme}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{
+              background: isDark ? `${C.gold}18` : `${C.electric}14`,
+              border: `1px solid ${isDark ? C.gold + "35" : C.electric + "35"}`,
+              color: isDark ? C.gold : C.electric,
+              width: 36, height: 36, borderRadius: 10, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16, transition: "all 0.2s", flexShrink: 0,
+            }}
+          >{isDark ? "☀️" : "🌙"}</button>
+
+          {/* Hamburger — mobile only */}
+          <button className="mob-btn" onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontSize: 18, cursor: "pointer", padding: "6px 10px", borderRadius: 8 }}>
+            {open ? "✕" : "☰"}
+          </button>
+        </div>
 
         <div className={`nav-l ${open ? "nav-open" : ""}`} style={{ display: "flex", gap: 2, alignItems: "center" }}>
           {NAV_GROUPS.map(g => (
@@ -780,14 +1331,27 @@ function Navbar({ active, setActive }) {
               background: active === g.id ? `${C.gold}15` : "transparent",
               color: active === g.id ? C.gold : C.textMid,
               border: active === g.id ? `1px solid ${C.gold}30` : "1px solid transparent",
-              padding: "6px 12px", borderRadius: 8, cursor: "pointer",
-              fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600,
-              transition: "all 0.2s", letterSpacing: 0.3,
+              padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+              fontFamily: FONT_BODY, fontSize: 14, fontWeight: active === g.id ? 700 : 500,
+              transition: "all 0.2s", letterSpacing: 0.2,
             }}
-              onMouseEnter={e => { if (active !== g.id) { e.target.style.color = C.textBright; e.target.style.borderColor = C.navyBorder; } }}
-              onMouseLeave={e => { if (active !== g.id) { e.target.style.color = C.textMid; e.target.style.borderColor = "transparent"; } }}
+              onMouseEnter={e => { if (active !== g.id) { e.currentTarget.style.color = C.textBright; e.currentTarget.style.background = C.surfaceSubtle; } }}
+              onMouseLeave={e => { if (active !== g.id) { e.currentTarget.style.color = C.textMid; e.currentTarget.style.background = "transparent"; } }}
             >{g.label}</button>
           ))}
+          {/* Theme toggle inside mobile menu too */}
+          <button
+            onClick={() => { onToggleTheme(); setOpen(false); }}
+            style={{
+              background: isDark ? `${C.gold}18` : `${C.electric}14`,
+              border: `1px solid ${isDark ? C.gold + "35" : C.electric + "35"}`,
+              color: isDark ? C.gold : C.electric,
+              padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+              fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500,
+              transition: "all 0.2s", display: "none",
+            }}
+            className="mob-theme-btn"
+          >{isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}</button>
         </div>
       </div>
     </nav>
@@ -795,9 +1359,108 @@ function Navbar({ active, setActive }) {
 }
 
 // ══════════════════════════════════════════════════
+//  HERO TICKER
+// ══════════════════════════════════════════════════
+function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
+  const C = useTheme();
+
+  // Compute latest ACWR from sessions that have load data
+  const acwrData = sessions?.length ? computeACWR(sessions) : [];
+  const latestACWR = acwrData.length ? acwrData[acwrData.length - 1].acwr : null;
+  const acwrZone = latestACWR === null ? null
+    : latestACWR < 0.8  ? { label: "Under-loaded", color: C.electric,  emoji: "📉" }
+    : latestACWR <= 1.3 ? { label: "Optimal Zone", color: C.success,   emoji: "✅" }
+    : latestACWR <= 1.5 ? { label: "Caution Zone",  color: C.gold,     emoji: "⚠️" }
+    :                     { label: "High Risk",      color: C.danger,   emoji: "🚨" };
+
+  const isCoach = profile?.role === "coach";
+  const name = profile?.name?.trim();
+
+  // Build dynamic ticker items
+  const items = [];
+
+  // Identity / welcome
+  if (name) {
+    items.push({ icon: isCoach ? "📋" : "⚽", text: isCoach ? `Coach ${name} — Team Dashboard Active` : `Welcome back, ${name}!`, color: C.gold });
+  } else {
+    items.push({ icon: "⚽", text: "NBSS Football CCA — GamePlan Platform", color: C.gold });
+  }
+
+  // Session stats (players)
+  if (!isCoach && sessions?.length > 0) {
+    items.push({ icon: "📊", text: `${sessions.length} session${sessions.length === 1 ? "" : "s"} logged total`, color: C.electric });
+    if (streak > 1) items.push({ icon: "🔥", text: `${streak}-session training streak — keep it up!`, color: C.danger });
+    if (daysSinceLast === 0) items.push({ icon: "✅", text: "You trained today — great work!", color: C.success });
+    else if (daysSinceLast === 1) items.push({ icon: "⏰", text: "Last session was yesterday — time to train again?", color: C.gold });
+    else if (daysSinceLast >= 3) items.push({ icon: "💤", text: `${daysSinceLast} days since last session — your body misses the pitch!`, color: C.orange });
+  }
+
+  // Coach stats
+  if (isCoach && sessions?.length > 0) {
+    items.push({ icon: "📅", text: `${sessions.length} squad sessions on record`, color: C.electric });
+  }
+
+  // ACWR load alert
+  if (acwrZone && latestACWR !== null) {
+    items.push({ icon: acwrZone.emoji, text: `Training Load (ACWR): ${latestACWR.toFixed(2)} — ${acwrZone.label}`, color: acwrZone.color });
+    if (latestACWR > 1.3) items.push({ icon: "🧊", text: "High load detected — prioritise sleep, hydration and recovery today.", color: C.orange });
+  }
+
+  // Training reminders (always present)
+  items.push({ icon: "💧", text: "Hydration reminder — drink water before, during and after every session.", color: C.electric });
+  items.push({ icon: "😴", text: "Sleep is your #1 recovery tool — aim for 8–9 hours on school nights.", color: "#a78bfa" });
+  items.push({ icon: "🧠", text: "Check today's Football IQ question below — one question a day sharpens the mind.", color: C.gold });
+  items.push({ icon: "💪", text: "RECIPE Value of the day: push your EXCELLENCE in every drill.", color: C.success });
+  items.push({ icon: "🎯", text: "Set a micro-goal before training — one thing to improve today.", color: C.gold });
+  items.push({ icon: "📈", text: "Log your session RPE after training — it takes 30 seconds and builds your ACWR picture.", color: C.electric });
+
+  // Separator dot
+  const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none" }}>•</span>;
+
+  // Double items for seamless loop
+  const doubled = [...items, ...items];
+
+  return (
+    <div style={{
+      position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2,
+      overflow: "hidden", height: 38,
+      background: `linear-gradient(90deg, ${C.navyCard}f0, ${C.navyCard}cc)`,
+      borderTop: `1px solid ${C.gold}25`,
+      display: "flex", alignItems: "center",
+    }}>
+      {/* Left fade */}
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to right, ${C.navy}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
+      {/* Right fade */}
+      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to left, ${C.navy}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
+
+      <div style={{
+        display: "inline-flex", alignItems: "center",
+        animation: `tickerScroll ${Math.max(35, items.length * 6)}s linear infinite`,
+        whiteSpace: "nowrap",
+        willChange: "transform",
+      }}>
+        {doubled.map((item, i) => (
+          <span key={i} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "0 20px",
+            fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
+            color: item.color || C.gold, letterSpacing: 0.3,
+          }}>
+            <span style={{ fontSize: 14 }}>{item.icon}</span>
+            <span>{item.text}</span>
+            {DOT}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  HERO
 // ══════════════════════════════════════════════════
 function HeroSection({ setActive, profile, sessions }) {
+  const C = useTheme();
   const [qi, setQi] = useState(0);
   const [fade, setFade] = useState(true);
   const [iqRevealed, setIqRevealed] = useState(false);
@@ -847,12 +1510,25 @@ function HeroSection({ setActive, profile, sessions }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 24, border: `1px solid ${C.gold}30`, background: `${C.gold}08`, marginBottom: 16 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.success, display: "inline-block", animation: "pulse 2s infinite" }} />
           <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
-            {isPersonalised ? `Welcome back, ${profile.name}` : "Naval Base Secondary School"}
+            {isPersonalised
+              ? profile.role === "coach"
+                ? `Welcome back, ${profile.name}`
+                : `Welcome back, ${profile.name}`
+              : "Naval Base Secondary School"}
           </span>
         </div>
 
-        {/* Streak / nudge chips */}
-        {isPersonalised && (
+        {/* Role badge for coach */}
+        {isPersonalised && profile.role === "coach" && (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+            <div style={{ padding: "5px 14px", borderRadius: 20, background: `${C.electric}15`, border: `1px solid ${C.electric}30` }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.electric, fontWeight: 700 }}>📋 Coach / Teacher View</span>
+            </div>
+          </div>
+        )}
+
+        {/* Streak / nudge chips — players only */}
+        {isPersonalised && profile.role !== "coach" && (
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20, flexWrap: "wrap" }}>
             {streak > 0 && <div style={{ padding: "5px 14px", borderRadius: 20, background: `${C.danger}15`, border: `1px solid ${C.danger}30` }}><span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, fontWeight: 700 }}>🔥 {streak} session streak</span></div>}
             {daysSinceLast !== null && <div style={{ padding: "5px 14px", borderRadius: 20, background: daysSinceLast > 3 ? `${C.orange}15` : `${C.success}15`, border: `1px solid ${daysSinceLast > 3 ? C.orange : C.success}30` }}><span style={{ fontFamily: FONT_BODY, fontSize: 12, color: daysSinceLast > 3 ? C.orange : C.success, fontWeight: 700 }}>{daysSinceLast === 0 ? "✅ Trained today" : daysSinceLast > 3 ? `⚠️ ${daysSinceLast} days since last session` : `⏱️ Last session ${daysSinceLast}d ago`}</span></div>}
@@ -871,14 +1547,22 @@ function HeroSection({ setActive, profile, sessions }) {
           <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: 0 }}>— {q.author}</p>
         </div>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons — different for coaches vs players */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 36 }}>
-          {[
-            { s: "train",    label: "Start Training", icon: "🏃", primary: true },
-            { s: "progress", label: "Track Progress",  icon: "📊" },
-            { s: "match",    label: "Match Day",       icon: "⚽" },
-            { s: "culture",  label: "Legends",         icon: "🌟" },
-          ].map(b => (
+          {(profile.role === "coach"
+            ? [
+                { s: "hub",      label: "Team Hub",        icon: "🏟️", primary: true },
+                { s: "match",    label: "Lineup Builder",  icon: "📋" },
+                { s: "progress", label: "Squad",           icon: "👥" },
+                { s: "culture",  label: "Legends",         icon: "🌟" },
+              ]
+            : [
+                { s: "train",    label: "Start Training",  icon: "🏃", primary: true },
+                { s: "progress", label: "Track Progress",  icon: "📊" },
+                { s: "match",    label: "Match Day",       icon: "⚽" },
+                { s: "culture",  label: "Legends",         icon: "🌟" },
+              ]
+          ).map(b => (
             <button key={b.s} onClick={() => setActive(b.s)} style={{
               background: b.primary ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : C.navyCard,
               color: b.primary ? C.navy : C.textMid, border: b.primary ? "none" : `1px solid ${C.navyBorder}`,
@@ -920,9 +1604,29 @@ function HeroSection({ setActive, profile, sessions }) {
           </div>
         </div>
 
-        {/* Stats strip */}
+        {/* Stats strip — personal metrics for players, team snapshot for coaches */}
         <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 56, flexWrap: "wrap" }}>
-          {[{ val: "5", label: "Sections" }, { val: "3", label: "Training Levels" }, { val: "20+", label: "Food Items" }, { val: "20", label: "IQ Questions" }].map((s, i) => (
+          {(profile.role === "coach"
+            ? [
+                { val: sessions?.length ?? 0, label: "Sessions Logged" },
+                { val: streak > 0 ? `${streak}` : "—", label: "Current Streak" },
+                { val: "B + C", label: "Divisions" },
+                { val: 4, label: "Cluster Schools" },
+              ]
+            : sessions?.length > 0
+              ? [
+                  { val: sessions.length, label: "Total Sessions" },
+                  { val: streak > 0 ? `🔥 ${streak}` : "—", label: "Session Streak" },
+                  { val: profile.level ? profile.level.charAt(0).toUpperCase() + profile.level.slice(1) : "—", label: "Training Level" },
+                  { val: daysSinceLast === 0 ? "Today" : daysSinceLast === 1 ? "Yesterday" : daysSinceLast ? `${daysSinceLast}d ago` : "—", label: "Last Session" },
+                ]
+              : [
+                  { val: "3", label: "Training Levels" },
+                  { val: "10+", label: "Mindset Cards" },
+                  { val: "20+", label: "Food Items" },
+                  { val: "20", label: "IQ Questions" },
+                ]
+          ).map((s, i) => (
             <div key={i} style={{ textAlign: "center" }}>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 36, color: C.gold, letterSpacing: 1 }}>{s.val}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 2 }}>{s.label}</div>
@@ -930,6 +1634,9 @@ function HeroSection({ setActive, profile, sessions }) {
           ))}
         </div>
       </div>
+
+      {/* ── ROLLING TICKER STRIP ── */}
+      <HeroTicker profile={profile} sessions={sessions} streak={streak} daysSinceLast={daysSinceLast} />
     </section>
   );
 }
@@ -938,9 +1645,16 @@ function HeroSection({ setActive, profile, sessions }) {
 //  TRAINING
 // ══════════════════════════════════════════════════
 function TrainingSection() {
+  const C = useTheme();
   const [level, setLevel] = useState("beginner");
   const [openWeek, setOpenWeek] = useState(0);
+  const [showPosDrills, setShowPosDrills] = useState(true);
   const data = TRAINING_DATA[level];
+
+  // Read stored profile to get player position
+  const [profile] = usePersistedState(STORAGE_KEYS.profile, { position: "" });
+  const posKey = POSITION_ALIAS[profile?.position] || null;
+  const posDrillData = posKey ? POSITION_DRILLS[posKey] : null;
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
@@ -963,6 +1677,41 @@ function TrainingSection() {
           </button>
         ))}
       </div>
+
+      {/* ── Position-Specific Drills Panel ── */}
+      {posDrillData && (
+        <div style={{ marginBottom: 28, borderRadius: 14, overflow: "hidden", border: `1px solid ${posDrillData.color}35`, background: C.navyCard }}>
+          <button onClick={() => setShowPosDrills(v => !v)} style={{
+            width: "100%", background: `${posDrillData.color}10`, border: "none", padding: "16px 22px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 22 }}>{posDrillData.icon}</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: posDrillData.color, letterSpacing: 1 }}>
+                  YOUR POSITION — {posDrillData.label.toUpperCase()} DRILLS
+                </div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{posDrillData.drills.length} position-specific drills · tap 🎬 to watch</div>
+              </div>
+            </div>
+            <span style={{ color: C.textDim, fontSize: 12, transform: showPosDrills ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
+          </button>
+          {showPosDrills && (
+            <div style={{ padding: "0 22px 20px" }}>
+              <div style={{ background: `${posDrillData.color}08`, border: `1px solid ${posDrillData.color}20`, borderRadius: 10, padding: "12px 16px", margin: "14px 0", fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, fontStyle: "italic" }}>
+                💡 {posDrillData.focus}
+              </div>
+              {posDrillData.drills.map((d, di) => (
+                <div key={di} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: di % 2 === 0 ? C.surfaceSubtle : "transparent", borderRadius: 8, marginBottom: 2 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: posDrillData.color, color: C.navyDeep, fontSize: 11, fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0 }}>{di + 1}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, flex: 1 }}>{d.text}</span>
+                  <a href={d.video} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6, background: `${C.electric}10`, border: `1px solid ${C.electric}25`, textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11, color: C.electric, fontWeight: 700, flexShrink: 0 }}>🎬 Watch</a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {data.weeks.map((week, idx) => (
@@ -1012,9 +1761,9 @@ function TrainingSection() {
                     <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, flex: 1 }}>{drill.text}</span>
                     <a href={drill.video} target="_blank" rel="noopener noreferrer" style={{
                       display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6,
-                      background: `${C.danger}10`, border: `1px solid ${C.danger}20`,
+                      background: `${C.electric}10`, border: `1px solid ${C.electric}25`,
                       textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11,
-                      color: C.danger, fontWeight: 700, flexShrink: 0,
+                      color: C.electric, fontWeight: 700, flexShrink: 0,
                     }}>🎬 Watch</a>
                   </div>
                 ))}
@@ -1031,6 +1780,7 @@ function TrainingSection() {
 //  NUTRITION
 // ══════════════════════════════════════════════════
 function NutritionSection() {
+  const C = useTheme();
   const [checkerOpen, setCheckerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [timing, setTiming] = useState("pre");
@@ -1149,6 +1899,7 @@ function NutritionSection() {
 //  BOX BREATHING TIMER
 // ══════════════════════════════════════════════════
 function BoxBreathingTimer() {
+  const C = useTheme();
   const PHASES = [
     { label: "INHALE", duration: 4, color: C.electric, instruction: "Breathe in slowly through your nose" },
     { label: "HOLD", duration: 4, color: C.gold, instruction: "Hold your breath gently" },
@@ -1298,6 +2049,7 @@ function BoxBreathingTimer() {
 //  MINDSET
 // ══════════════════════════════════════════════════
 function MindsetSection() {
+  const C = useTheme();
   const [activeCard, setActiveCard] = useState(null);
   const [flippedCards, setFlippedCards] = useState({});
   const [mindsetFilter, setMindsetFilter] = useState("All");
@@ -1479,9 +2231,128 @@ function MindsetSection() {
 }
 
 // ══════════════════════════════════════════════════
+//  WARM-UP / COOL-DOWN
+// ══════════════════════════════════════════════════
+function WarmUpSection() {
+  const C = useTheme();
+  const [mode, setMode] = useState("warmup"); // "warmup" | "cooldown"
+  const [activeStep, setActiveStep] = useState(0);
+  const [done, setDone] = useState({});
+
+  const steps = mode === "warmup" ? WARM_UP_STEPS : COOL_DOWN_STEPS;
+  const accentColor = mode === "warmup" ? C.success : C.electric;
+  const allDone = steps.every((_, i) => done[`${mode}-${i}`]);
+
+  const toggleDone = (idx) => {
+    const key = `${mode}-${idx}`;
+    setDone(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const resetFlow = () => { setDone({}); setActiveStep(0); };
+
+  return (
+    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
+      <SectionHeader icon="🔥" title="WARM-UP & COOL-DOWN" subtitle="Structured protocols — don't skip this, it's where injuries are prevented" accent={accentColor} />
+
+      {/* Toggle */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+        {[{ id: "warmup", label: "🔥 Pre-Session Warm-Up" }, { id: "cooldown", label: "🧊 Post-Session Cool-Down" }].map(t => (
+          <button key={t.id} onClick={() => { setMode(t.id); setActiveStep(0); }} style={{
+            padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+            background: mode === t.id ? accentColor : C.navyCard,
+            color: mode === t.id ? C.navyDeep : C.textMid,
+            border: mode === t.id ? "none" : `1px solid ${C.navyBorder}`,
+            transition: "all 0.2s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontWeight: 700 }}>
+            {mode === "warmup" ? "WARM-UP PROGRESS" : "COOL-DOWN PROGRESS"}
+          </span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: accentColor, fontWeight: 700 }}>
+            {Object.keys(done).filter(k => k.startsWith(mode) && done[k]).length}/{steps.length} steps
+          </span>
+        </div>
+        <div style={{ height: 8, background: C.navyBorder, borderRadius: 4, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", borderRadius: 4, background: accentColor,
+            width: `${(Object.keys(done).filter(k => k.startsWith(mode) && done[k]).length / steps.length) * 100}%`,
+            transition: "width 0.4s ease",
+          }} />
+        </div>
+      </div>
+
+      {/* All done state */}
+      {allDone && (
+        <div style={{ background: `${accentColor}12`, border: `1px solid ${accentColor}30`, borderRadius: 14, padding: "20px 24px", marginBottom: 24, textAlign: "center" }}>
+          <span style={{ fontSize: 36 }}>✅</span>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: accentColor, letterSpacing: 1, margin: "8px 0 4px" }}>
+            {mode === "warmup" ? "FULLY WARMED UP — YOU'RE READY." : "RECOVERY COMPLETE — WELL DONE."}
+          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>
+            {mode === "warmup" ? "Your joints, muscles and brain are primed. Go play your game." : "Your body is in recovery mode. Hydrate, eat within 45 mins, rest."}
+          </p>
+          <button onClick={resetFlow} style={{ padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid }}>Reset Protocol</button>
+        </div>
+      )}
+
+      {/* Step list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {steps.map((step, idx) => {
+          const isDone = done[`${mode}-${idx}`];
+          const isActive = activeStep === idx && !isDone;
+          return (
+            <div key={idx} onClick={() => { toggleDone(idx); if (!isDone && idx + 1 < steps.length) setActiveStep(idx + 1); }} style={{
+              background: isDone ? `${accentColor}08` : isActive ? `${accentColor}12` : C.navyCard,
+              border: `1px solid ${isDone ? accentColor + "40" : isActive ? accentColor + "60" : C.navyBorder}`,
+              borderRadius: 14, padding: "16px 20px", cursor: "pointer",
+              display: "flex", alignItems: "flex-start", gap: 16,
+              transition: "all 0.25s",
+              opacity: !isDone && !isActive && activeStep > idx ? 0.5 : 1,
+            }}>
+              {/* Checkbox */}
+              <div style={{
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                background: isDone ? accentColor : "transparent", border: `2px solid ${isDone ? accentColor : C.navyBorder}`,
+                marginTop: 2,
+              }}>
+                {isDone && <span style={{ color: C.navyDeep, fontSize: 16, fontWeight: 900 }}>✓</span>}
+              </div>
+              {/* Content */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 18 }}>{step.icon}</span>
+                  <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: isDone ? accentColor : C.textBright, letterSpacing: 0.5 }}>{step.name.toUpperCase()}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: accentColor, background: `${accentColor}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{step.duration}</span>
+                </div>
+                {isActive && (
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+                )}
+                {isDone && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: accentColor, margin: 0, fontStyle: "italic" }}>Complete ✓</p>}
+              </div>
+              {/* Step number */}
+              <span style={{ fontFamily: FONT_HEAD, fontSize: 22, color: isDone ? accentColor : C.textDim, opacity: isDone ? 1 : 0.4 }}>{String(idx + 1).padStart(2, "0")}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{ fontFamily: FONT_SERIF, fontSize: 13, color: C.textDim, textAlign: "center", margin: "28px 0 0", fontStyle: "italic" }}>
+        "The more I practise, the luckier I get." — Players who skip warm-up get to test that theory the hard way.
+      </p>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  FITNESS
 // ══════════════════════════════════════════════════
 function FitnessSection() {
+  const C = useTheme();
   const [results, setResults] = usePersistedState(STORAGE_KEYS.fitnessResults, {});
   const [showLog, setShowLog] = useState(null);
   const [showChart, setShowChart] = useState(null);
@@ -1510,10 +2381,113 @@ function FitnessSection() {
 
   const getChartData = (testName) => ((results[testName]?.entries || [])).map(e => ({ date: e.date.slice(5), value: parseFloat(e.value) || 0 }));
 
+  const [eduOpen, setEduOpen] = useState(null); // "acwr" | "rpe" | null
+
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
       <SectionHeader icon="💪" title="FITNESS BENCHMARKS" subtitle="Track your results, see your progress, set your targets" accent={C.danger} />
+
+      {/* ── ATHLETE EDUCATION: ACWR & RPE ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 32 }}>
+        {/* ACWR Card */}
+        <div style={{ background: C.navyCard, border: `1px solid ${eduOpen === "acwr" ? C.gold + "60" : C.navyBorder}`, borderRadius: 16, overflow: "hidden", transition: "all 0.3s" }}>
+          <button onClick={() => setEduOpen(eduOpen === "acwr" ? null : "acwr")} style={{
+            width: "100%", padding: "18px 20px", background: "none", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.gold}15`, border: `1px solid ${C.gold}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚖️</div>
+              <div>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>WHAT IS ACWR?</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Acute:Chronic Workload Ratio — your injury risk indicator</div>
+              </div>
+            </div>
+            <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{eduOpen === "acwr" ? "▲" : "▼"}</span>
+          </button>
+          {eduOpen === "acwr" && (
+            <div style={{ padding: "0 20px 20px" }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+                <strong style={{ color: C.textBright }}>ACWR compares your recent training load (last 7 days) against your long-term load (last 28 days).</strong> Think of it as your fitness GPS — it tells you if you're training too much, too little, or just right.
+              </p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+                <strong style={{ color: C.textBright }}>How it's calculated:</strong> Each session's load = RPE × Duration (minutes). ACWR = 7-day average ÷ 28-day average.
+              </p>
+              {/* Zone chart */}
+              <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${C.navyBorder}`, marginBottom: 16 }}>
+                {[
+                  { range: "Below 0.8", label: "Under-loaded", desc: "You're doing too little. Risk of detraining and injury when load suddenly spikes.", color: "#38bdf8", bg: "#38bdf820" },
+                  { range: "0.8 – 1.3", label: "✅ Optimal Zone", desc: "Sweet spot. Training load is well-managed. Keep this range to perform and stay healthy.", color: "#22c55e", bg: "#22c55e20" },
+                  { range: "1.3 – 1.5", label: "⚠️ Caution Zone", desc: "Load is rising quickly. Prioritise recovery — sleep, nutrition, stretching.", color: "#f0b429", bg: "#f0b42920" },
+                  { range: "Above 1.5", label: "🚨 High Risk", desc: "Overload warning. High injury risk. Reduce session intensity and rest immediately.", color: "#ef4444", bg: "#ef444420" },
+                ].map((z, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: z.bg, borderBottom: i < 3 ? `1px solid ${C.navyBorder}` : "none" }}>
+                    <div style={{ minWidth: 72, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: z.color, paddingTop: 1 }}>{z.range}</div>
+                    <div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: z.color, marginBottom: 2 }}>{z.label}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{z.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
+                💡 Log your session <strong style={{ color: C.textMid }}>RPE and duration</strong> in the Progress Tracker to see your ACWR chart automatically.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* RPE Card */}
+        <div style={{ background: C.navyCard, border: `1px solid ${eduOpen === "rpe" ? C.electric + "60" : C.navyBorder}`, borderRadius: 16, overflow: "hidden", transition: "all 0.3s" }}>
+          <button onClick={() => setEduOpen(eduOpen === "rpe" ? null : "rpe")} style={{
+            width: "100%", padding: "18px 20px", background: "none", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.electric}15`, border: `1px solid ${C.electric}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>💬</div>
+              <div>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>WHAT IS RPE?</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Rate of Perceived Exertion — your personal effort score</div>
+              </div>
+            </div>
+            <span style={{ color: C.electric, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{eduOpen === "rpe" ? "▲" : "▼"}</span>
+          </button>
+          {eduOpen === "rpe" && (
+            <div style={{ padding: "0 20px 20px" }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+                <strong style={{ color: C.textBright }}>RPE is a simple 1–10 scale of how hard you felt you worked.</strong> It's used by elite sports scientists because it captures the real mental and physical toll of training — not just distance or time.
+              </p>
+              {/* RPE Scale */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
+                {[
+                  { val: "1–2", label: "Very Easy", desc: "Light walk, warm-up", color: "#94a3b8" },
+                  { val: "3–4", label: "Easy", desc: "Comfortable jog, recovery session", color: "#38bdf8" },
+                  { val: "5–6", label: "Moderate", desc: "You're working but can still talk", color: "#22c55e" },
+                  { val: "7–8", label: "Hard", desc: "Breathless, high effort, match intensity", color: "#f0b429" },
+                  { val: "9",   label: "Very Hard", desc: "Near max — sprint intervals, final whistle push", color: "#f97316" },
+                  { val: "10",  label: "Maximum", desc: "Total effort — cannot sustain beyond seconds", color: "#ef4444" },
+                ].map((r, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: `${r.color}10`, border: `1px solid ${r.color}25` }}>
+                    <div style={{ minWidth: 32, fontFamily: FONT_HEAD, fontSize: 15, color: r.color, letterSpacing: 1 }}>{r.val}</div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}> — {r.desc}</span>
+                    </div>
+                    {/* Mini bar */}
+                    <div style={{ width: 40, height: 6, borderRadius: 3, background: C.navyBorder, overflow: "hidden", flexShrink: 0 }}>
+                      <div style={{ height: "100%", width: `${(i + 1) / 6 * 100}%`, background: r.color, borderRadius: 3 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
+                💡 Most team training sessions should sit at <strong style={{ color: C.textMid }}>RPE 6–8</strong>. Recovery sessions should be RPE 3–4. Always honest with yourself — no one benefits from inflated scores.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: "grid", gap: 14 }}>
         {FITNESS_TESTS.map((test, idx) => {
           const entries = results[test.name]?.entries || [];
@@ -1637,6 +2611,7 @@ function computeACWR(sessions) {
 }
 
 function TrackerSection() {
+  const C = useTheme();
   const [sessions, setSessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ date: "", type: "training", rating: 3, notes: "", goals: "", mood: "😊", duration: "", rpe: 5, sleep: 3, energy: 3, soreness: 3 });
@@ -1722,6 +2697,41 @@ function TrackerSection() {
                 <Line type="monotone" dataKey="acwr" stroke={C.gold} strokeWidth={2} dot={{ fill: C.gold, r: 3 }} activeDot={{ r: 5 }} name="ACWR" />
               </LineChart>
             </ResponsiveContainer>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {/* Sleep Quality Trend Chart */}
+      {(() => {
+        const sleepData = sessions
+          .filter(s => s.sleep && s.date)
+          .sort((a, b) => a.date > b.date ? 1 : -1)
+          .slice(-30) // last 30 sessions
+          .map(s => ({ date: s.date.slice(5), sleep: Number(s.sleep), energy: Number(s.energy) || undefined }));
+        if (sleepData.length < 2) return null;
+        return (
+          <Card style={{ marginBottom: 24, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>😴 SLEEP & ENERGY TREND</div>
+              <div style={{ display: "flex", gap: 12, fontSize: 11, fontFamily: FONT_BODY }}>
+                <span style={{ color: C.electric }}>— Sleep quality (1–5)</span>
+                <span style={{ color: C.success }}>— Energy (1–5)</span>
+              </div>
+            </div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Last {sleepData.length} sessions · higher = better · aim for consistent 4–5</p>
+            <div style={{ width: "100%", overflow: "hidden" }}>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={sleepData} margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
+                  <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <ReferenceLine y={4} stroke={C.success} strokeDasharray="4 2" strokeWidth={1} label={{ value: "Target", position: "right", fontSize: 9, fill: C.success, fontFamily: FONT_BODY }} />
+                  <Line type="monotone" dataKey="sleep" stroke={C.electric} strokeWidth={2} dot={{ fill: C.electric, r: 3 }} activeDot={{ r: 5 }} name="Sleep" connectNulls />
+                  <Line type="monotone" dataKey="energy" stroke={C.success} strokeWidth={2} dot={{ fill: C.success, r: 3 }} activeDot={{ r: 5 }} name="Energy" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </Card>
         );
@@ -1877,12 +2887,150 @@ function TrackerSection() {
   );
 }
 // ══════════════════════════════════════════════════
+//  WELLNESS / INJURY LOG
+// ══════════════════════════════════════════════════
+function WellnessSection() {
+  const C = useTheme();
+  const [logs, setLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [showForm, setShowForm] = useState(false);
+  const emptyForm = { date: "", type: "injury", location: "", severity: 2, notes: "", rtp: "", resolved: false };
+  const [form, setForm] = useState(emptyForm);
+
+  const addLog = () => {
+    if (!form.date || !form.location) return;
+    setLogs(prev => [...prev, { ...form, id: Date.now() }]);
+    setForm(emptyForm);
+    setShowForm(false);
+  };
+
+  const toggleResolved = (id) => setLogs(prev => prev.map(l => l.id === id ? { ...l, resolved: !l.resolved } : l));
+  const deleteLog = (id) => setLogs(prev => prev.filter(l => l.id !== id));
+
+  const active = logs.filter(l => !l.resolved);
+  const resolved = logs.filter(l => l.resolved);
+
+  const severityLabel = (s) => ["", "Mild — continue training", "Moderate — modify load", "Severe — rest & see physio"][s] || "";
+  const severityColor = (s) => [C.textDim, C.success, C.gold, C.danger][s] || C.textDim;
+
+  return (
+    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
+      <SectionHeader icon="🩹" title="WELLNESS LOG" subtitle="Track knocks, monitor return-to-play and protect your body long-term" accent={C.orange} />
+
+      {/* Info banner */}
+      <div style={{ background: `${C.orange}08`, border: `1px solid ${C.orange}25`, borderRadius: 12, padding: "14px 18px", marginBottom: 24, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
+        ⚠️ This log is for your own awareness only. Always tell your coach about injuries — don't train through pain without guidance.
+      </div>
+
+      {/* Active injuries */}
+      {active.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.danger, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>🔴 Active / Ongoing</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {active.map(log => (
+              <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${severityColor(log.severity)}35`, borderRadius: 14, padding: "16px 20px", borderLeft: `4px solid ${severityColor(log.severity)}` }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                      <span style={{ fontFamily: FONT_HEAD, fontSize: 15, color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: severityColor(log.severity), background: `${severityColor(log.severity)}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{severityLabel(log.severity)}</span>
+                    </div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: log.notes ? 6 : 0 }}>
+                      Logged: {log.date}{log.rtp ? ` · Est. return: ${log.rtp}` : ""}
+                    </div>
+                    {log.notes && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0 }}>{log.notes}</p>}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => toggleResolved(log.id)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: `${C.success}10`, border: `1px solid ${C.success}30`, color: C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Mark resolved ✓</button>
+                    <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm} style={{ width: "100%", marginBottom: 20 }}>
+        {showForm ? "✕ Cancel" : "+ Log Injury / Knock"}
+      </GoldButton>
+
+      {/* Log form */}
+      {showForm && (
+        <div style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div><label style={makeLabelStyle(C)}>Date of injury / knock</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={makeInputStyle(C)} /></div>
+            <div><label style={makeLabelStyle(C)}>Body location</label>
+              <select value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} style={makeInputStyle(C)}>
+                <option value="">Select location</option>
+                {BODY_LOCATIONS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={makeLabelStyle(C)}>Severity</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+              {[1, 2, 3].map(v => (
+                <button key={v} onClick={() => setForm({ ...form, severity: v })} style={{
+                  padding: "12px 16px", borderRadius: 10, cursor: "pointer", textAlign: "left",
+                  background: form.severity === v ? `${severityColor(v)}15` : C.surfaceSubtle,
+                  border: `1px solid ${form.severity === v ? severityColor(v) + "50" : C.navyBorder}`,
+                  fontFamily: FONT_BODY, fontSize: 13, color: form.severity === v ? severityColor(v) : C.textMid, fontWeight: form.severity === v ? 700 : 400,
+                }}>{["", "1 — Mild: light discomfort, can train normally", "2 — Moderate: noticeable pain, should modify load", "3 — Severe: significant pain, rest + see physio"][v]}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div><label style={makeLabelStyle(C)}>Estimated return date (optional)</label><input type="date" value={form.rtp} onChange={e => setForm({ ...form, rtp: e.target.value })} style={makeInputStyle(C)} /></div>
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <label style={makeLabelStyle(C)}>Notes (how it happened, what it feels like)</label>
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="e.g. Twisted ankle going for a 50-50, dull ache in outer ankle when running." style={{ ...makeInputStyle(C), height: 70, resize: "vertical", marginTop: 4 }} />
+          </div>
+          <GoldButton onClick={addLog} style={{ marginTop: 16, width: "100%" }}>Save Log ✓</GoldButton>
+        </div>
+      )}
+
+      {/* Resolved log */}
+      {resolved.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>✅ Resolved</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {resolved.map(log => (
+              <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, opacity: 0.6 }}>
+                <div>
+                  <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: 8 }}>{log.date}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => toggleResolved(log.id)} style={{ padding: "4px 12px", borderRadius: 6, cursor: "pointer", background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11 }}>Reopen</button>
+                  <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {logs.length === 0 && !showForm && (
+        <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>💪</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.success, fontSize: 15, fontWeight: 600 }}>No injuries logged — keep it that way.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use this log if you pick up a knock so you can track your recovery properly.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════
 function SquadSection() {
+  const C = useTheme();
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [squad, setSquad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "" });
+  const [squad, setSquad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
   const [editing, setEditing] = useState(false);
-  const [tempSquad, setTempSquad] = useState({ name: "", position: "", number: "" });
+  const [tempSquad, setTempSquad] = useState({ name: "", position: "", number: "", photo: "" });
+  const photoInputRef = useRef(null);
   const exportRef = useRef(null);
 
   const { xp, earned } = computeXpAndBadges(sessions, growthEntries);
@@ -1892,6 +3040,13 @@ function SquadSection() {
   const saveProfile = () => { setSquad(tempSquad); setEditing(false); };
   const startEdit = () => { setTempSquad({ ...squad }); setEditing(true); };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressImage(file, 220);
+    setTempSquad(prev => ({ ...prev, photo: compressed }));
+  };
+
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
@@ -1900,7 +3055,37 @@ function SquadSection() {
       {/* Player Card */}
       {!hasProfile || editing ? (
         <Card style={{ marginBottom: 24 }}>
-          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 18px", letterSpacing: 1 }}>CREATE YOUR PLAYER CARD</h3>
+          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 18px", letterSpacing: 1 }}>
+            {editing ? "EDIT PLAYER CARD" : "CREATE YOUR PLAYER CARD"}
+          </h3>
+
+          {/* Photo upload */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 20, overflow: "hidden", flexShrink: 0,
+              background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`,
+              border: `2px solid ${C.gold}40`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {tempSquad.photo
+                ? <img src={tempSquad.photo} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontFamily: FONT_HEAD, fontSize: 32, color: C.gold }}>{tempSquad.number || "?"}</span>
+              }
+            </div>
+            <div>
+              <button onClick={() => photoInputRef.current?.click()} style={{
+                padding: "8px 16px", borderRadius: 8, cursor: "pointer",
+                background: `${C.gold}15`, border: `1px solid ${C.gold}30`,
+                color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+              }}>📷 {tempSquad.photo ? "Change Photo" : "Add Photo"}</button>
+              {tempSquad.photo && (
+                <button onClick={() => setTempSquad(p => ({ ...p, photo: "" }))} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 8, cursor: "pointer", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12 }}>Remove</button>
+              )}
+              <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, margin: "6px 0 0" }}>Square photos work best. Stored on your device only.</p>
+            </div>
+            <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div><label style={labelStyle}>Name</label><input value={tempSquad.name} onChange={e => setTempSquad({ ...tempSquad, name: e.target.value })} placeholder="Your name" style={inputStyle} /></div>
             <div><label style={labelStyle}>Position</label>
@@ -1925,11 +3110,28 @@ function SquadSection() {
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <div style={{
-                  width: 80, height: 80, borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`, border: `2px solid ${C.gold}40`,
-                  fontFamily: FONT_HEAD, fontSize: 38, color: C.gold,
-                }}>{squad.number || "?"}</div>
+                {/* Avatar / jersey number */}
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 20, overflow: "hidden",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`,
+                    border: `2px solid ${C.gold}40`,
+                    fontFamily: FONT_HEAD, fontSize: 38, color: C.gold,
+                  }}>
+                    {squad.photo
+                      ? <img src={squad.photo} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : (squad.number || "?")}
+                  </div>
+                  {squad.photo && squad.number && (
+                    <div style={{
+                      position: "absolute", bottom: -6, right: -6, width: 26, height: 26,
+                      borderRadius: 8, background: C.gold, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: FONT_HEAD, fontSize: 13, color: C.navyDeep,
+                      border: `2px solid ${C.navyDeep}`,
+                    }}>{squad.number}</div>
+                  )}
+                </div>
                 <div>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: C.textBright, letterSpacing: 2 }}>{squad.name.toUpperCase()}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>{squad.position || "No position"} · NBSS FC</div>
@@ -2007,6 +3209,7 @@ function SquadSection() {
 //  LEGENDS
 // ══════════════════════════════════════════════════
 function BadgeIcon({ legend, size = 28 }) {
+  const C = useTheme();
   if (legend.flag) {
     return (
       <img
@@ -2019,66 +3222,256 @@ function BadgeIcon({ legend, size = 28 }) {
   return <>{legend.badge}</>;
 }
 
+const RECIPE_COLORS = { Respect: "#38bdf8", Resilience: "#f97316", Care: "#22c55e", Integrity: "#a855f7", Passion: "#ef4444", Excellence: "#f0b429" };
+
 function LegendsSection() {
+  const C = useTheme();
+  const labelStyle = makeLabelStyle(C);
+  const inputStyle = makeInputStyle(C);
   const [tab, setTab] = useState("global");
-  const [active, setActive] = useState(0);
-  const legends = tab === "global" ? LEGENDS_GLOBAL : LEGENDS_SG;
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [reflections, setReflections] = usePersistedState("nbss-recipe-reflections", {});
+  const [draft, setDraft] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const legends = tab === "global" ? LEGENDS_GLOBAL : tab === "sg" ? LEGENDS_SG : [];
+  const legend = legends[activeIdx];
+  const reflectionKey = legend ? legend.name : "";
+  const savedReflection = reflections[reflectionKey] || "";
+
+  // Sync draft when switching legends or tabs
+  const prevKey = useRef(reflectionKey);
+  useEffect(() => {
+    if (prevKey.current !== reflectionKey) {
+      setDraft(reflections[reflectionKey] || "");
+      setSaved(false);
+      prevKey.current = reflectionKey;
+    }
+  }, [reflectionKey, reflections]);
+
+  // Also initialise draft when first loading a legend
+  useEffect(() => {
+    setDraft(reflections[reflectionKey] || "");
+    setSaved(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveReflection = () => {
+    if (!reflectionKey || !draft.trim()) return;
+    setReflections(prev => ({ ...prev, [reflectionKey]: draft.trim() }));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const allLegends = [...LEGENDS_GLOBAL, ...LEGENDS_SG];
+  const journalEntries = allLegends.filter(l => reflections[l.name]?.trim());
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🌟" title="LEGENDS" subtitle="Lessons from the greatest — from the Lion City to the world stage" accent={C.gold} />
+      <SectionHeader icon="🌟" title="LEGENDS" subtitle="Lessons from the greatest — reflect on their RECIPE values and write your own story" accent={C.gold} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-        <Pill active={tab === "global"} onClick={() => { setTab("global"); setActive(0); }} color={C.gold}>🌍 Global Icons</Pill>
-        <Pill active={tab === "sg"} onClick={() => { setTab("sg"); setActive(0); }} color={C.gold}>🇸🇬 Singapore Legends</Pill>
+      {/* Tab row */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 28, flexWrap: "wrap" }}>
+        <Pill active={tab === "global"} onClick={() => { setTab("global"); setActiveIdx(0); }} color={C.gold}>🌍 Global Icons</Pill>
+        <Pill active={tab === "sg"} onClick={() => { setTab("sg"); setActiveIdx(0); }} color={C.gold}>🇸🇬 Singapore Legends</Pill>
+        <Pill active={tab === "journal"} onClick={() => setTab("journal")} color="#a855f7">
+          📓 RECIPE Journal {journalEntries.length > 0 && `(${journalEntries.length})`}
+        </Pill>
       </div>
 
-      {/* Legend selector grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 24 }}>
-        {legends.map((l, idx) => (
-          <button key={idx} onClick={() => setActive(idx)} style={{
-            background: active === idx ? `${C.gold}15` : C.navyCard,
-            border: active === idx ? `1px solid ${C.gold}50` : `1px solid ${C.navyBorder}`,
-            borderRadius: 12, padding: "14px 8px", cursor: "pointer", textAlign: "center",
-            transition: "all 0.2s",
-          }}>
-            <span style={{ fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center" }}><BadgeIcon legend={l} size={28} /></span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: active === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
-              {l.shortName}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Active legend card */}
-      <Card glow style={{ borderLeft: `4px solid ${C.gold}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 20, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 52, width: 76, height: 76, display: "flex", alignItems: "center", justifyContent: "center", background: `${C.gold}10`, borderRadius: 18, border: `1px solid ${C.gold}20` }}>
-            <BadgeIcon legend={legends[active]} size={52} />
-          </span>
-          <div>
-            <h2 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 5vw, 34px)", color: C.textBright, margin: 0, letterSpacing: 2 }}>{legends[active].name.toUpperCase()}</h2>
-            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {tab !== "sg" && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legends[active].era}</span>}
-              {legends[active].recipe && (() => {
-                const recipeColors = { Respect: C.electric, Resilience: "#f97316", Care: C.success, Integrity: "#a855f7", Passion: C.danger, Excellence: C.gold };
-                const rc = recipeColors[legends[active].recipe] || C.gold;
-                return <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: rc, background: `${rc}15`, padding: "3px 10px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>RECIPE · {legends[active].recipe}</span>;
-              })()}
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, background: `${C.gold}10`, padding: "3px 10px", borderRadius: 6, fontWeight: 700, border: `1px solid ${C.gold}20` }}>{legends[active].stat}</span>
+      {/* ── RECIPE JOURNAL TAB ── */}
+      {tab === "journal" && (
+        <div>
+          {journalEntries.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 24px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📓</div>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 10px", letterSpacing: 1 }}>YOUR JOURNAL IS EMPTY</h3>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.7, margin: "0 0 20px", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
+                Read a legend's story, answer the reflection prompt, and your entry will appear here. Your thoughts are private — only you can see them.
+              </p>
+              <button onClick={() => { setTab("global"); setActiveIdx(0); }} style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navy, border: "none", padding: "12px 24px", borderRadius: 10, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>
+                Start with a Legend →
+              </button>
             </div>
-          </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ padding: "12px 16px", borderRadius: 10, background: `${"#a855f7"}12`, border: `1px solid ${"#a855f7"}25` }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: "#a855f7", margin: 0, fontWeight: 600 }}>
+                  📓 {journalEntries.length} reflection{journalEntries.length !== 1 ? "s" : ""} saved — your private growth journal
+                </p>
+              </div>
+              {journalEntries.map((l, i) => {
+                const isGlobal = LEGENDS_GLOBAL.some(gl => gl.name === l.name);
+                return (
+                  <Card key={i}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
+                      <span style={{ fontSize: 32, flexShrink: 0 }}><BadgeIcon legend={l} size={32} /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                          <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>{l.name.toUpperCase()}</span>
+                          <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{isGlobal ? "🌍 Global" : "🇸🇬 Singapore"}</span>
+                          {(l.recipeValues || [l.recipe]).map(rv => {
+                            const rc = RECIPE_COLORS[rv] || C.gold;
+                            return <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: rc, background: `${rc}15`, padding: "2px 8px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>{rv}</span>;
+                          })}
+                        </div>
+                        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontStyle: "italic", lineHeight: 1.5, margin: "0 0 10px" }}>"{l.reflectionPrompt}"</p>
+                        <div style={{ padding: "12px 14px", borderRadius: 10, background: `${"#a855f7"}08`, border: `1px solid ${"#a855f7"}20` }}>
+                          <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+                            {reflections[l.name]}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <button onClick={() => { setTab(isGlobal ? "global" : "sg"); setActiveIdx(isGlobal ? LEGENDS_GLOBAL.findIndex(g => g.name === l.name) : LEGENDS_SG.findIndex(g => g.name === l.name)); setDraft(reflections[l.name] || ""); }} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>
+                        Edit ✎
+                      </button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
-        <div style={{ padding: "20px 20px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: C.textBright, lineHeight: 1.85, margin: 0 }}>
-            {legends[active].lesson}
-          </p>
-        </div>
-      </Card>
+      )}
 
-      <div style={{ marginTop: 20, padding: "14px 20px", borderRadius: 10, background: C.navyCard, border: `1px solid ${C.navyBorder}`, textAlign: "center" }}>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>Every legend started as someone who just loved kicking a ball around. Your story is still being written. ✍️</p>
-      </div>
+      {/* ── LEGEND BROWSER (global / sg) ── */}
+      {tab !== "journal" && (
+        <>
+          {/* Legend selector grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 24 }}>
+            {legends.map((l, idx) => {
+              const hasReflection = !!reflections[l.name]?.trim();
+              return (
+                <button key={idx} onClick={() => { setActiveIdx(idx); setDraft(reflections[l.name] || ""); setSaved(false); }} style={{
+                  background: activeIdx === idx ? `${C.gold}15` : C.navyCard,
+                  border: activeIdx === idx ? `1px solid ${C.gold}50` : `1px solid ${C.navyBorder}`,
+                  borderRadius: 12, padding: "14px 8px", cursor: "pointer", textAlign: "center",
+                  transition: "all 0.2s", position: "relative",
+                }}>
+                  {hasReflection && (
+                    <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "#a855f7", display: "block" }} />
+                  )}
+                  <span style={{ fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center" }}><BadgeIcon legend={l} size={28} /></span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: activeIdx === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
+                    {l.shortName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active legend card */}
+          {legend && (
+            <>
+              <Card glow style={{ borderLeft: `4px solid ${C.gold}` }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 20, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 52, width: 76, height: 76, display: "flex", alignItems: "center", justifyContent: "center", background: `${C.gold}10`, borderRadius: 18, border: `1px solid ${C.gold}20` }}>
+                    <BadgeIcon legend={legend} size={52} />
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <h2 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 5vw, 34px)", color: C.textBright, margin: 0, letterSpacing: 2 }}>{legend.name.toUpperCase()}</h2>
+                    <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legend.era}</span>
+                      {(legend.recipeValues || [legend.recipe]).map(rv => {
+                        const rc = RECIPE_COLORS[rv] || C.gold;
+                        return (
+                          <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: rc, background: `${rc}15`, padding: "4px 10px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>
+                            {rv}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stat chip */}
+                <div style={{ padding: "8px 14px", borderRadius: 8, background: `${C.gold}10`, border: `1px solid ${C.gold}25`, marginBottom: 18, display: "inline-block" }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 700 }}>🏆 {legend.stat}</span>
+                </div>
+
+                {/* Lesson text */}
+                <div style={{ padding: "20px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, marginBottom: 24 }}>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textBright, lineHeight: 1.85, margin: 0 }}>
+                    {legend.lesson}
+                  </p>
+                </div>
+
+                {/* RECIPE breakdown chips */}
+                <div style={{ marginBottom: 24, padding: "14px 16px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>RECIPE Values in this story</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {(legend.recipeValues || [legend.recipe]).map(rv => {
+                      const rc = RECIPE_COLORS[rv] || C.gold;
+                      const descriptions = {
+                        Respect: "Treating teammates, opponents and coaches with dignity — on and off the pitch.",
+                        Resilience: "Bouncing back from setbacks, injuries and failure without giving up.",
+                        Care: "Looking out for others, giving back, and taking responsibility beyond yourself.",
+                        Integrity: "Doing the right thing even when no one is watching.",
+                        Passion: "Unconditional love for the game — the fire that keeps you going.",
+                        Excellence: "Pushing beyond good enough — always striving to be your best self.",
+                      };
+                      return (
+                        <div key={rv} style={{ padding: "10px 14px", borderRadius: 10, background: `${rc}10`, border: `1px solid ${rc}25`, flex: "1 1 200px" }}>
+                          <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: rc, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{rv}</div>
+                          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>{descriptions[rv] || ""}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Reflection prompt + input */}
+                {legend.reflectionPrompt && (
+                  <div style={{ borderRadius: 14, border: `1px solid ${"#a855f7"}30`, background: `${"#a855f7"}08`, padding: "18px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                      <span style={{ fontSize: 18 }}>✍️</span>
+                      <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: "#a855f7", letterSpacing: 1 }}>REFLECT</span>
+                    </div>
+                    <p style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, fontStyle: "italic", lineHeight: 1.75, margin: "0 0 16px" }}>
+                      "{legend.reflectionPrompt}"
+                    </p>
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ ...labelStyle, color: "#a855f7" }}>Your reflection (private — only you can see this)</label>
+                      <textarea
+                        value={draft}
+                        onChange={e => { setDraft(e.target.value); setSaved(false); }}
+                        placeholder="Write your thoughts here..."
+                        rows={4}
+                        style={{ ...inputStyle, resize: "vertical", lineHeight: 1.7, minHeight: 100 }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <button onClick={saveReflection} disabled={!draft.trim()} style={{
+                        background: draft.trim() ? `linear-gradient(135deg, #a855f7, #9333ea)` : C.surfaceSubtle,
+                        color: draft.trim() ? "#fff" : C.textDim,
+                        border: "none", padding: "10px 20px", borderRadius: 10, cursor: draft.trim() ? "pointer" : "not-allowed",
+                        fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "all 0.2s",
+                      }}>
+                        {saved ? "✅ Saved!" : "Save Reflection"}
+                      </button>
+                      {savedReflection && !saved && (
+                        <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: "#a855f7" }}>📓 Reflection saved — edit anytime</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              <div style={{ marginTop: 16, padding: "12px 20px", borderRadius: 10, background: C.navyCard, border: `1px solid ${C.navyBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>Every legend started as someone who just loved kicking a ball around. Your story is still being written. ✍️</p>
+                {journalEntries.length > 0 && (
+                  <button onClick={() => setTab("journal")} style={{ background: `${"#a855f7"}15`, border: `1px solid ${"#a855f7"}30`, color: "#a855f7", padding: "7px 16px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+                    📓 View Journal ({journalEntries.length})
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -2292,12 +3685,19 @@ function StoryExportCard({ lineup }) {
 }
 
 function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete }) {
+  const C = useTheme();
   const storyRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [cardToast, setCardToast] = useState(null);
   const activeSubs = lineup.subs?.filter(s => (s || "").trim()) || [];
 
   const storyOpts = { width: EX.W, height: EX.H };
+
+  const showCardToast = (msg, type = "success") => {
+    setCardToast({ msg, type });
+    setTimeout(() => setCardToast(null), 3000);
+  };
 
   const handleSaveStory = async () => {
     if (!storyRef.current || saving) return;
@@ -2308,7 +3708,7 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
         `nbss-lineup-${(lineup.opponent || "lineup").replace(/\s+/g, "-").toLowerCase()}.png`,
         storyOpts
       );
-    } catch { alert("Screenshot failed. Try again."); }
+    } catch { showCardToast("Screenshot failed — please try again.", "error"); }
     setSaving(false);
   };
 
@@ -2321,7 +3721,8 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
         `NBSS vs ${lineup.opponent || "TBD"} — Lineup`,
         storyOpts
       );
-    } catch { alert("Share failed. Try Save Story instead."); }
+      showCardToast("Shared successfully!");
+    } catch { showCardToast("Share failed — use Save Story instead.", "error"); }
     setSharing(false);
   };
 
@@ -2375,13 +3776,22 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
         <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 8, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
-            {sharing ? "⏳" : "↗"} Share
+            {sharing ? "Sharing…" : "↗ Share"}
           </button>
           <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)", border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
-            {saving ? "⏳" : "📸"} Save Story
+            {saving ? "Saving…" : "📸 Save Story"}
           </button>
         </div>
       </div>
+      {cardToast && (
+        <div style={{
+          marginTop: 8, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: FONT_BODY,
+          background: cardToast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
+          border: `1px solid ${cardToast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
+          color: cardToast.type === "error" ? C.danger : C.success,
+          animation: "slideIn 0.2s ease",
+        }}>{cardToast.msg}</div>
+      )}
 
       {/* ── Hidden 9:16 story card — rendered off-screen, captured by html2canvas ── */}
       <div style={{
@@ -2403,9 +3813,362 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
 }
 
 // ══════════════════════════════════════════════════
+//  PRE-MATCH ROUTINE
+// ══════════════════════════════════════════════════
+function PreMatchSection() {
+  const C = useTheme();
+  const [checked, setChecked] = usePersistedState("nbss-prematch-checklist", {});
+  const [intention, setIntention] = usePersistedState("nbss-prematch-intention", "");
+  const [editIntention, setEditIntention] = useState(false);
+  const [tempIntention, setTempIntention] = useState("");
+
+  const toggleItem = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  const totalChecked = PRE_MATCH_ITEMS.filter(i => checked[i.id]).length;
+  const allReady = totalChecked === PRE_MATCH_ITEMS.length;
+
+  const categories = [...new Set(PRE_MATCH_ITEMS.map(i => i.category))];
+
+  return (
+    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
+      <SectionHeader icon="⚡" title="PRE-MATCH ROUTINE" subtitle="Match day preparation checklist — physical, mental, tactical" accent={C.gold} />
+
+      {/* Readiness meter */}
+      <div style={{ background: C.navyCard, border: `1px solid ${allReady ? C.success + "50" : C.navyBorder}`, borderRadius: 16, padding: "20px 24px", marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: allReady ? C.success : C.textBright, letterSpacing: 1 }}>
+            {allReady ? "✅ MATCH READY" : "MATCH READINESS"}
+          </span>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: 26, color: allReady ? C.success : C.gold }}>
+            {Math.round((totalChecked / PRE_MATCH_ITEMS.length) * 100)}%
+          </span>
+        </div>
+        <div style={{ height: 10, background: C.navyBorder, borderRadius: 5, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", borderRadius: 5,
+            background: allReady ? C.success : `linear-gradient(90deg, ${C.gold}, ${C.electric})`,
+            width: `${(totalChecked / PRE_MATCH_ITEMS.length) * 100}%`,
+            transition: "width 0.4s ease",
+          }} />
+        </div>
+        {allReady && (
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, marginTop: 10 }}>
+            You've done the preparation. Now trust it and go play your game.
+          </p>
+        )}
+      </div>
+
+      {/* Checklist by category */}
+      {categories.map(cat => (
+        <div key={cat} style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{cat}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {PRE_MATCH_ITEMS.filter(i => i.category === cat).map(item => (
+              <button key={item.id} onClick={() => toggleItem(item.id)} style={{
+                display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, cursor: "pointer",
+                background: checked[item.id] ? `${C.success}08` : C.navyCard,
+                border: `1px solid ${checked[item.id] ? C.success + "40" : C.navyBorder}`,
+                textAlign: "left", width: "100%", transition: "all 0.2s",
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: checked[item.id] ? C.success : "transparent",
+                  border: `2px solid ${checked[item.id] ? C.success : C.navyBorder}`,
+                }}>
+                  {checked[item.id] && <span style={{ color: C.navyDeep, fontWeight: 900, fontSize: 14 }}>✓</span>}
+                </div>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                <span style={{
+                  fontFamily: FONT_BODY, fontSize: 14, color: checked[item.id] ? C.textDim : C.textBright,
+                  textDecoration: checked[item.id] ? "line-through" : "none", flex: 1,
+                }}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Match intention */}
+      <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25`, borderRadius: 14, padding: "20px 24px", marginTop: 12 }}>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>🎯 MATCH INTENTION</div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 12 }}>
+          One word or phrase that captures your focus for today's match. Write it and lock it in.
+        </p>
+        {editIntention ? (
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={tempIntention} onChange={e => setTempIntention(e.target.value)} placeholder="e.g. Aggressive. First. Calm." style={{ ...makeInputStyle(C), flex: 1 }} maxLength={40} />
+            <button onClick={() => { setIntention(tempIntention); setEditIntention(false); }} style={{ padding: "10px 18px", borderRadius: 8, cursor: "pointer", background: C.gold, border: "none", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: C.navyDeep }}>Save</button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.gold, letterSpacing: 2, flex: 1 }}>
+              {intention || <span style={{ color: C.textDim, fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic" }}>Not set yet…</span>}
+            </div>
+            <button onClick={() => { setTempIntention(intention); setEditIntention(true); }} style={{ padding: "7px 16px", borderRadius: 8, cursor: "pointer", background: `${C.gold}15`, border: `1px solid ${C.gold}30`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+              {intention ? "Edit" : "Set Intention"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <p style={{ fontFamily: FONT_SERIF, fontSize: 13, color: C.textDim, textAlign: "center", margin: "28px 0 0", fontStyle: "italic" }}>
+        "Preparation is everything. The match is simply the test of the preparation." — José Mourinho
+      </p>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  MATCH HISTORY LOG
+// ══════════════════════════════════════════════════
+function MatchHistorySection() {
+  const C = useTheme();
+  const [matches, setMatches] = usePersistedState(STORAGE_KEYS.matchHistory, []);
+  const [showForm, setShowForm] = useState(false);
+  const [showReview, setShowReview] = useState(null); // id of match being reviewed
+  const emptyForm = {
+    date: "", opponent: "", competition: "", venue: "Home", position: "",
+    minutesPlayed: 90, goalsScored: 0, assists: 0, rating: 3,
+    scoreFor: "", scoreAgainst: "", notes: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  // Post-match review form (5 guided questions)
+  const [review, setReview] = useState({ q1: "", q2: "", q3: 3, q4: 3, q5: "" });
+
+  const addMatch = () => {
+    if (!form.date || !form.opponent) return;
+    const id = Date.now();
+    setMatches(prev => [...prev, { ...form, id, review: null }]);
+    setForm(emptyForm);
+    setShowForm(false);
+    // Prompt for review immediately
+    setShowReview(id);
+  };
+
+  const saveReview = (id) => {
+    setMatches(prev => prev.map(m => m.id === id ? { ...m, review } : m));
+    setReview({ q1: "", q2: "", q3: 3, q4: 3, q5: "" });
+    setShowReview(null);
+  };
+
+  const deleteMatch = (id) => setMatches(prev => prev.filter(m => m.id !== id));
+
+  // Aggregate stats
+  const totalGoals = matches.reduce((s, m) => s + (Number(m.goalsScored) || 0), 0);
+  const totalAssists = matches.reduce((s, m) => s + (Number(m.assists) || 0), 0);
+  const avgRating = matches.length ? (matches.reduce((s, m) => s + Number(m.rating), 0) / matches.length).toFixed(1) : "–";
+  const totalMinutes = matches.reduce((s, m) => s + (Number(m.minutesPlayed) || 0), 0);
+
+  const resultColor = (sf, sa) => {
+    const f = Number(sf), a = Number(sa);
+    if (isNaN(f) || isNaN(a) || sf === "" || sa === "") return C.textDim;
+    return f > a ? C.success : f < a ? C.danger : C.gold;
+  };
+  const resultLabel = (sf, sa) => {
+    const f = Number(sf), a = Number(sa);
+    if (isNaN(f) || isNaN(a) || sf === "" || sa === "") return "—";
+    return f > a ? "W" : f < a ? "L" : "D";
+  };
+
+  return (
+    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
+      <SectionHeader icon="📊" title="MATCH HISTORY" subtitle="Record results, track personal stats and review your performances" accent={C.electric} />
+
+      {/* Aggregate stats */}
+      {matches.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12, marginBottom: 24 }}>
+          {[
+            { label: "Appearances", value: matches.length, icon: "⚽", color: C.electric },
+            { label: "Goals", value: totalGoals, icon: "🎯", color: C.gold },
+            { label: "Assists", value: totalAssists, icon: "🤝", color: C.success },
+            { label: "Minutes", value: totalMinutes, icon: "⏱️", color: C.orange },
+            { label: "Avg Rating", value: avgRating, icon: "⭐", color: C.electric },
+          ].map((s, i) => (
+            <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "16px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
+              <span style={{ fontSize: 20 }}>{s.icon}</span>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: s.color, marginTop: 4 }}>{s.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm} style={{ width: "100%", marginBottom: 20 }}>
+        {showForm ? "✕ Cancel" : "+ Log a Match"}
+      </GoldButton>
+
+      {/* Add match form */}
+      {showForm && (
+        <div style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.electric, letterSpacing: 1, marginBottom: 16 }}>MATCH DETAILS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div><label style={makeLabelStyle(C)}>Date</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={makeInputStyle(C)} /></div>
+            <div><label style={makeLabelStyle(C)}>Opponent</label><input value={form.opponent} onChange={e => setForm({ ...form, opponent: e.target.value })} placeholder="vs. who?" style={makeInputStyle(C)} /></div>
+            <div><label style={makeLabelStyle(C)}>Competition</label><input value={form.competition} onChange={e => setForm({ ...form, competition: e.target.value })} placeholder="e.g. NSG, friendly, C Div" style={makeInputStyle(C)} /></div>
+            <div><label style={makeLabelStyle(C)}>Venue</label>
+              <select value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} style={makeInputStyle(C)}>
+                <option>Home</option><option>Away</option><option>Neutral</option>
+              </select>
+            </div>
+            <div><label style={makeLabelStyle(C)}>Position Played</label>
+              <select value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} style={makeInputStyle(C)}>
+                <option value="">Select</option>
+                {["GK","CB","LB","RB","CDM","CM","CAM","LW","RW","ST"].map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div><label style={makeLabelStyle(C)}>Minutes Played</label><input type="number" min="0" max="120" value={form.minutesPlayed} onChange={e => setForm({ ...form, minutesPlayed: e.target.value })} style={makeInputStyle(C)} /></div>
+          </div>
+
+          {/* Score */}
+          <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20` }}>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.electric, letterSpacing: 1, marginBottom: 10 }}>FINAL SCORE</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ flex: 1 }}><label style={makeLabelStyle(C)}>We scored</label><input type="number" min="0" max="20" value={form.scoreFor} onChange={e => setForm({ ...form, scoreFor: e.target.value })} placeholder="0" style={makeInputStyle(C)} /></div>
+              <span style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textDim, marginTop: 14 }}>–</span>
+              <div style={{ flex: 1 }}><label style={makeLabelStyle(C)}>They scored</label><input type="number" min="0" max="20" value={form.scoreAgainst} onChange={e => setForm({ ...form, scoreAgainst: e.target.value })} placeholder="0" style={makeInputStyle(C)} /></div>
+            </div>
+          </div>
+
+          {/* Personal stats */}
+          <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: `${C.gold}08`, border: `1px solid ${C.gold}20` }}>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 1, marginBottom: 10 }}>YOUR STATS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label style={makeLabelStyle(C)}>Goals</label><input type="number" min="0" max="20" value={form.goalsScored} onChange={e => setForm({ ...form, goalsScored: e.target.value })} style={makeInputStyle(C)} /></div>
+              <div><label style={makeLabelStyle(C)}>Assists</label><input type="number" min="0" max="20" value={form.assists} onChange={e => setForm({ ...form, assists: e.target.value })} style={makeInputStyle(C)} /></div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <label style={makeLabelStyle(C)}>Personal Rating</label>
+              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                {[1,2,3,4,5].map(r => (
+                  <button key={r} onClick={() => setForm({ ...form, rating: r })} style={{
+                    width: 44, height: 44, borderRadius: 10, cursor: "pointer",
+                    background: form.rating >= r ? C.gold : C.navyCard,
+                    border: form.rating >= r ? "none" : `1px solid ${C.navyBorder}`,
+                    color: form.rating >= r ? C.navyDeep : C.textDim,
+                    fontSize: 16, fontFamily: FONT_BODY, fontWeight: 700,
+                  }}>{r}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <label style={makeLabelStyle(C)}>Notes</label>
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering about this match?" style={{ ...makeInputStyle(C), height: 60, resize: "vertical" }} />
+          </div>
+          <GoldButton onClick={addMatch} style={{ marginTop: 16, width: "100%" }}>Save Match → Write Review</GoldButton>
+        </div>
+      )}
+
+      {/* Post-match review modal */}
+      {showReview && (
+        <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}30`, borderRadius: 16, padding: "24px", marginBottom: 24 }}>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.gold, letterSpacing: 1, marginBottom: 4 }}>📝 POST-MATCH REVIEW</div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 20 }}>Five questions. Honest answers. This is how you grow faster than everyone else.</p>
+          {[
+            { key: "q1", label: "What went well for you personally in this match?", type: "text" },
+            { key: "q2", label: "What's the ONE thing you want to improve before the next match?", type: "text" },
+            { key: "q3", label: "How well did you execute the game plan? (1–5)", type: "rating" },
+            { key: "q4", label: "How did the team perform as a unit? (1–5)", type: "rating" },
+            { key: "q5", label: "What's your main focus heading into the next match or training?", type: "text" },
+          ].map(({ key, label, type }) => (
+            <div key={key} style={{ marginBottom: 16 }}>
+              <label style={makeLabelStyle(C)}>{label}</label>
+              {type === "text" ? (
+                <textarea value={review[key]} onChange={e => setReview({ ...review, [key]: e.target.value })} placeholder="Be specific…" style={{ ...makeInputStyle(C), height: 60, resize: "vertical", marginTop: 4 }} />
+              ) : (
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  {[1,2,3,4,5].map(v => (
+                    <button key={v} onClick={() => setReview({ ...review, [key]: v })} style={{
+                      width: 44, height: 44, borderRadius: 10, cursor: "pointer",
+                      background: review[key] >= v ? C.gold : C.navyCard,
+                      border: review[key] >= v ? "none" : `1px solid ${C.navyBorder}`,
+                      color: review[key] >= v ? C.navyDeep : C.textDim,
+                      fontSize: 16, fontFamily: FONT_BODY, fontWeight: 700,
+                    }}>{v}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <GoldButton onClick={() => saveReview(showReview)} style={{ flex: 1 }}>Save Review ✓</GoldButton>
+            <button onClick={() => setShowReview(null)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Skip for now</button>
+          </div>
+        </div>
+      )}
+
+      {/* Match list */}
+      {matches.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>⚽</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No matches logged yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Log your first match above — track goals, assists, result and write your review.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {matches.slice().reverse().map(m => {
+            const rc = resultColor(m.scoreFor, m.scoreAgainst);
+            const rl = resultLabel(m.scoreFor, m.scoreAgainst);
+            return (
+              <div key={m.id} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, overflow: "hidden" }}>
+                {/* Header row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", flexWrap: "wrap" }}>
+                  {/* Result badge */}
+                  <div style={{ width: 44, height: 44, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: `${rc}15`, border: `2px solid ${rc}40`, flexShrink: 0 }}>
+                    <span style={{ fontFamily: FONT_HEAD, fontSize: 20, color: rc }}>{rl}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 0.5 }}>vs {m.opponent}</span>
+                      {m.scoreFor !== "" && m.scoreAgainst !== "" && (
+                        <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: rc }}>{m.scoreFor}–{m.scoreAgainst}</span>
+                      )}
+                      {m.position && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 5 }}>{m.position}</span>}
+                    </div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                      {m.date}{m.competition ? ` · ${m.competition}` : ""}{m.venue ? ` · ${m.venue}` : ""}
+                    </div>
+                  </div>
+                  {/* Personal stats */}
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    {Number(m.goalsScored) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>⚽ {m.goalsScored}</span>}
+                    {Number(m.assists) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, background: `${C.success}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>🤝 {m.assists}</span>}
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>⏱ {m.minutesPlayed}′</span>
+                    <div style={{ display: "flex" }}>{[1,2,3,4,5].map(r => <span key={r} style={{ fontSize: 11, color: Number(m.rating) >= r ? C.gold : C.navyBorder }}>★</span>)}</div>
+                    {!m.review && (
+                      <button onClick={() => setShowReview(m.id)} style={{ padding: "4px 10px", borderRadius: 6, cursor: "pointer", background: `${C.gold}10`, border: `1px solid ${C.gold}25`, color: C.gold, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700 }}>Review</button>
+                    )}
+                    <button onClick={() => deleteMatch(m.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                  </div>
+                </div>
+                {/* Review preview */}
+                {m.review && (
+                  <div style={{ padding: "10px 18px 14px", borderTop: `1px solid ${C.navyBorder}`, background: `${C.gold}05` }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Review</div>
+                    {m.review.q1 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: "0 0 4px" }}>✅ <em>{m.review.q1}</em></p>}
+                    {m.review.q2 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0 }}>🔧 <em>{m.review.q2}</em></p>}
+                  </div>
+                )}
+                {m.notes && (
+                  <div style={{ padding: "8px 18px 12px", borderTop: `1px solid ${C.navyBorder}` }}>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{m.notes}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  LINEUP BUILDER
 // ══════════════════════════════════════════════════
 function LineupBuilderSection() {
+  const C = useTheme();
   const [lineups, setLineups] = usePersistedState(STORAGE_KEYS.lineups, []);
   const [current, setCurrent] = useState({ ...EMPTY_MATCH });
   const [viewMode, setViewMode] = useState("builder");
@@ -2836,6 +4599,7 @@ function LineupBuilderSection() {
 //  TEAM HUB sub-components
 // ══════════════════════════════════════════════════
 function PositionFinder() {
+  const C = useTheme();
   const [answers, setAnswers] = useState({});
   const questions = [
     { id: "speed", q: "How would you describe your pace?", opts: ["Very fast", "Good pace", "Average", "Slow but strong"] },
@@ -2884,6 +4648,7 @@ function PositionFinder() {
 }
 
 function KitChecklist() {
+  const C = useTheme();
   const [checked, setChecked] = usePersistedState(STORAGE_KEYS.checklist, {});
   const items = [
     { name: "Football boots (firm ground)", essential: true },
@@ -2925,6 +4690,7 @@ function KitChecklist() {
 }
 
 function RecoveryZone() {
+  const C = useTheme();
   const [activeStretch, setActiveStretch] = useState(null);
   return (
     <div>
@@ -2975,6 +4741,7 @@ function RecoveryZone() {
 }
 
 function FootballIQQuiz() {
+  const C = useTheme();
   const [quizState, setQuizState] = useState("intro");
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -3079,84 +4846,235 @@ function FootballIQQuiz() {
 }
 
 function GoalWall() {
+  const C = useTheme();
   const [goals, setGoals] = usePersistedState(STORAGE_KEYS.goals, []);
-  const [form, setForm] = useState({ text: "", cat: "Technical", deadline: "" });
   const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState("smart"); // "quick" | "smart"
   const exportRef = useRef(null);
 
-  const addGoal = () => {
-    if (!form.text.trim()) return;
-    setGoals(prev => [...prev, { ...form, id: Date.now(), done: false }]);
-    setForm({ text: "", cat: "Technical", deadline: "" });
-    setShowForm(false);
-  };
+  // Quick goal form
+  const emptyQuick = { text: "", cat: "Technical", deadline: "" };
+  const [quick, setQuick] = useState(emptyQuick);
+
+  // SMART goal form
+  const emptySmart = { cat: "Technical", specific: "", measurable: "", actionStep: "", deadline: "", checkIn: "" };
+  const [smart, setSmart] = useState(emptySmart);
+  const [smartStep, setSmartStep] = useState(0); // 0-4 guided steps
+
+  const SMART_STEPS = [
+    { key: "specific",    label: "Specific",    question: "What EXACTLY do you want to achieve?",           placeholder: "e.g. Score in every B Div match this term", hint: "Be as precise as possible. Vague goals don't get done." },
+    { key: "measurable",  label: "Measurable",  question: "How will you KNOW when you've achieved it?",     placeholder: "e.g. Check match stats after each game", hint: "If you can't measure it, you can't track progress." },
+    { key: "actionStep",  label: "Action step", question: "What's the FIRST concrete thing you'll do?",     placeholder: "e.g. Add 20 mins of finishing drills after every training", hint: "Start with one action. One is enough." },
+    { key: "deadline",    label: "Deadline",    question: "When do you want to achieve this by?",           placeholder: "", hint: "A goal without a deadline is just a wish.", type: "date" },
+    { key: "checkIn",     label: "Check-in",    question: "When will you review your progress mid-way?",    placeholder: "", hint: "Book a check-in with yourself. Put it in your calendar.", type: "date" },
+  ];
 
   const toggleGoal = (id) => setGoals(prev => prev.map(g => g.id === id ? { ...g, done: !g.done } : g));
   const deleteGoal = (id) => setGoals(prev => prev.filter(g => g.id !== id));
 
+  const addQuick = () => {
+    if (!quick.text.trim()) return;
+    setGoals(prev => [...prev, { ...quick, id: Date.now(), done: false, isSmart: false }]);
+    setQuick(emptyQuick);
+    setShowForm(false);
+  };
+
+  const addSmart = () => {
+    if (!smart.specific.trim()) return;
+    setGoals(prev => [...prev, { ...smart, id: Date.now(), done: false, isSmart: true }]);
+    setSmart(emptySmart);
+    setSmartStep(0);
+    setShowForm(false);
+  };
+
   const catColors = { Technical: C.electric, Physical: C.danger, Mental: C.gold, Teamwork: C.success };
+
+  const active    = goals.filter(g => !g.done);
+  const completed = goals.filter(g => g.done);
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>GOAL WALL</h3>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>{goals.filter(g => g.done).length}/{goals.length} completed</p>
+          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>🎯 GOAL WALL</h3>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>{completed.length}/{goals.length} completed</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {goals.length > 0 && <ShareSaveBar targetRef={exportRef} filename="nbss-goals.png" title="My NBSS Goal Wall" />}
-          <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm}>{showForm ? "Cancel" : "+ Add Goal"}</GoldButton>
+          <GoldButton onClick={() => { setShowForm(!showForm); setSmartStep(0); }} secondary={showForm}>{showForm ? "✕ Cancel" : "+ Set a Goal"}</GoldButton>
         </div>
       </div>
 
+      {/* Goal form */}
       {showForm && (
-        <Card style={{ marginBottom: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div><label style={labelStyle}>Category</label>
-              <select value={form.cat} onChange={e => setForm({ ...form, cat: e.target.value })} style={inputStyle}>
-                {GOAL_CATEGORIES.map(c => <option key={c.cat} value={c.cat}>{c.icon} {c.cat}</option>)}
-              </select>
-            </div>
-            <div><label style={labelStyle}>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} style={inputStyle} /></div>
+        <Card style={{ marginBottom: 24 }}>
+          {/* Mode toggle */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+            {[{ id: "smart", label: "⭐ SMART Goal", desc: "Guided 5-step framework" }, { id: "quick", label: "⚡ Quick Goal", desc: "One line, fast" }].map(m => (
+              <button key={m.id} onClick={() => { setFormMode(m.id); setSmartStep(0); }} style={{
+                flex: 1, padding: "10px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left",
+                background: formMode === m.id ? `${C.gold}15` : C.surfaceSubtle,
+                border: `1px solid ${formMode === m.id ? C.gold + "50" : C.navyBorder}`,
+                fontFamily: FONT_BODY, color: formMode === m.id ? C.gold : C.textDim,
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{m.label}</div>
+                <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>{m.desc}</div>
+              </button>
+            ))}
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Goal</label>
-            <input value={form.text} onChange={e => setForm({ ...form, text: e.target.value })} placeholder="e.g. Master the Cruyff turn" style={inputStyle} />
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ ...labelStyle, marginBottom: 8 }}>Examples</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {GOAL_CATEGORIES.find(c => c.cat === form.cat)?.examples.map(ex => (
-                <button key={ex} onClick={() => setForm({ ...form, text: ex })} style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "4px 10px", borderRadius: 6, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, cursor: "pointer" }}>{ex}</button>
+
+          {/* Category (both modes) */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={makeLabelStyle(C)}>Category</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              {GOAL_CATEGORIES.map(c => (
+                <button key={c.cat} onClick={() => formMode === "smart" ? setSmart(p => ({ ...p, cat: c.cat })) : setQuick(p => ({ ...p, cat: c.cat }))}
+                  style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                    background: (formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyCard,
+                    color: (formMode === "smart" ? smart : quick).cat === c.cat ? C.navyDeep : C.textMid,
+                    border: `1px solid ${(formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyBorder}`,
+                  }}>{c.icon} {c.cat}</button>
               ))}
             </div>
           </div>
-          <GoldButton onClick={addGoal} style={{ width: "100%" }}>Add Goal ✓</GoldButton>
+
+          {/* QUICK mode */}
+          {formMode === "quick" && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={makeLabelStyle(C)}>Goal</label>
+                <input value={quick.text} onChange={e => setQuick(p => ({ ...p, text: e.target.value }))} placeholder="e.g. Master the Cruyff turn" style={makeInputStyle(C)} />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={makeLabelStyle(C)}>Deadline (optional)</label>
+                <input type="date" value={quick.deadline} onChange={e => setQuick(p => ({ ...p, deadline: e.target.value }))} style={makeInputStyle(C)} />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ ...makeLabelStyle(C), marginBottom: 8 }}>Examples</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {GOAL_CATEGORIES.find(c => c.cat === quick.cat)?.examples.map(ex => (
+                    <button key={ex} onClick={() => setQuick(p => ({ ...p, text: ex }))} style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "4px 10px", borderRadius: 6, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, cursor: "pointer" }}>{ex}</button>
+                  ))}
+                </div>
+              </div>
+              <GoldButton onClick={addQuick} style={{ width: "100%" }}>Add Goal ✓</GoldButton>
+            </>
+          )}
+
+          {/* SMART mode — step-through */}
+          {formMode === "smart" && (
+            <>
+              {/* Step indicator */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+                {SMART_STEPS.map((s, i) => (
+                  <div key={i} onClick={() => i < smartStep + 1 && setSmartStep(i)} style={{ flex: 1, height: 4, borderRadius: 2, cursor: i <= smartStep ? "pointer" : "default",
+                    background: i < smartStep ? C.success : i === smartStep ? C.gold : C.navyBorder, transition: "background 0.3s" }} />
+                ))}
+              </div>
+
+              {/* Current step */}
+              {(() => {
+                const step = SMART_STEPS[smartStep];
+                return (
+                  <div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 5, fontWeight: 700 }}>Step {smartStep + 1} of {SMART_STEPS.length} — {step.label.toUpperCase()}</span>
+                    </div>
+                    <p style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 0.5, marginBottom: 12 }}>{step.question}</p>
+                    {step.type === "date"
+                      ? <input type="date" value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} style={makeInputStyle(C)} />
+                      : <textarea value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} placeholder={step.placeholder} style={{ ...makeInputStyle(C), height: 70, resize: "vertical" }} />
+                    }
+                    <p style={{ fontFamily: FONT_SERIF, fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 8 }}>💡 {step.hint}</p>
+
+                    <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                      {smartStep > 0 && (
+                        <button onClick={() => setSmartStep(s => s - 1)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>← Back</button>
+                      )}
+                      {smartStep < SMART_STEPS.length - 1
+                        ? <GoldButton onClick={() => setSmartStep(s => s + 1)} style={{ flex: 1 }}>Next →</GoldButton>
+                        : <GoldButton onClick={addSmart} style={{ flex: 1 }}>Save SMART Goal ✓</GoldButton>
+                      }
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
         </Card>
       )}
 
-      {goals.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, background: C.navyCard, borderRadius: 14, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 10 }}>🎯</span>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14 }}>No goals set yet. Add your first goal!</p>
+      {/* Empty state */}
+      {goals.length === 0 && (
+        <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>🎯</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No goals set yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Tap "Set a Goal" and use the SMART framework — it takes 2 minutes and makes the goal 3× more likely to happen.</p>
         </div>
-      ) : (
+      )}
+
+      {/* Goal list */}
+      {goals.length > 0 && (
         <div ref={exportRef} style={{ background: C.navy, borderRadius: 12, padding: "4px 0" }}>
-          <div style={{ display: "grid", gap: 8 }}>
-            {goals.map(goal => (
-              <div key={goal.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: C.navyCard, border: `1px solid ${goal.done ? C.success + "30" : C.navyBorder}`, borderRadius: 12, borderLeft: `3px solid ${catColors[goal.cat] || C.gold}` }}>
-                <button onClick={() => toggleGoal(goal.id)} style={{ width: 24, height: 24, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: goal.done ? C.success : C.navyCard, border: goal.done ? "none" : `1px solid ${C.navyBorder}`, color: C.navy, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>{goal.done ? "✓" : ""}</button>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: goal.done ? C.textDim : C.textBright, textDecoration: goal.done ? "line-through" : "none" }}>{goal.text}</span>
-                  <div style={{ display: "flex", gap: 6, marginTop: 3 }}>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: catColors[goal.cat], fontWeight: 700 }}>{goal.cat}</span>
-                    {goal.deadline && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim }}>· Due {goal.deadline}</span>}
+          {/* Active goals */}
+          {active.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: completed.length > 0 ? 20 : 0 }}>
+              {active.map(goal => (
+                <div key={goal.id} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, overflow: "hidden", borderLeft: `4px solid ${catColors[goal.cat] || C.gold}` }}>
+                  {/* Top row */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 18px" }}>
+                    <button onClick={() => toggleGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `2px solid ${C.navyBorder}`, cursor: "pointer", marginTop: 2 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, fontWeight: 600, lineHeight: 1.5 }}>
+                        {goal.isSmart ? goal.specific : goal.text}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: catColors[goal.cat], fontWeight: 700 }}>{goal.cat}</span>
+                        {goal.isSmart && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}15`, padding: "1px 7px", borderRadius: 4, fontWeight: 700 }}>SMART</span>}
+                        {goal.deadline && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim }}>· Due {goal.deadline}</span>}
+                        {goal.checkIn && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric }}>· Check-in {goal.checkIn}</span>}
+                      </div>
+                    </div>
+                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4, flexShrink: 0 }}>✕</button>
                   </div>
+                  {/* SMART details */}
+                  {goal.isSmart && (goal.measurable || goal.actionStep) && (
+                    <div style={{ padding: "0 18px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                      {goal.measurable && (
+                        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
+                          <span style={{ color: C.electric, fontWeight: 700 }}>📏 Measure: </span>{goal.measurable}
+                        </div>
+                      )}
+                      {goal.actionStep && (
+                        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
+                          <span style={{ color: C.success, fontWeight: 700 }}>⚡ First step: </span>{goal.actionStep}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+              ))}
+            </div>
+          )}
+
+          {/* Completed goals */}
+          {completed.length > 0 && (
+            <>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>✅ Completed</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {completed.map(goal => (
+                  <div key={goal.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", background: C.navyCard, border: `1px solid ${C.success}20`, borderRadius: 12, borderLeft: `3px solid ${C.success}`, opacity: 0.65 }}>
+                    <button onClick={() => toggleGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.success, border: "none", color: C.navyDeep, fontSize: 13, cursor: "pointer", fontWeight: 900 }}>✓</button>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, textDecoration: "line-through" }}>{goal.isSmart ? goal.specific : goal.text}</span>
+                    </div>
+                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -3164,6 +5082,7 @@ function GoalWall() {
 }
 
 function HubOverview({ setHubTab }) {
+  const C = useTheme();
   const cards = [
     { id: "schedule", title: "CCA Schedule", desc: "Training dates, match fixtures and important dates.", icon: "📅", color: C.electric },
     { id: "recovery", title: "Recovery Zone", desc: "Stretching, foam rolling, sleep tips.", icon: "🧊", color: C.success },
@@ -3204,23 +5123,181 @@ function HubOverview({ setHubTab }) {
 }
 
 function ScheduleCard() {
-  const SCHEDULE_URL = "https://docs.google.com/spreadsheets/d/1L5FGME5itmc3vknwL0xSsIrz4qJ3n6z1YfxffgeB3nU/edit?usp=drivesdk";
+  const C = useTheme();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
+  const [filter, setFilter] = useState("all"); // "all" | "Training" | "Match" | "B Div" | "C Div"
+
+  const fetchSchedule = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const data = parseCSV(text);
+      // Sort by date ascending
+      const sorted = [...data]
+        .filter(r => r.date)
+        .sort((a, b) => (a.date > b.date ? 1 : -1));
+      setSessions(sorted);
+      setLastFetched(new Date());
+    } catch (e) {
+      setError("Could not load schedule. Make sure the sheet is public and you're online.");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchSchedule(); }, []);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const typeColor = (type) => ({
+    Training: C.success, Match: C.gold, Friendly: C.orange, Other: C.electric,
+  }[type] || C.electric);
+
+  const divColor = (div) => ({
+    "B Div": C.gold, "C Div": C.success,
+  }[div] || C.textDim);
+
+  const isUpcoming = (date) => date >= today;
+  const isToday    = (date) => date === today;
+
+  const filtered = sessions.filter(s => {
+    if (filter === "all") return true;
+    if (filter === "Training" || filter === "Match") return s.type === filter;
+    if (filter === "B Div" || filter === "C Div") return s.division === filter;
+    return true;
+  });
+
+  // Split into upcoming and past
+  const upcoming = filtered.filter(s => isUpcoming(s.date));
+  const past     = filtered.filter(s => !isUpcoming(s.date)).slice(-5).reverse(); // last 5 past
+
+  const SessionCard = ({ s, dim = false }) => {
+    const tc = typeColor(s.type);
+    const todayFlag = isToday(s.date);
+    return (
+      <div style={{
+        background: todayFlag ? `${C.gold}10` : C.navyCard,
+        border: `1px solid ${todayFlag ? C.gold + "50" : C.navyBorder}`,
+        borderLeft: `4px solid ${tc}`,
+        borderRadius: 12, padding: "14px 18px",
+        opacity: dim ? 0.55 : 1,
+        transition: "all 0.2s",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+          {/* Date block */}
+          <div style={{ textAlign: "center", minWidth: 44, flexShrink: 0 }}>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: todayFlag ? C.gold : C.textBright, lineHeight: 1 }}>
+              {s.date ? new Date(s.date + "T00:00:00").getDate() : "—"}
+            </div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>
+              {s.date ? new Date(s.date + "T00:00:00").toLocaleString("en-SG", { month: "short" }) : ""}
+            </div>
+          </div>
+          {/* Main content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 5 }}>
+              {todayFlag && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}20`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>TODAY</span>}
+              {s.type && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: tc, background: `${tc}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{s.type.toUpperCase()}</span>}
+              {s.division && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: divColor(s.division), background: `${divColor(s.division)}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{s.division}</span>}
+            </div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 0.5, marginBottom: 4, lineHeight: 1.3 }}>
+              {s.title || "—"}
+            </div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              {s.time    && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>🕒 {s.time}</span>}
+              {s.teacher && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>👤 {s.teacher}</span>}
+              {s.venue   && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>📍 {s.venue}</span>}
+            </div>
+            {s.notes && (
+              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 7, background: `${C.electric}08`, border: `1px solid ${C.electric}15`, fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>
+                📝 {s.notes}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <Card style={{ textAlign: "center", padding: 40 }}>
-      <span style={{ fontSize: 52, display: "block", marginBottom: 16 }}>📅</span>
-      <h3 style={{ fontFamily: FONT_HEAD, fontSize: 26, color: C.textBright, margin: "0 0 10px", letterSpacing: 2 }}>CCA SCHEDULE</h3>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: "0 0 28px", lineHeight: 1.6, maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
-        Training dates, match fixtures, and teachers on duty — all maintained in one Google Sheet.
-      </p>
-      <a href={SCHEDULE_URL} target="_blank" rel="noopener noreferrer" style={{
-        display: "inline-flex", alignItems: "center", gap: 10, padding: "16px 32px",
-        background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-        color: C.navy, borderRadius: 12, textDecoration: "none",
-        fontFamily: FONT_BODY, fontSize: 15, fontWeight: 700,
-        boxShadow: `0 4px 20px ${C.gold}30`,
-      }}>📊 Open Schedule ↗</a>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 16 }}>Opens in a new tab. Bookmark it!</p>
-    </Card>
+    <div>
+      {/* Toolbar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>📅 SCHEDULE</div>
+          {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer"
+            style={{ padding: "7px 14px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            ✏️ Edit
+          </a>
+          <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 8, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            {loading ? "Loading…" : "↻ Refresh"}
+          </button>
+        </div>
+      </div>
+
+      {/* Coach tip */}
+      <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+        💡 <strong style={{ color: C.gold }}>Coach:</strong> Add sessions to the <strong>Schedule</strong> tab in the Google Sheet. Players see updates after tapping Refresh.
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+        {["all", "Training", "Match", "B Div", "C Div"].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+            background: filter === f ? C.electric : C.navyCard,
+            color: filter === f ? C.navyDeep : C.textMid,
+            border: `1px solid ${filter === f ? C.electric : C.navyBorder}`,
+          }}>{f === "all" ? "All" : f}</button>
+        ))}
+      </div>
+
+      {/* States */}
+      {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>Fetching schedule…</div>}
+      {!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>⚠️ {error}</div>}
+
+      {!loading && !error && sessions.length === 0 && (
+        <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions in the schedule yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Coach: add rows to the Schedule tab in the Google Sheet.</p>
+        </div>
+      )}
+
+      {!loading && !error && sessions.length > 0 && (
+        <>
+          {/* Upcoming */}
+          {upcoming.length > 0 && (
+            <>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Upcoming</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+                {upcoming.map((s, i) => <SessionCard key={i} s={s} />)}
+              </div>
+            </>
+          )}
+          {/* Past */}
+          {past.length > 0 && (
+            <>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent (last 5)</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {past.map((s, i) => <SessionCard key={i} s={s} dim />)}
+              </div>
+            </>
+          )}
+          {upcoming.length === 0 && past.length === 0 && (
+            <div style={{ textAlign: "center", padding: 32, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>No sessions match this filter.</div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -3247,36 +5324,44 @@ const SEED_ROSTER = [
   { id: "s09", name: "Toh Jia He",                         school: "Northland Sec",             div: "B Div", year: "", jersey: "", position: "" },
   { id: "s10", name: "Renz",                               school: "Northland Sec",             div: "B Div", year: "", jersey: "", position: "" },
   // ── YTSS — C Div ──
-  { id: "s11", name: "Kamalagouni Sudeep Krishna",         school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s12", name: "Nikraj Singh Khera",                 school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s11", name: "Kamalagouni Sudeep Krishna",              school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s12", name: "Nikraj Singh Khera",                      school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s22", name: "Firas Ziqri Bin Ahmad Rifa'i",            school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s23", name: "Alex Joshua Iniyan",                      school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s24", name: "Naili Luthfi Bin Muhammad Dafir",         school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s25", name: "Bastinraj Chris Antony",                  school: "Yishun Town Sec",           div: "C Div", year: "", jersey: "", position: "" },
   // ── CCHY — C Div ──
-  { id: "s13", name: "Chaziel Chan",                       school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s14", name: "Tok Jun Heng Kyden",                 school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s15", name: "Zavier Lee Zhen Hao",               school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s16", name: "Nyeden Lim Zhi Xuan",               school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s17", name: "Jairus Goh Zhuo Hung",              school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s13", name: "Chaziel Chan",                            school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s14", name: "Tok Jun Heng Kyden",                      school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s15", name: "Zavier Lee Zhen Hao",                     school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s16", name: "Nyeden Lim Zhi Xuan",                     school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s17", name: "Goh Zhuo Hung Jairus",                    school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s26", name: "Frank Chia Wei Cheng",                    school: "Chung Cheng High (Yishun)", div: "C Div", year: "", jersey: "", position: "" },
   // ── NSS — C Div ──
-  { id: "s18", name: "Muhammad Ainuddin Bin Azzri",        school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s19", name: "Muhammad Shafiy Ukail Bin Ollie Hykel", school: "Northland Sec",         div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s20", name: "Sivaneswaran S/O K Kaliswaran",     school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
-  { id: "s21", name: "Lee Jia Le Ceejay",                 school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s18", name: "Muhammad Ainuddin Bin Azzri",             school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s19", name: "Muhammad Shafiy Ukail Bin Ollie Hykel",   school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s20", name: "Sivaneswaran S/O K Kaliswaran",           school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s21", name: "Lee Jia Le Ceejay",                       school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s27", name: "Ilyas Mahdi Bin Syafwan Farrell",         school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s28", name: "Rajit Roy S/O Sivan Raja",                school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s29", name: "Rifal Elhan Bin Muhammad Rizal",          school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s30", name: "Na'Im Bin Surahim",                       school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
+  { id: "s31", name: "Muhammad Aaryan Farrel Bin Rosly",        school: "Northland Sec",             div: "C Div", year: "", jersey: "", position: "" },
 ];
 
 function ClusterAttendance() {
+  const C = useTheme();
+  const labelStyle = makeLabelStyle(C);
+  const inputStyle = makeInputStyle(C);
   const [roster, setRoster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [attendanceLog, setAttendanceLog] = usePersistedState(STORAGE_KEYS.attendance, {});
   const [view, setView] = useState("take"); // "take" | "roster" | "summary"
   const [sessionDate, setSessionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState("");
   const [divFilter, setDivFilter] = useState(""); // "" | "B Div" | "C Div"
+  const sessionKey = sessionDate;
   // presentIds: plain object { [playerId]: true } — avoids Set-in-state React issues
-  const [presentIds, setPresentIds] = useState(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance) || "{}");
-      return (saved[today] || []).reduce((acc, id) => { acc[id] = true; return acc; }, {});
-    } catch { return {}; }
-  });
+  const [presentIds, setPresentIds] = useState({});
 
   // Roster edit state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -3287,12 +5372,27 @@ function ClusterAttendance() {
   const [walkInName, setWalkInName] = useState("");
   const [walkInSchool, setWalkInSchool] = useState(SCHOOLS[0]);
 
-  // Auto-seed roster on first load if empty
+  // Inline copy feedback
+  const [copyToast, setCopyToast] = useState(null);
+  const showCopyToast = (msg, type = "success") => {
+    setCopyToast({ msg, type });
+    setTimeout(() => setCopyToast(null), 3000);
+  };
+
+  // Merge-seed: add any seed players whose ID is not already in the roster
   useEffect(() => {
-    if (roster.length === 0) setRoster(SEED_ROSTER);
+    const existingIds = new Set(roster.map(p => p.id));
+    const missing = SEED_ROSTER.filter(p => !existingIds.has(p.id));
+    if (missing.length > 0) setRoster(prev => [...prev, ...missing]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sessionKey = sessionDate;
+  useEffect(() => {
+    const savedIds = attendanceLog[sessionKey] || [];
+    setPresentIds(savedIds.reduce((acc, id) => {
+      acc[id] = true;
+      return acc;
+    }, {}));
+  }, [attendanceLog, sessionKey]);
 
   // Persist present set whenever it changes
   const savePresent = (nextObj) => {
@@ -3330,7 +5430,7 @@ function ClusterAttendance() {
     } else {
       setRoster(prev => [...prev, { ...newPlayer, id: `p-${Date.now()}`, name: newPlayer.name.trim() }]);
     }
-    setNewPlayer({ name: "", school: SCHOOLS[0], year: "", jersey: "", position: "" });
+    setNewPlayer({ name: "", school: SCHOOLS[0], div: "B Div", year: "", jersey: "", position: "" });
     setShowAddForm(false);
   };
 
@@ -3376,8 +5476,8 @@ function ClusterAttendance() {
   };
 
   const copyToClipboard = async (text) => {
-    try { await navigator.clipboard.writeText(text); alert("✅ Copied! Paste into SCMobile or WhatsApp."); }
-    catch { alert("Copy failed — please select and copy manually."); }
+    try { await navigator.clipboard.writeText(text); showCopyToast("Copied! Paste into SCMobile or WhatsApp."); }
+    catch { showCopyToast("Copy failed — please select and copy manually.", "error"); }
   };
 
   const btnPrimary = (color = C.gold) => ({
@@ -3530,9 +5630,23 @@ function ClusterAttendance() {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
             <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>{roster.length} players registered across {schools.length} school{schools.length !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setShowAddForm(true); setEditId(null); setNewPlayer({ name: "", school: SCHOOLS[0], div: "B Div", year: "", jersey: "", position: "" }); }} style={{ ...btnPrimary() }}>
-              ➕ Add Player
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={() => {
+                const existingIds = new Set(roster.map(p => p.id));
+                const missing = SEED_ROSTER.filter(p => !existingIds.has(p.id));
+                if (missing.length === 0) {
+                  showCopyToast("Roster is already up to date.", "success");
+                } else {
+                  setRoster(prev => [...prev, ...missing]);
+                  showCopyToast(`Added ${missing.length} new player${missing.length === 1 ? "" : "s"} from master list.`, "success");
+                }
+              }} style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.electric}40`, background: `${C.electric}10`, color: C.electric, cursor: "pointer" }}>
+                🔄 Sync Master List
+              </button>
+              <button onClick={() => { setShowAddForm(true); setEditId(null); setNewPlayer({ name: "", school: SCHOOLS[0], div: "B Div", year: "", jersey: "", position: "" }); }} style={{ ...btnPrimary() }}>
+                ➕ Add Player
+              </button>
+            </div>
           </div>
 
           {showAddForm && (
@@ -3632,7 +5746,7 @@ function ClusterAttendance() {
       {view === "summary" && (
         <div>
           <Card style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: copyToast ? 10 : 16 }}>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>ATTENDANCE SUMMARY</h3>
                 <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0 }}>
@@ -3643,6 +5757,15 @@ function ClusterAttendance() {
                 📋 Copy for SCMobile / WhatsApp
               </button>
             </div>
+            {copyToast && (
+              <div style={{
+                marginBottom: 14, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontFamily: FONT_BODY,
+                background: copyToast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
+                border: `1px solid ${copyToast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
+                color: copyToast.type === "error" ? C.danger : C.success,
+                animation: "slideIn 0.2s ease",
+              }}>{copyToast.msg}</div>
+            )}
 
             {/* Present */}
             <div style={{ marginBottom: 20 }}>
@@ -3709,6 +5832,7 @@ function ClusterAttendance() {
 }
 
 function TeacherAttendanceGate({ children }) {
+  const C = useTheme();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [granted, setGranted] = useState(() => {
@@ -3818,17 +5942,209 @@ function TeacherAttendanceGate({ children }) {
 }
 
 // ══════════════════════════════════════════════════
+//  ANNOUNCEMENT BOARD
+// ══════════════════════════════════════════════════
+const SHEET_ID = "1yhLcwaYA7CuWgJ5VmQq8ia4KHB8Iwc3BGNEqVDevELI";
+// Target specific tabs by name — works without knowing gid numbers
+const SHEET_CSV_URL        = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Announcements`;
+const SCHEDULE_CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Schedule`;
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        field += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === "," && !inQuotes) {
+      row.push(field.trim());
+      field = "";
+      continue;
+    }
+
+    if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (ch === "\r" && next === "\n") i++;
+      row.push(field.trim());
+      if (row.some(value => value !== "")) rows.push(row);
+      row = [];
+      field = "";
+      continue;
+    }
+
+    field += ch;
+  }
+
+  if (field.length || row.length) {
+    row.push(field.trim());
+    if (row.some(value => value !== "")) rows.push(row);
+  }
+
+  if (rows.length < 2) return [];
+  const headers = rows[0];
+  return rows.slice(1).map(vals => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
+    return obj;
+  }).filter(r => r.date || r.title); // skip truly empty rows
+}
+
+function AnnouncementBoard() {
+  const C = useTheme();
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
+
+  const categoryColor = (cat) => ({
+    Training: C.success, Match: C.gold, Admin: C.electric, General: C.orange,
+  }[cat] || C.textDim);
+
+  const fetchAnnouncements = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const data = parseCSV(text);
+      // Pinned first, then newest first
+      const sorted = [...data].sort((a, b) => {
+        const aPin = a.pinned?.toUpperCase() === "TRUE";
+        const bPin = b.pinned?.toUpperCase() === "TRUE";
+        if (aPin && !bPin) return -1;
+        if (!aPin && bPin) return 1;
+        return (b.date || "") > (a.date || "") ? 1 : -1;
+      });
+      setAnnouncements(sorted);
+      setLastFetched(new Date());
+    } catch (e) {
+      setError("Could not load announcements. Make sure the sheet is set to public and you're online.");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAnnouncements(); }, []);
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>📢 ANNOUNCEMENTS</div>
+          {lastFetched && (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>
+              Last updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
+        </div>
+        <button onClick={fetchAnnouncements} disabled={loading} style={{
+          padding: "8px 16px", borderRadius: 8, cursor: loading ? "wait" : "pointer",
+          background: C.navyCard, border: `1px solid ${C.navyBorder}`,
+          color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+          transition: "all 0.2s",
+        }}>
+          {loading ? "Loading…" : "↻ Refresh"}
+        </button>
+      </div>
+
+      {/* Coach tip */}
+      <div style={{ background: `${C.electric}08`, border: `1px solid ${C.electric}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+        💡 <strong style={{ color: C.electric }}>Coach:</strong> Add or edit announcements in the <strong>Announcements</strong> tab of the{" "}
+        <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer" style={{ color: C.electric, fontWeight: 700 }}>Google Sheet ↗</a>.
+        {" "}Players see updates after tapping Refresh.
+      </div>
+
+      {/* States */}
+      {loading && (
+        <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>
+          Fetching latest announcements…
+        </div>
+      )}
+
+      {!loading && error && (
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {!loading && !error && announcements.length === 0 && (
+        <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Coach: add rows to the Google Sheet to post here.</p>
+        </div>
+      )}
+
+      {/* Announcement cards */}
+      {!loading && !error && announcements.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {announcements.map((ann, i) => {
+            const isPinned = ann.pinned?.toUpperCase() === "TRUE";
+            const catColor = categoryColor(ann.category);
+            return (
+              <div key={i} style={{
+                background: isPinned ? `${C.gold}07` : C.navyCard,
+                border: `1px solid ${isPinned ? C.gold + "35" : C.navyBorder}`,
+                borderRadius: 14, padding: "18px 22px",
+                borderLeft: `4px solid ${catColor}`,
+                transition: "all 0.2s",
+              }}>
+                {/* Tags row */}
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+                  {isPinned && (
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}18`, padding: "2px 9px", borderRadius: 5, fontWeight: 700, letterSpacing: 0.5 }}>📌 PINNED</span>
+                  )}
+                  {ann.category && (
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: catColor, background: `${catColor}15`, padding: "2px 9px", borderRadius: 5, fontWeight: 700, letterSpacing: 0.5 }}>{ann.category.toUpperCase()}</span>
+                  )}
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{ann.date}</span>
+                </div>
+                {/* Title */}
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 0.5, marginBottom: 8, lineHeight: 1.3 }}>
+                  {ann.title}
+                </div>
+                {/* Body */}
+                {ann.body && (
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7, margin: 0 }}>
+                    {ann.body}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  TEAM HUB
 // ══════════════════════════════════════════════════
 function TeamHubSection() {
-  const [hubTab, setHubTab] = useState("overview");
+  const C = useTheme();
+  const [hubTab, setHubTab] = useState("announce");
   const tabs = [
-    { id: "overview", label: "Overview", icon: "🏠" },
-    { id: "schedule", label: "Schedule", icon: "📅" },
-    { id: "recovery", label: "Recovery", icon: "🧊" },
-    { id: "quiz", label: "Football IQ", icon: "🧠" },
-    { id: "goals", label: "Goal Wall", icon: "🎯" },
-    { id: "attendance", label: "Attendance", icon: "📋" },
+    { id: "announce",   label: "Announcements", icon: "📢" },
+    { id: "overview",   label: "Overview",      icon: "🏠" },
+    { id: "schedule",   label: "Schedule",      icon: "📅" },
+    { id: "recovery",   label: "Recovery",      icon: "🧊" },
+    { id: "quiz",       label: "Football IQ",   icon: "🧠" },
+    { id: "goals",      label: "Goal Wall",     icon: "🎯" },
+    { id: "attendance", label: "Attendance",    icon: "📋" },
   ];
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
@@ -3840,11 +6156,12 @@ function TeamHubSection() {
           </Pill>
         ))}
       </div>
-      {hubTab === "overview" && <HubOverview setHubTab={setHubTab} />}
-      {hubTab === "schedule" && <ScheduleCard />}
-      {hubTab === "recovery" && <RecoveryZone />}
-      {hubTab === "quiz" && <FootballIQQuiz />}
-      {hubTab === "goals" && <GoalWall />}
+      {hubTab === "announce"   && <AnnouncementBoard />}
+      {hubTab === "overview"   && <HubOverview setHubTab={setHubTab} />}
+      {hubTab === "schedule"   && <ScheduleCard />}
+      {hubTab === "recovery"   && <RecoveryZone />}
+      {hubTab === "quiz"       && <FootballIQQuiz />}
+      {hubTab === "goals"      && <GoalWall />}
       {hubTab === "attendance" && (
         <TeacherAttendanceGate>
           <ClusterAttendance />
@@ -3861,6 +6178,19 @@ export default function App() {
   const [active, setActive] = useState("home");
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", onboarded: false });
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [isDark, setIsDark] = useState(() => {
+    try { return localStorage.getItem("nbss-theme") !== "light"; } catch { return true; }
+  });
+  const theme = isDark ? DARK_C : LIGHT_C;
+
+  const toggleTheme = () => {
+    setIsDark(d => {
+      const next = !d;
+      try { localStorage.setItem("nbss-theme", next ? "dark" : "light"); } catch {}
+      return next;
+    });
+  };
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [active]);
 
   const handleOnboardingComplete = (data) => {
@@ -3868,7 +6198,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <ThemeContext.Provider value={theme}>
       {!profile?.onboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital@0;1&display=swap');
@@ -3876,19 +6206,20 @@ export default function App() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body {
-          background: ${C.navy};
-          color: ${C.textBright};
+          background: ${theme.navy};
+          color: ${theme.textBright};
           font-family: ${FONT_BODY};
           -webkit-font-smoothing: antialiased;
+          transition: background 0.3s ease, color 0.3s ease;
         }
 
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: ${C.navyCard}; }
-        ::-webkit-scrollbar-thumb { background: ${C.navyBorder}; border-radius: 2px; }
+        ::-webkit-scrollbar-track { background: ${theme.navyCard}; }
+        ::-webkit-scrollbar-thumb { background: ${theme.navyBorder}; border-radius: 2px; }
 
-        input, select, textarea { color-scheme: dark; }
-        input:focus, select:focus, textarea:focus { border-color: ${C.gold} !important; }
-        input::placeholder, textarea::placeholder { color: ${C.textDim}; }
+        input, select, textarea { color-scheme: ${isDark ? "dark" : "light"}; }
+        input:focus, select:focus, textarea:focus { border-color: ${theme.gold} !important; }
+        input::placeholder, textarea::placeholder { color: ${theme.textDim}; }
 
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -3900,40 +6231,46 @@ export default function App() {
           to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes tickerScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+
         @media (max-width: 768px) {
           .mob-btn { display: block !important; }
           .nav-l {
             display: none !important;
             position: absolute; top: 64px; left: 0; right: 0;
-            background: rgba(5,15,30,0.98);
+            background: ${isDark ? "rgba(5,15,30,0.98)" : "rgba(240,244,248,0.98)"};
             backdrop-filter: blur(20px);
             flex-direction: column; padding: 16px;
-            border-bottom: 1px solid ${C.navyBorder};
-            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            border-bottom: 1px solid ${theme.navyBorder};
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
           }
           .nav-l.nav-open { display: flex !important; }
+          .mob-theme-btn { display: flex !important; }
         }
       `}</style>
 
-      <Navbar active={active} setActive={setActive} />
+      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} />
 
       {active === "home"     && <HeroSection setActive={setActive} profile={profile} sessions={sessions} />}
       {active === "train"    && <TrainGroup />}
       {active === "match"    && <MatchGroup />}
-      {active === "progress" && <ProgressGroup />}
+      {active === "progress" && <ProgressGroup profile={profile} />}
       {active === "culture"  && <LegendsSection />}
       {active === "hub"      && <TeamHubSection />}
 
-      <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${C.navyBorder}`, background: C.navyDeep }}>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 3, marginBottom: 6 }}>NBSS FOOTBALL CCA</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 6px" }}>Naval Base Secondary School · Building Character Through Football</p>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 20px" }}>Created by <span style={{ color: C.gold, fontWeight: 700 }}>Mr Muhammad Herwanto</span></p>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Powered by</span>
-          <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.gold, letterSpacing: 1 }}>GamePlan</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>· All-in-One Platform for School Sports CCAs</span>
+      <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: theme.textBright, letterSpacing: 3, marginBottom: 6 }}>NBSS FOOTBALL CCA</div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "0 0 6px" }}>Naval Base Secondary School · Building Character Through Football</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "0 0 20px" }}>Created by <span style={{ color: theme.gold, fontWeight: 700 }}>Mr Muhammad Herwanto</span></p>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>· All-in-One Platform for School Sports CCAs</span>
         </div>
       </footer>
-    </>
+    </ThemeContext.Provider>
   );
 }

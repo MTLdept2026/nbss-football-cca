@@ -1,0 +1,327 @@
+--- slide1.xml ---
+Learning Outcomes for CCE based on the Developmental Milestones (Lower Sec):
+Understand that the contemporary social, political, economic and environmental issues faced by Singapore, the region and the world can affect one at the personal and national level [2.3.4b].
+Identify the opportunities, challenges and constraints Singapore faces, due to current local issues, and issues in the Southeast Asian region 
+and the global community.
+Be informed of current issues in Singapore, the Southeast Asian region and the global landscape.
+Lesson Intent:
+In this lesson, students will:
+Understand that Budget 2026 reflects how the Government makes careful choices to address present needs while preparing Singapore for future challenges in a changed and uncertain world.
+Recognise AI as a key priority in Budget 2026 and examine how it already shapes their daily lives and society today.
+Reflect on the values and attitudes that will enable them to navigate uncertainty with confidence and adaptability.
+For Teachers’ Reference
+
+--- slide2.xml ---
+For Teachers’ Reference
+Instructions to Teacher
+Before conducting this Budget Lesson:
+1. Read Straits Times (ST) IN articles
+: 
+Editor’s Note: Budget 2026 is a strategic one with an eye on an uncertain future 
+Questions remain unanswered over adoption of AI
+Ask around: how has AI affected your career? 
+3. Assign students to read the Editor’s note, as a 
+pre-lesson
+ activity. 
+
+--- slide3.xml ---
+Lesson Outline (Lower Sec) 
+Lesson Intent
+Segment
+Resource(s) used
+Activity
+In this lesson, students will:
+Understand that Budget 2026 reflects how the Government makes careful choices to address present needs while preparing Singapore for future challenges in a changed and uncertain world.
+Recognise AI as a key priority in Budget 2026 and examine how it already shapes their daily lives and society today.
+Reflect on the values and attitudes that will enable them to navigate uncertainty with confidence and adaptability.
+Context Setting 
+(10 mins) 
+Budget Statement 2026  
+Through a word web activity, students explore what the Singapore Budget means to them. Guided context-setting helps them understand that Budget 2026 responds to a changed and uncertain world, with AI as a key national priority.
+Main Activity
+(40 mins)
+ST Video:
+Meet Home Team's humanoid robots
+ST IN
+: 
+Ask Around: How Has AI Affected Your Career? 
+Through a video trigger, students explore how AI is already shaping Singapore and are prompted to consider how it extends into their own daily lives.
+A jigsaw activity examining short sector-based excerpts guides students to reflect on the opportunities, challenges and values needed to navigate an AI-enabled world. This is anchored on the Budget quote that AI, if harnessed well, can help address our constraints.
+Consolidation
+(10 mins)
+Budget Statement 2026  
+As a balance to the discussion on global uncertainties and the possibilities AI presents, the lesson concludes with the Budget message that fear cannot be our response and that we must move forward with confidence, prompting students to reflect on how they will choose to respond to the future ahead.
+For Teachers’ Reference
+
+--- slide4.xml ---
+https://go.gov.sg/stin
+The Straits Times IN website
+
+--- slide5.xml ---
+Singapore Budget 2026
+Lower Secondary
+Lesson Resource 2026
+
+--- slide6.xml ---
+Word Web
+What comes to mind when you hear the phrase 
+‘
+Singapore Budget’?
+
+--- slide7.xml ---
+Knowing the Budget 
+The Budget is Singapore’s financial plan for the upcoming year.  It reveals what the nation is spending on 
+to make your lives better now as well as to prepare for the future.
+Watch this ST video 
+“
+60 years of the Singapore Budget
+” (2.37 mins) 
+to find out more!
+Extracted from ST IN article ‘
+Breaking down the Budget
+’.
+
+--- slide8.xml ---
+Budget 2026 comes at a time of global change and uncertainty
+… 
+Less global cooperation with countries prioritising self-interest 
+Changing world order 
+Conflicts and geopolitical tensions
+Slower economic growth
+Rapid technological change 
+Source: 
+Budget 2026 Statement
+
+--- slide9.xml ---
+Source: 
+Budget 2026 Statement
+Advance our refreshed economic strategy
+To secure growth in a changed world
+Harness AI as a strategic advantage
+To adapt in the face of rapid change
+“
+Budget 2026… 
+lays the groundwork 
+for how we will navigate our next phase of development
+” 
+The following are Singapore’s priorities for Budget 2026...
+Build a resilient and skilled workforce
+To strengthen our economy through our people
+Renew and strengthen our Singapore spirit
+To forge our shared bonds and build a ‘We-First” Society
+Give families more support and greater assurance
+To make Singapore a place we proudly call home
+Protect our security and sustainability 
+To build a home for generations to come
+
+--- slide10.xml ---
+“In a 
+changed world, a decisive factor for success 
+will be how we harness new technologies — 
+foremost amongst them, Artificial Intelligence (AI).”
+Harness AI as a strategic advantage
+Mr Lawrence Wong 
+Prime Minister and Minister for Finance
+Budget 2026 Budget Statement
+12 Feb 2026
+Access this QR code to find out more about Harnessing AI as a strategic advantage in Budget 2026 
+
+--- slide11.xml ---
+Let’s watch the ST video ‘
+Meet Home Teams’ Humanoid Robots
+’ (~1 min) to understand one of the ways AI is becoming a part of our society. 
+
+--- slide12.xml ---
+      5 min
+After watching the video, share your thoughts and feelings with your partner to the following questions: 
+Are you surprised by what the AI-powered Humanoid robot can do? 
+Why or why not? 
+Beyond robots, how might AI already be influencing your daily life?
+
+--- slide13.xml ---
+“It (AI) can help us overcome our structural constraints — 
+our limited natural resources, rapidly ageing population, and tight labour market.
+”
+If used well, AI will be an advantage for Singapore 
+Mr Lawrence Wong 
+Prime Minister and Minister for Finance
+Budget 2026 Budget Statement
+12 Feb 2026
+
+--- slide14.xml ---
+1
+Jigsaw: 
+Getting into your groups
+HOME GROUP
+Form groups of 4
+. 
+Number yourself from ‘1’ to ’4’.
+2
+EXPERT GROUPS
+Regroup according to your numbers
+ and gather at the 4 corners of the class.
+All the 1s together, 
+All the 2s together
+All the 3s together
+All the 4s together
+3
+SMALL 
+EXPERT GROUPS
+Split each Expert Group in half
+for smaller discussions
+(3-5 students)
+
+--- slide15.xml ---
+Read your assigned excerpt about how AI may have an impact on different aspects in society.  
+3
+In your small 
+EXPERT GROUP,
+Group 1: 
+Culture 
+Group 2: Education 
+Group 3: 
+Medicine
+Group 4: 
+Engineering
+ST IN Article: How has AI affected your career? 
+      5 min
+Scan QR code for article
+
+--- slide16.xml ---
+As AI becomes more advanced, how might it change the way people
+work, learn, or interact in the community?
+Who might benefit and who might find it harder to cope? Why?
+Prepare a summary about your assigned reading for sharing with your Home group. You may use the summary template.
+3
+After reading, discuss the following questions:
+      10 min
+In your 
+small
+EXPERT GROUP
+, 
+Scan QR code for article
+
+--- slide17.xml ---
+The article was by/ about … 
+Sample of a possible discussion 
+template
+CULTURE
+AI can benefit …
+AI might make it harder…
+AI changes … (eg. how people learn about culture/ how museums make content interesting)
+
+--- slide18.xml ---
+As AI becomes more advanced, how might it change the way people
+work, learn, or interact in the community in your assigned aspects?
+Who might benefit and who might find it harder to cope? Why?
+4
+Take turns to s
+hare your learning from the expert group with your group mates.
+      15 min
+Now, return to
+ your 
+HOME GROUP
+..
+
+--- slide19.xml ---
+From the excerpts, what were some values or attitudes demonstrated that are important to you when adopting AI? Why? 
+How can we ensure that no one is left behind in the process of adopting AI?
+Get ready to share with the class 
+4
+2. 
+ Following the sharing, discuss the following:
+      15 min
+In your 
+HOME GROUP
+..
+
+--- slide20.xml ---
+For Discussion questions on 
+Slide 1
+6
+Possible Student Responses 
+Questions to facilitate group discussion
+As AI becomes more advanced, how might it change the way people
+work, learn, or interact in the community?
+People may rely on AI tools to complete work faster and more efficiently (e.g., AI helping to draft emails or analyse data). 
+Some jobs may be replaced, leading to unemployment or job insecurity (e.g., cashiers replaced by self-checkout machines, call centre operators replaced by AI chatbots, factory workers replaced by robots).  
+Learners may use AI for learning.
+People might interact more with AI and less with other humans.
+What are some human skills we may lose? What can we do to protect these skills?
+What would excite you? What would you worry about losing? 
+Who might benefit and who might find it harder to cope? Why?
+Tech-savvy workers and companies may benefit because they can adapt quickly and use AI to increase productivity. 
+Students with access to devices and strong digital skills may gain an advantage. 
+Older workers or those without digital skills may struggle to keep up with new systems. 
+Lower-income groups may find it harder if they lack access to devices, training, or stable internet connections.
+If you were someone working in this area, how might you feel about these changes?
+What can be done to prevent certain groups from being left behind?
+Could this widen gaps between different groups? 
+For Teachers’ Reference
+
+--- slide21.xml ---
+How does Singapore plan to harness AI as a strategic advantage?
+National AI Council 
+chaired by PM Lawrence Wong to steer Singapore’s AI strategy
+Support for companies 
+that adopt AI, including the Productivity Solutions Grant
+A 
+new AI park 
+at One-North to bring AI start-ups, researchers and businesses together
+TechSkills Accelerator 
+training initiative to support AI skills training
+Six months of free access to premium AI tools 
+for Singaporeans who take up selected courses
+Extracted from ST IN article ‘
+A National-Level Push for AI
+’.
+
+--- slide22.xml ---
+“Fear cannot be Singapore’s response. If we allow uncertainty to paralyse us, we will fall behind…
+Despite these uncertainties, 
+we can move forward with confidence 
+— 
+confidence grounded in fundamentals
+.”
+Mr Lawrence Wong 
+Prime Minister and Minister for Finance
+Budget 2026 Budget Statement
+12 Feb 2026
+
+--- slide23.xml ---
+Based on the quote you have read, reflect on 
+how you may respond to a changing world...
+What is one value/ attitude you would like to develop to prepare yourself for a chang
+ing
+ world?
+      5 min
+
+--- slide24.xml ---
+For Discussion questions on 
+Slide 
+23
+Possible Student Responses 
+Prompts/Questions to deepen student responses
+From the excerpts, what were some values or attitudes demonstrated that are important to you when adopting AI? Why? 
+Adaptability
+Courage
+Openness
+A willingness to learn 
+Self-awareness – knowing our strengths, value human qualities like empathy, judgement
+Don’t be threatened about AI taking over basic tasks, but excited about the opportunity to focus on meaningful work. 
+See AI as complementary rather than competitor
+How do you see this value/ attitude being demonstrated in your own life as a student or in future work?
+Some professionals mentioned using AI to focus on 'higher-value work.' What does this suggest about the attitude we should have toward our own capabilities and growth?
+How can we ensure that no one is left behind in the process of adopting AI? 
+Provide training and reskilling opportunities for workers, students to give a fair chance to people. 
+Set clear rules to ensure AI is used fairly and responsibly.
+Support vulnerable groups with access to devices and digital literacy programmes.
+Focus more on what makes us unique as humans.
+How do the values and attitudes you identified in Question 1 actually help address the challenge in Question 2?
+When we say 'no one is left behind,' who specifically are we thinking about? 
+What groups of people might face the biggest challenges with AI adoption?
+How do our individual actions shape the kind of society we want to become?
+For Teachers’ Reference
+
+--- slide25.xml ---
+Access this QR code to find out more about the support provided for you in Budget 2026. 
