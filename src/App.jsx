@@ -1493,6 +1493,21 @@ function HeroSection({ setActive, profile, sessions }) {
   const lastSession = sessions?.length ? [...sessions].sort((a,b) => new Date(b.date)-new Date(a.date))[0] : null;
   const daysSinceLast = lastSession ? Math.round((new Date() - new Date(lastSession.date)) / 86400000) : null;
   const isPersonalised = profile?.name?.trim();
+  const heroAccentStyle = (() => {
+    const fallback = { color: C.gold, display: "inline-block" };
+    if (typeof CSS === "undefined" || !CSS.supports) return fallback;
+    const supportsClipText =
+      CSS.supports("background-clip", "text") ||
+      CSS.supports("-webkit-background-clip", "text");
+    if (!supportsClipText) return fallback;
+    return {
+      ...fallback,
+      background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
+      backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+    };
+  })();
 
   return (
     <section style={{
@@ -1536,7 +1551,7 @@ function HeroSection({ setActive, profile, sessions }) {
         )}
 
         <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(56px, 10vw, 104px)", color: C.textBright, margin: 0, lineHeight: 0.95, letterSpacing: 3 }}>
-          FOOTBALL{" "}<span style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>CCA</span>
+          FOOTBALL{" "}<span style={heroAccentStyle}>CCA</span>
         </h1>
         <p style={{ fontFamily: FONT_BODY, fontSize: "clamp(14px, 2vw, 17px)", color: C.textMid, marginTop: 16, letterSpacing: 2, textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
 
