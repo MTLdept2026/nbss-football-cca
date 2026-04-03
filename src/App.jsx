@@ -1037,7 +1037,7 @@ function MatchGroup() {
   );
 }
 
-function ProgressGroup({ profile }) {
+function ProgressGroup({ profile, setActive }) {
   const C = useTheme();
   const isCoach = profile?.role === "coach";
   const [sub, setSub] = useState(isCoach ? "squad" : "tracker");
@@ -1054,11 +1054,41 @@ function ProgressGroup({ profile }) {
         <div>
           {isCoach && (
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 0" }}>
-              <div style={{ padding: "14px 18px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20`, display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                <span style={{ fontSize: 16 }}>📋</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.electric, fontWeight: 600 }}>
-                  Coach view — managing the squad roster. Personal XP tracking is available to players.
-                </span>
+              <div style={{ padding: "16px 18px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20`, marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 16 }}>🏟️</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.electric, fontWeight: 700 }}>
+                    Coach shortcuts
+                  </span>
+                </div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>
+                  The Squad page mainly shows the player-card experience. For coach tasks, jump straight to the tools below.
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { id: "hub", label: "Team Hub" },
+                    { id: "match", label: "Lineup Builder" },
+                    { id: "culture", label: "Legends" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActive(item.id)}
+                      style={{
+                        padding: "8px 14px",
+                        borderRadius: 9,
+                        cursor: "pointer",
+                        background: C.navyCard,
+                        border: `1px solid ${C.navyBorder}`,
+                        color: C.textBright,
+                        fontFamily: FONT_BODY,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1168,6 +1198,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
 // ══════════════════════════════════════════════════
 function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const C = useTheme();
+  const [nextEvent, setNextEvent] = useState(null);
 
   // Compute latest ACWR from sessions that have load data
   const acwrData = sessions?.length ? computeACWR(sessions) : [];
@@ -1181,6 +1212,18 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const isCoach = profile?.role === "coach";
   const name = profile?.name?.trim();
 
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then((events) => {
+        if (active) setNextEvent(getNextScheduledEvent(events));
+      })
+      .catch(() => {
+        if (active) setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS));
+      });
+    return () => { active = false; };
+  }, []);
+
   // Build dynamic ticker items
   const items = [];
 
@@ -1189,6 +1232,15 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     items.push({ icon: isCoach ? "📋" : "⚽", text: isCoach ? `Coach ${name} — Team Dashboard Active` : `Welcome back, ${name}!`, color: C.gold });
   } else {
     items.push({ icon: "⚽", text: "NBSS Football CCA — GamePlan Platform", color: C.gold });
+  }
+
+  if (nextEvent) {
+    const eventLabel = `${nextEvent.date}${nextEvent.time ? ` • ${nextEvent.time}` : ""}`;
+    items.push({
+      icon: nextEvent.type === "Match" || nextEvent.type === "Friendly" ? "🏆" : "📅",
+      text: `Next event: ${nextEvent.title} — ${eventLabel}`,
+      color: nextEvent.type === "Match" || nextEvent.type === "Friendly" ? C.gold : C.success,
+    });
   }
 
   // Session stats (players)
@@ -4967,15 +5019,8 @@ function ScheduleCard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const data = parseCSV(text);
-      // Sort by date ascending
-      const sorted = [...data]
-        .filter(r => r.date)
-        .sort((a, b) => (a.date > b.date ? 1 : -1));
-      setSessions(sorted);
+      const data = await fetchScheduleEntries();
+      setSessions(data);
       setLastFetched(new Date());
     } catch (e) {
       setError("Could not load schedule. Make sure the sheet is public and you're online.");
@@ -5832,8 +5877,80 @@ function TeacherAttendanceGate({ children }) {
 // ══════════════════════════════════════════════════
 const SHEET_ID = "1yhLcwaYA7CuWgJ5VmQq8ia4KHB8Iwc3BGNEqVDevELI";
 // Target specific tabs by name — works without knowing gid numbers
-const SHEET_CSV_URL        = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Announcements`;
 const SCHEDULE_CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Schedule`;
+
+// April 2026 schedule seeded from the shared calendar screenshot.
+// Keep this in sync with the Google Sheet until the sheet becomes the sole source again.
+const SEEDED_SCHEDULE_EVENTS = [
+  { date: "2026-04-02", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Herwanto", venue: "", notes: "" },
+  { date: "2026-04-06", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Lua", venue: "", notes: "" },
+  { date: "2026-04-07", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Chandra", venue: "", notes: "" },
+  { date: "2026-04-09", title: "C Div Friendly (Canberra Sec)", type: "Friendly", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Kadir", venue: "", notes: "" },
+  { date: "2026-04-10", title: "NSG B Div Game (N2 vs Greenridge Sec)", type: "Match", division: "B Div", time: "Kick off 845am", teacher: "", venue: "", notes: "" },
+  { date: "2026-04-13", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Ms Kellie", venue: "", notes: "" },
+  { date: "2026-04-14", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
+  { date: "2026-04-16", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Yusman", venue: "", notes: "" },
+  { date: "2026-04-20", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Harizan", venue: "", notes: "" },
+  { date: "2026-04-21", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Herwanto", venue: "", notes: "" },
+  { date: "2026-04-23", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Chandra", venue: "", notes: "" },
+  { date: "2026-04-27", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Harizan", venue: "", notes: "" },
+  { date: "2026-04-28", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
+  { date: "2026-04-30", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Kadir", venue: "", notes: "" },
+];
+
+function inferScheduleType(title = "") {
+  const text = title.toLowerCase();
+  if (text.includes("friendly")) return "Friendly";
+  if (text.includes("match") || text.includes("game")) return "Match";
+  if (text.includes("training")) return "Training";
+  return "Other";
+}
+
+function inferScheduleDivision(title = "") {
+  if (title.includes("B Div")) return "B Div";
+  if (title.includes("C Div")) return "C Div";
+  return "";
+}
+
+function normalizeScheduleEntry(entry) {
+  const title = entry.title || entry.event || entry.name || "";
+  return {
+    date: entry.date || "",
+    title,
+    type: entry.type || inferScheduleType(title),
+    division: entry.division || entry.div || inferScheduleDivision(title),
+    time: entry.time || "",
+    teacher: entry.teacher || entry.coach || "",
+    venue: entry.venue || "",
+    notes: entry.notes || "",
+  };
+}
+
+function scheduleEntryKey(entry) {
+  return `${entry.date}::${entry.division || ""}::${entry.type || ""}`;
+}
+
+function mergeScheduleEntries(rows) {
+  const merged = new Map();
+  rows.map(normalizeScheduleEntry).forEach((entry) => {
+    if (entry.date) merged.set(scheduleEntryKey(entry), entry);
+  });
+  SEEDED_SCHEDULE_EVENTS.forEach((entry) => {
+    merged.set(scheduleEntryKey(entry), entry);
+  });
+  return [...merged.values()].sort((a, b) => (a.date > b.date ? 1 : -1));
+}
+
+async function fetchScheduleEntries() {
+  const res = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return mergeScheduleEntries(parseCSV(text));
+}
+
+function getNextScheduledEvent(events, today = new Date().toISOString().slice(0, 10)) {
+  return events.find((event) => event.date >= today) || null;
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -5889,40 +6006,37 @@ function parseCSV(text) {
 
 function AnnouncementBoard() {
   const C = useTheme();
-  const [announcements, setAnnouncements] = useState([]);
+  const [nextEvent, setNextEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
 
-  const categoryColor = (cat) => ({
-    Training: C.success, Match: C.gold, Admin: C.electric, General: C.orange,
-  }[cat] || C.textDim);
+  const eventColor = (type) => ({
+    Training: C.success,
+    Match: C.gold,
+    Friendly: C.orange,
+    Other: C.electric,
+  }[type] || C.electric);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const data = parseCSV(text);
-      // Pinned first, then newest first
-      const sorted = [...data].sort((a, b) => {
-        const aPin = a.pinned?.toUpperCase() === "TRUE";
-        const bPin = b.pinned?.toUpperCase() === "TRUE";
-        if (aPin && !bPin) return -1;
-        if (!aPin && bPin) return 1;
-        return (b.date || "") > (a.date || "") ? 1 : -1;
-      });
-      setAnnouncements(sorted);
+      const data = await fetchScheduleEntries();
+      setNextEvent(getNextScheduledEvent(data));
       setLastFetched(new Date());
     } catch (e) {
-      setError("Could not load announcements. Make sure the sheet is set to public and you're online.");
+      setError("Could not load the next event. Make sure the schedule sheet is public and you're online.");
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchAnnouncements(); }, []);
+
+  const accent = nextEvent ? eventColor(nextEvent.type) : C.electric;
+  const formattedDate = nextEvent?.date
+    ? new Date(nextEvent.date).toLocaleDateString("en-SG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    : "";
 
   return (
     <div>
@@ -5949,7 +6063,7 @@ function AnnouncementBoard() {
       {/* States */}
       {loading && (
         <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>
-          Fetching latest announcements…
+          Fetching next event…
         </div>
       )}
 
@@ -5959,51 +6073,68 @@ function AnnouncementBoard() {
         </div>
       )}
 
-      {!loading && !error && announcements.length === 0 && (
+      {!loading && !error && !nextEvent && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for team updates.</p>
+          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📅</span>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No upcoming events right now.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for the next training or match.</p>
         </div>
       )}
 
-      {/* Announcement cards */}
-      {!loading && !error && announcements.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {announcements.map((ann, i) => {
-            const isPinned = ann.pinned?.toUpperCase() === "TRUE";
-            const catColor = categoryColor(ann.category);
-            return (
-              <div key={i} style={{
-                background: isPinned ? `${C.gold}07` : C.navyCard,
-                border: `1px solid ${isPinned ? C.gold + "35" : C.navyBorder}`,
-                borderRadius: 14, padding: "18px 22px",
-                borderLeft: `4px solid ${catColor}`,
-                transition: "all 0.2s",
-              }}>
-                {/* Tags row */}
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
-                  {isPinned && (
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}18`, padding: "2px 9px", borderRadius: 5, fontWeight: 700, letterSpacing: 0.5 }}>📌 PINNED</span>
-                  )}
-                  {ann.category && (
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: catColor, background: `${catColor}15`, padding: "2px 9px", borderRadius: 5, fontWeight: 700, letterSpacing: 0.5 }}>{ann.category.toUpperCase()}</span>
-                  )}
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{ann.date}</span>
-                </div>
-                {/* Title */}
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 0.5, marginBottom: 8, lineHeight: 1.3 }}>
-                  {ann.title}
-                </div>
-                {/* Body */}
-                {ann.body && (
-                  <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7, margin: 0 }}>
-                    {ann.body}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+      {!loading && !error && nextEvent && (
+        <div style={{
+          background: `linear-gradient(135deg, ${accent}12, ${C.navyCard})`,
+          border: `1px solid ${accent}35`,
+          borderRadius: 16,
+          padding: "22px 24px",
+          boxShadow: `0 16px 40px ${accent}12`,
+        }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: accent, background: `${accent}18`, padding: "3px 10px", borderRadius: 999, fontWeight: 800, letterSpacing: 0.8 }}>
+              NEXT EVENT
+            </span>
+            {nextEvent.type && (
+              <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textMid, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 999, fontWeight: 700, letterSpacing: 0.8 }}>
+                {nextEvent.type.toUpperCase()}
+              </span>
+            )}
+            {nextEvent.division && (
+              <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textMid, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 999, fontWeight: 700, letterSpacing: 0.8 }}>
+                {nextEvent.division.toUpperCase()}
+              </span>
+            )}
+            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: "auto" }}>
+              {formattedDate}
+            </span>
+          </div>
+
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, letterSpacing: 1, lineHeight: 1.05, marginBottom: 12 }}>
+            {nextEvent.title}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: nextEvent.notes ? 12 : 0 }}>
+            {nextEvent.time && (
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "8px 12px", borderRadius: 10 }}>
+                Time: {nextEvent.time}
+              </span>
+            )}
+            {nextEvent.teacher && (
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "8px 12px", borderRadius: 10 }}>
+                Coach: {nextEvent.teacher}
+              </span>
+            )}
+            {nextEvent.venue && (
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "8px 12px", borderRadius: 10 }}>
+                Venue: {nextEvent.venue}
+              </span>
+            )}
+          </div>
+
+          {nextEvent.notes && (
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7, margin: 0 }}>
+              {nextEvent.notes}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -6136,7 +6267,7 @@ export default function App() {
       {active === "home"     && <HeroSection setActive={setActive} profile={profile} sessions={sessions} />}
       {active === "train"    && <TrainGroup />}
       {active === "match"    && <MatchGroup />}
-      {active === "progress" && <ProgressGroup profile={profile} />}
+      {active === "progress" && <ProgressGroup profile={profile} setActive={setActive} />}
       {active === "culture"  && <LegendsSection />}
       {active === "hub"      && <TeamHubSection />}
 
