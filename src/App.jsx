@@ -5144,6 +5144,13 @@ function ScheduleCard() {
   const [error, setError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
   const [filter, setFilter] = useState("all"); // "all" | "Training" | "Match" | "B Div" | "C Div"
+  const [showEditUnlock, setShowEditUnlock] = useState(false);
+  const [editPassword, setEditPassword] = useState("");
+  const [editError, setEditError] = useState("");
+  const [teacherEditUnlocked, setTeacherEditUnlocked] = useState(() => {
+    try { return sessionStorage.getItem(ATTENDANCE_TEACHER_SESSION_KEY) === "true"; }
+    catch { return false; }
+  });
 
   const fetchSchedule = async () => {
     setLoading(true);
@@ -5190,6 +5197,27 @@ function ScheduleCard() {
   // Split into upcoming and past
   const upcoming = filtered.filter(s => isUpcoming(s.date));
   const past     = filtered.filter(s => !isUpcoming(s.date)).slice(-5).reverse(); // last 5 past
+
+  const unlockScheduleEdit = (e) => {
+    e.preventDefault();
+    if (editPassword === ATTENDANCE_TEACHER_PASSWORD) {
+      try { sessionStorage.setItem(ATTENDANCE_TEACHER_SESSION_KEY, "true"); } catch {}
+      setTeacherEditUnlocked(true);
+      setShowEditUnlock(false);
+      setEditPassword("");
+      setEditError("");
+      return;
+    }
+    setEditError("Incorrect password. Teacher access only.");
+  };
+
+  const relockScheduleEdit = () => {
+    try { sessionStorage.removeItem(ATTENDANCE_TEACHER_SESSION_KEY); } catch {}
+    setTeacherEditUnlocked(false);
+    setShowEditUnlock(false);
+    setEditPassword("");
+    setEditError("");
+  };
 
   const SessionCard = ({ s, dim = false }) => {
     const tc = typeColor(s.type);
@@ -5247,19 +5275,51 @@ function ScheduleCard() {
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>📅 SCHEDULE</div>
           {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {!teacherEditUnlocked && (
+            <button onClick={() => {
+              setShowEditUnlock(v => !v);
+              setEditError("");
+            }} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+              Teacher Edit
+            </button>
+          )}
           <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer"
-            style={{ padding: "7px 14px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            style={{ display: teacherEditUnlocked ? "inline-block" : "none", padding: "7px 14px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
             ✏️ Edit
           </a>
+          {teacherEditUnlocked && (
+            <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+              Lock Edit
+            </button>
+          )}
           <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 8, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
             {loading ? "Loading…" : "↻ Refresh"}
           </button>
         </div>
       </div>
 
+      {showEditUnlock && !teacherEditUnlocked && (
+        <form onSubmit={unlockScheduleEdit} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 20, padding: "12px 14px", borderRadius: 12, background: `${C.gold}08`, border: `1px solid ${C.gold}20` }}>
+          <input
+            type="password"
+            value={editPassword}
+            onChange={(e) => {
+              setEditPassword(e.target.value);
+              if (editError) setEditError("");
+            }}
+            placeholder="Teacher password"
+            style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13 }}
+          />
+          <button type="submit" style={{ padding: "9px 14px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
+            Unlock Edit
+          </button>
+          {editError && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, fontWeight: 700 }}>{editError}</span>}
+        </form>
+      )}
+
       {/* Coach tip */}
-      <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+      <div style={{ display: teacherEditUnlocked ? "block" : "none", background: `${C.gold}08`, border: `1px solid ${C.gold}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
         💡 <strong style={{ color: C.gold }}>Coach:</strong> Add sessions to the <strong>Schedule</strong> tab in the Google Sheet. Players see updates after tapping Refresh.
       </div>
 
@@ -5283,7 +5343,7 @@ function ScheduleCard() {
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
           <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions in the schedule yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Coach: add rows to the Schedule tab in the Google Sheet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for training and match updates.</p>
         </div>
       )}
 
@@ -6075,13 +6135,6 @@ function AnnouncementBoard() {
         </button>
       </div>
 
-      {/* Coach tip */}
-      <div style={{ background: `${C.electric}08`, border: `1px solid ${C.electric}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
-        💡 <strong style={{ color: C.electric }}>Coach:</strong> Add or edit announcements in the <strong>Announcements</strong> tab of the{" "}
-        <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer" style={{ color: C.electric, fontWeight: 700 }}>Google Sheet ↗</a>.
-        {" "}Players see updates after tapping Refresh.
-      </div>
-
       {/* States */}
       {loading && (
         <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>
@@ -6099,7 +6152,7 @@ function AnnouncementBoard() {
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
           <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Coach: add rows to the Google Sheet to post here.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for team updates.</p>
         </div>
       )}
 
