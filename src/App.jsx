@@ -6281,14 +6281,12 @@ export default function App() {
       {active === "hub"      && <TeamHubSection />}
 
       <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: theme.textBright, letterSpacing: 3, marginBottom: 6 }}>NBSS FOOTBALL CCA</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "0 0 6px" }}>Naval Base Secondary School · Building Character Through Football</p>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "0 0 20px" }}>Created by <span style={{ color: theme.gold, fontWeight: 700 }}>Mr Muhammad Herwanto</span></p>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
           <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>· All-in-One Platform for School Sports CCAs</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>· Performance and Development Platform</span>
         </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
       </footer>
     </ThemeContext.Provider>
   );
