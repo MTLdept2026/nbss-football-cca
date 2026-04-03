@@ -1,12 +1,12 @@
 {
-  "name": "NBSS Football CCA",
-  "short_name": "NBSS FC",
+  "name": "GamePlan",
+  "short_name": "GamePlan",
   "description": "Naval Base Secondary School Football CCA — Training, Nutrition, Mindset, Fitness & Progress Tracking",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#050f1e",
-  "theme_color": "#050f1e",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "categories": ["sports", "education", "health"],
   "icons": [
     {

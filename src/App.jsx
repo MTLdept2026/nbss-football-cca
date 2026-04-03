@@ -4724,7 +4724,7 @@ function LineupBuilderSection() {
   const builderGap = isPhoneLayout ? 18 : isTabletLayout ? 22 : 24;
   const formColumns = isPhoneLayout ? "1fr" : "1fr 1fr";
   const pitchMaxWidth = isPhoneLayout ? 440 : isTabletLayout ? 720 : "none";
-  const pitchAspectRatio = isPhoneLayout ? "132%" : isTabletLayout ? "122%" : "140%";
+  const pitchAspectRatio = "140%"; // always match SVG viewBox (0 0 100 140)
   const playerBadgeSize = isPhoneLayout ? 36 : isTabletLayout ? 40 : 32;
   const playerRoleSize = isPhoneLayout ? 10 : isTabletLayout ? 11 : 9;
   const playerNameSize = isPhoneLayout ? 8.5 : isTabletLayout ? 9 : 8;
@@ -4938,14 +4938,14 @@ function LineupBuilderSection() {
               height: fullscreen ? (isTabletLayout ? 44 : 40) : playerBadgeSize,
               borderRadius: "50%",
               margin: "0 auto 3px",
-              background: current.players[idx]?.trim() ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : "rgba(255,255,255,0.15)",
-              border: `2px solid ${current.players[idx]?.trim() ? C.gold : "rgba(255,255,255,0.3)"}`,
+              background: current.players[idx]?.trim() ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : "rgba(0,0,0,0.52)",
+              border: `2px solid ${current.players[idx]?.trim() ? C.gold : "rgba(255,255,255,0.55)"}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: fullscreen ? (isTabletLayout ? 12 : 11) : playerRoleSize,
               fontFamily: FONT_HEAD,
-              color: current.players[idx]?.trim() ? C.navy : "rgba(255,255,255,0.6)",
+              color: current.players[idx]?.trim() ? C.navy : "rgba(255,255,255,0.95)",
               letterSpacing: 0.5,
             }}>{pos.role}</div>
             <div style={{ fontSize: fullscreen ? (isTabletLayout ? 9.5 : 9) : playerNameSize, fontFamily: FONT_BODY, color: "rgba(255,255,255,0.7)", fontWeight: 600, textShadow: "0 1px 2px rgba(0,0,0,0.8)", maxWidth: fullscreen ? (isTabletLayout ? 68 : 52) : playerNameWidth, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -5109,20 +5109,43 @@ function LineupBuilderSection() {
       )}
 
       {viewMode === "builder" && isCompactLayout && isDrawFullscreen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(5,15,30,0.98)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 18px)", overflowY: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(5,15,30,0.98)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 80px)", overflowY: "auto" }}>
           <div style={{ width: "100%", maxWidth: isTabletLayout ? 920 : 620, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>TACTICS BOARD</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Full-screen pitch for cleaner arrows and easier touches</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Draw with more room, then tap Close to return.</div>
               </div>
-              <button onClick={() => setIsDrawFullscreen(false)} style={{ padding: "8px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: C.textBright }}>
-                Close
-              </button>
             </div>
             {renderPitchPanel(true)}
           </div>
         </div>
+      )}
+      {/* Persistent floating close — always reachable regardless of scroll position */}
+      {viewMode === "builder" && isCompactLayout && isDrawFullscreen && (
+        <button
+          onClick={() => setIsDrawFullscreen(false)}
+          style={{
+            position: "fixed",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1400,
+            padding: "12px 32px",
+            borderRadius: 999,
+            cursor: "pointer",
+            background: C.textBright,
+            border: "none",
+            fontFamily: FONT_BODY,
+            fontSize: 13,
+            fontWeight: 700,
+            color: C.navy,
+            letterSpacing: "0.06em",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+          }}
+        >
+          ✕ Close
+        </button>
       )}
 
       {viewMode === "saved" && (
@@ -7601,6 +7624,7 @@ export default function App() {
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("nbss-theme") !== "light"; } catch { return true; }
   });
+  const [viewAsPlayer, setViewAsPlayer] = useState(false);
   const theme = isDark ? DARK_C : LIGHT_C;
 
   const toggleTheme = () => {
@@ -7623,7 +7647,9 @@ export default function App() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [active]);
 
   const isCoach = profile?.role === "coach";
-  const navItems = isCoach ? COACH_PRIMARY_NAV : PLAYER_PRIMARY_NAV;
+  // Coaches can preview the app as a player — viewAsPlayer toggles this
+  const effectiveIsCoach = isCoach && !viewAsPlayer;
+  const navItems = effectiveIsCoach ? COACH_PRIMARY_NAV : PLAYER_PRIMARY_NAV;
 
   // Compute streak + daysSinceLast for global ticker
   const _sessionsSorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -7703,20 +7729,36 @@ export default function App() {
         }
       `}</style>
 
-      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} navItems={navItems} roleLabel={isCoach ? "Coach" : "Player"} />
+      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} navItems={navItems} roleLabel={effectiveIsCoach ? "Coach" : "Player"} />
 
       {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
       <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
-      {!isCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} profile={profile} sessions={sessions} />}
-      {!isCoach && active === "performance" && <PlayerPerformancePage />}
-      {!isCoach && active === "match" && <PlayerMatchPage />}
-      {!isCoach && active === "hub" && <TeamHubSection />}
+      {/* ── Coach view-as-player toggle strip ── */}
+      {isCoach && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "0 16px 0", marginBottom: -8 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, borderRadius: 999, overflow: "hidden" }}>
+            <button
+              onClick={() => { setViewAsPlayer(false); setActive("dashboard"); }}
+              style={{ padding: "5px 16px", border: "none", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: !viewAsPlayer ? theme.textBright : "transparent", color: !viewAsPlayer ? theme.navy : theme.textDim, transition: "all 0.15s" }}
+            >Coach View</button>
+            <button
+              onClick={() => { setViewAsPlayer(true); setActive("dashboard"); }}
+              style={{ padding: "5px 16px", border: "none", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: viewAsPlayer ? theme.textBright : "transparent", color: viewAsPlayer ? theme.navy : theme.textDim, transition: "all 0.15s" }}
+            >Player View</button>
+          </div>
+        </div>
+      )}
 
-      {isCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} />}
-      {isCoach && active === "squad" && <CoachSquadPage />}
-      {isCoach && active === "operations" && <CoachOperationsPage />}
-      {isCoach && active === "hub" && <TeamHubSection />}
+      {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} profile={profile} sessions={sessions} />}
+      {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage />}
+      {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
+      {!effectiveIsCoach && active === "hub" && <TeamHubSection />}
+
+      {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} />}
+      {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
+      {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
+      {effectiveIsCoach && active === "hub" && <TeamHubSection />}
 
       <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
