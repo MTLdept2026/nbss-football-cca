@@ -632,8 +632,8 @@ const LEGENDS_SG = [
   { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", recipeValues: ["Integrity", "Resilience"], lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🚀", stat: "First SG player in Norwegian top flight", reflectionPrompt: "Ikhsan built his own identity despite carrying one of football's biggest names in Singapore. What expectations or comparisons do you carry — from family, friends, or your own past performance? How do you stay true to who you are within that pressure?" },
   { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", recipeValues: ["Resilience", "Passion"], lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998", reflectionPrompt: "Nazri was told his asthma might stop him from playing sport — it didn't stop him, it became his origin story. What is the 'asthma' in your football journey — the challenge, doubt, or obstacle you've been told is too big? How are you writing your own comeback story?" },
   { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", recipeValues: ["Resilience", "Integrity"], lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer", reflectionPrompt: "Đurić arrived with nothing but hunger and eventually gave everything for his adopted home. What do YOU give everything for right now? Name one area — training, school, a relationship, a goal — that truly deserves more of your complete effort. What's stopping you?" },
-  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner" },
-  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "🎯", stat: "Scored vs Manchester United · Nearly two decades serving the Lions" },];
+  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner", reflectionPrompt: "Shahril led with calm authority and quality instead of noise. When pressure rises in your team, how can you show that same kind of quiet leadership and earn trust through your actions?" },
+  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "🎯", stat: "Scored vs Manchester United · Nearly two decades serving the Lions", reflectionPrompt: "Indra combined relentless practice with calm finishing in the biggest moments. Which part of your game needs that same repeated work right now, and how will you train it until it becomes natural under pressure?" },];
 
 const BADGES = [
   { id: "first_log", name: "First Touch", desc: "Logged your first session", icon: "🏅", xp: 50 },
@@ -1037,214 +1037,19 @@ function MatchGroup() {
   );
 }
 
-// ══════════════════════════════════════════════════
-//  TEAM REPORT SECTION  (coach-only)
-// ══════════════════════════════════════════════════
-function TeamReportSection() {
-  const C = useTheme();
-  const exportRef = useRef(null);
-  const [roster]       = usePersistedState(STORAGE_KEYS.roster, []);
-  const [attendanceLog] = usePersistedState(STORAGE_KEYS.attendance, {});
-
-  // ── derived stats ──────────────────────────────
-  const allDates   = Object.keys(attendanceLog).sort();
-  const totalSessions = allDates.length;
-  const recentDates   = allDates.slice(-10).reverse();   // up to 10 most recent
-
-  // Per-player attendance count
-  const attendCount = {};
-  allDates.forEach(d => {
-    (attendanceLog[d] || []).forEach(id => {
-      attendCount[id] = (attendCount[id] || 0) + 1;
-    });
-  });
-
-  const squadPlayers = roster.filter(p => !p.walkIn);
-  const totalPlayers = squadPlayers.length;
-
-  // Division breakdown
-  const bDiv = squadPlayers.filter(p => p.div === "B Div");
-  const cDiv = squadPlayers.filter(p => p.div === "C Div");
-
-  // School breakdown
-  const bySchool = {};
-  squadPlayers.forEach(p => {
-    bySchool[p.school] = (bySchool[p.school] || 0) + 1;
-  });
-  const schoolEntries = Object.entries(bySchool).sort((a, b) => b[1] - a[1]);
-
-  // Overall attendance rate
-  const avgRate = totalSessions > 0 && totalPlayers > 0
-    ? Math.round((Object.values(attendCount).reduce((s, n) => s + n, 0) / (totalSessions * totalPlayers)) * 100)
-    : null;
-
-  // Top attenders (top 5 by count, exclude walk-ins)
-  const topAttenders = squadPlayers
-    .map(p => ({ ...p, count: attendCount[p.id] || 0 }))
-    .filter(p => p.count > 0)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  // Per-school rate (last 10 sessions)
-  const schoolRates = SCHOOLS.filter(s => bySchool[s]).map(school => {
-    const schoolIds = squadPlayers.filter(p => p.school === school).map(p => p.id);
-    if (schoolIds.length === 0 || recentDates.length === 0) return { school, rate: null };
-    let present = 0, possible = recentDates.length * schoolIds.length;
-    recentDates.forEach(d => {
-      const ids = attendanceLog[d] || [];
-      schoolIds.forEach(id => { if (ids.includes(id)) present++; });
-    });
-    return { school, rate: Math.round((present / possible) * 100) };
-  }).filter(x => x.rate !== null);
-
-  // ── helpers ────────────────────────────────────
-  const accent   = C.gold;
-  const headStyle = { fontFamily: FONT_HEAD, letterSpacing: 1, color: C.textBright };
-  const dimStyle  = { fontFamily: FONT_BODY, fontSize: 12, color: C.textDim };
-  const valStyle  = { fontFamily: FONT_HEAD, fontSize: 22, color: accent, letterSpacing: 1 };
-
-  const StatBox = ({ label, value, sub }) => (
-    <div style={{ flex: 1, minWidth: 100, padding: "16px 14px", borderRadius: 12, background: `${accent}08`, border: `1px solid ${accent}18`, textAlign: "center" }}>
-      <div style={valStyle}>{value ?? "—"}</div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 2 }}>{label}</div>
-      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, opacity: 0.7, marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-
-  const Bar = ({ pct, color = accent }) => (
-    <div style={{ flex: 1, height: 6, borderRadius: 3, background: `${color}20`, overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.4s ease" }} />
-    </div>
-  );
-
-  return (
-    <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
-        <SectionHeader icon="📋" title="TEAM REPORT" subtitle="Squad snapshot — attendance, breakdown and top contributors" accent={accent} />
-
-        {/* ── Summary stats row ── */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
-          <StatBox label="Players on roster" value={totalPlayers} />
-          <StatBox label="Sessions recorded" value={totalSessions} />
-          <StatBox label="Overall attendance" value={avgRate !== null ? `${avgRate}%` : null} sub={totalSessions > 0 ? `last ${totalSessions} session${totalSessions === 1 ? "" : "s"}` : null} />
-        </div>
-
-        {/* ── Division breakdown ── */}
-        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
-          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>DIVISION BREAKDOWN</div>
-          {[{ label: "B Div", players: bDiv, color: C.electric }, { label: "C Div", players: cDiv, color: C.green || "#4ade80" }].map(({ label, players, color }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, width: 46 }}>{label}</div>
-              <Bar pct={totalPlayers > 0 ? (players.length / totalPlayers) * 100 : 0} color={color} />
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 15, color, width: 36, textAlign: "right" }}>{players.length}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── School breakdown ── */}
-        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
-          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>BY SCHOOL</div>
-          {schoolEntries.length === 0 && <div style={dimStyle}>No players on roster yet.</div>}
-          {schoolEntries.map(([school, count]) => {
-            const schoolRate = schoolRates.find(s => s.school === school);
-            return (
-              <div key={school} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, width: 160, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {school === "Chung Cheng High (Yishun)" ? "CCHY" : school}
-                </div>
-                <Bar pct={totalPlayers > 0 ? (count / totalPlayers) * 100 : 0} />
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: accent, width: 24, textAlign: "right" }}>{count}</div>
-                {schoolRate && (
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 42, textAlign: "right" }}>{schoolRate.rate}% att.</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Recent sessions ── */}
-        <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
-          <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>RECENT SESSIONS (last {Math.min(10, totalSessions)})</div>
-          {recentDates.length === 0 && <div style={dimStyle}>No sessions recorded yet.</div>}
-          {recentDates.map(date => {
-            const ids = attendanceLog[date] || [];
-            const pct = totalPlayers > 0 ? Math.round((ids.length / totalPlayers) * 100) : 0;
-            const isToday = date === new Date().toISOString().slice(0, 10);
-            return (
-              <div key={date} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: isToday ? accent : C.textBright, width: 100, flexShrink: 0, fontWeight: isToday ? 700 : 400 }}>
-                  {isToday ? "TODAY" : date}
-                </div>
-                <Bar pct={pct} color={pct >= 75 ? (C.green || "#4ade80") : pct >= 50 ? accent : "#f87171"} />
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, width: 56, textAlign: "right" }}>{ids.length}/{totalPlayers}</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 38, textAlign: "right" }}>{pct}%</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Top attenders ── */}
-        {topAttenders.length > 0 && (
-          <div style={{ marginBottom: 24, padding: "20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.navyBorder}` }}>
-            <div style={{ ...headStyle, fontSize: 15, marginBottom: 14 }}>🏅 TOP CONTRIBUTORS</div>
-            {topAttenders.map((p, i) => {
-              const rate = totalSessions > 0 ? Math.round((p.count / totalSessions) * 100) : 0;
-              const medals = ["🥇", "🥈", "🥉", "4.", "5."];
-              return (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <div style={{ fontFamily: FONT_HEAD, fontSize: 16, width: 28, flexShrink: 0 }}>{medals[i]}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {p.name} <span style={{ color: C.textDim, fontSize: 11 }}>({p.school === "Chung Cheng High (Yishun)" ? "CCHY" : p.school})</span>
-                  </div>
-                  <Bar pct={rate} />
-                  <div style={{ fontFamily: FONT_HEAD, fontSize: 14, color: accent, width: 36, textAlign: "right" }}>{p.count}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, width: 36, textAlign: "right" }}>{rate}%</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Generated timestamp ── */}
-        <div style={{ textAlign: "center", padding: "4px 0 12px" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
-            NBSS Football CCA · GamePlan · {new Date().toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}
-          </span>
-        </div>
-      </div>
-
-      {totalSessions > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <ShareSaveBar targetRef={exportRef} filename="nbss-team-report.png" title="NBSS Football CCA — Team Report" />
-        </div>
-      )}
-
-      {totalSessions === 0 && (
-        <div style={{ marginTop: 20, padding: "18px 20px", borderRadius: 12, background: `${accent}08`, border: `1px dashed ${accent}30`, textAlign: "center" }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>
-            No attendance sessions recorded yet. Take attendance in the <strong style={{ color: C.electric }}>Hub → Attendance</strong> tab to populate this report.
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
 function ProgressGroup({ profile }) {
   const C = useTheme();
   const isCoach = profile?.role === "coach";
-  const [sub, setSub] = useState(isCoach ? "report" : "tracker");
+  const [sub, setSub] = useState(isCoach ? "squad" : "tracker");
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
         ...(!isCoach ? [{ id: "tracker", label: "📊 Tracker" }] : []),
         ...(!isCoach ? [{ id: "wellness", label: "🩹 Wellness" }] : []),
         { id: "squad", label: "👥 Squad" },
-        ...(isCoach ? [{ id: "report", label: "📋 Report" }] : []),
       ]} />
       {sub === "tracker" && !isCoach && <TrackerSection />}
       {sub === "wellness" && !isCoach && <WellnessSection />}
-      {sub === "report" && isCoach && <TeamReportSection />}
       {sub === "squad" && (
         <div>
           {isCoach && (
@@ -3239,6 +3044,13 @@ function BadgeIcon({ legend, size = 28 }) {
 
 const RECIPE_COLORS = { Respect: "#38bdf8", Resilience: "#f97316", Care: "#22c55e", Integrity: "#a855f7", Passion: "#ef4444", Excellence: "#f0b429" };
 
+function getLegendReflectionPrompt(legend) {
+  if (!legend) return "";
+  if (legend.reflectionPrompt?.trim()) return legend.reflectionPrompt;
+  const name = legend.shortName || legend.name || "this legend";
+  return `What part of ${name}'s story speaks to you most, and how will you apply it to your own football journey?`;
+}
+
 function LegendsSection() {
   const C = useTheme();
   const labelStyle = makeLabelStyle(C);
@@ -3252,6 +3064,7 @@ function LegendsSection() {
   const legends = tab === "global" ? LEGENDS_GLOBAL : tab === "sg" ? LEGENDS_SG : [];
   const legend = legends[activeIdx];
   const reflectionKey = legend ? legend.name : "";
+  const reflectionPrompt = getLegendReflectionPrompt(legend);
   const savedReflection = reflections[reflectionKey] || "";
 
   // Sync draft when switching legends or tabs
@@ -3330,7 +3143,7 @@ function LegendsSection() {
                             return <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: rc, background: `${rc}15`, padding: "2px 8px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>{rv}</span>;
                           })}
                         </div>
-                        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontStyle: "italic", lineHeight: 1.5, margin: "0 0 10px" }}>"{l.reflectionPrompt}"</p>
+                        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontStyle: "italic", lineHeight: 1.5, margin: "0 0 10px" }}>"{getLegendReflectionPrompt(l)}"</p>
                         <div style={{ padding: "12px 14px", borderRadius: 10, background: `${"#a855f7"}08`, border: `1px solid ${"#a855f7"}20` }}>
                           <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
                             {reflections[l.name]}
@@ -3439,40 +3252,38 @@ function LegendsSection() {
                 </div>
 
                 {/* Reflection prompt + input */}
-                {legend.reflectionPrompt && (
-                  <div style={{ borderRadius: 14, border: `1px solid ${"#a855f7"}30`, background: `${"#a855f7"}08`, padding: "18px 20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                      <span style={{ fontSize: 18 }}>✍️</span>
-                      <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: "#a855f7", letterSpacing: 1 }}>REFLECT</span>
-                    </div>
-                    <p style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, fontStyle: "italic", lineHeight: 1.75, margin: "0 0 16px" }}>
-                      "{legend.reflectionPrompt}"
-                    </p>
-                    <div style={{ marginBottom: 10 }}>
-                      <label style={{ ...labelStyle, color: "#a855f7" }}>Your reflection (private — only you can see this)</label>
-                      <textarea
-                        value={draft}
-                        onChange={e => { setDraft(e.target.value); setSaved(false); }}
-                        placeholder="Write your thoughts here..."
-                        rows={4}
-                        style={{ ...inputStyle, resize: "vertical", lineHeight: 1.7, minHeight: 100 }}
-                      />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <button onClick={saveReflection} disabled={!draft.trim()} style={{
-                        background: draft.trim() ? `linear-gradient(135deg, #a855f7, #9333ea)` : C.surfaceSubtle,
-                        color: draft.trim() ? "#fff" : C.textDim,
-                        border: "none", padding: "10px 20px", borderRadius: 10, cursor: draft.trim() ? "pointer" : "not-allowed",
-                        fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "all 0.2s",
-                      }}>
-                        {saved ? "✅ Saved!" : "Save Reflection"}
-                      </button>
-                      {savedReflection && !saved && (
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: "#a855f7" }}>📓 Reflection saved — edit anytime</span>
-                      )}
-                    </div>
+                <div style={{ borderRadius: 14, border: `1px solid ${"#a855f7"}30`, background: `${"#a855f7"}08`, padding: "18px 20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <span style={{ fontSize: 18 }}>✍️</span>
+                    <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: "#a855f7", letterSpacing: 1 }}>REFLECT</span>
                   </div>
-                )}
+                  <p style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, fontStyle: "italic", lineHeight: 1.75, margin: "0 0 16px" }}>
+                    "{reflectionPrompt}"
+                  </p>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ ...labelStyle, color: "#a855f7" }}>Your reflection (private — only you can see this)</label>
+                    <textarea
+                      value={draft}
+                      onChange={e => { setDraft(e.target.value); setSaved(false); }}
+                      placeholder="Write your thoughts here..."
+                      rows={4}
+                      style={{ ...inputStyle, resize: "vertical", lineHeight: 1.7, minHeight: 100 }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button onClick={saveReflection} disabled={!draft.trim()} style={{
+                      background: draft.trim() ? `linear-gradient(135deg, #a855f7, #9333ea)` : C.surfaceSubtle,
+                      color: draft.trim() ? "#fff" : C.textDim,
+                      border: "none", padding: "10px 20px", borderRadius: 10, cursor: draft.trim() ? "pointer" : "not-allowed",
+                      fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "all 0.2s",
+                    }}>
+                      {saved ? "✅ Saved!" : "Save Reflection"}
+                    </button>
+                    {savedReflection && !saved && (
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: "#a855f7" }}>📓 Reflection saved — edit anytime</span>
+                    )}
+                  </div>
+                </div>
               </Card>
 
               <div style={{ marginTop: 16, padding: "12px 20px", borderRadius: 10, background: C.navyCard, border: `1px solid ${C.navyBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
