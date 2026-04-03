@@ -7,6 +7,35 @@
     <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
     <meta name="theme-color" content="#050f1e" />
     <title>NBSS Football CCA — GamePlan</title>
+
+    <!-- ── FONTS ── -->
+    <!-- Preconnect reduces latency on first font request -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Bebas Neue       — display / hero numbers (condensed athletic)
+      Instrument Sans  — body text (premium humanist sans, replaces DM Sans)
+      DM Sans          — body fallback
+      Playfair Display — editorial serif for insight / coaching guidance moments
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- ── GLOBAL RENDERING BASELINE ── -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html {
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Enable kerning, ligatures, and contextual alternates across all text */
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+      }
+      body { margin: 0; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

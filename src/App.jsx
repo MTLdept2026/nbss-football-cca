@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
+import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, PlayerMatchSurface, PlayerPerformanceSurface } from "./components/PremiumExperience";
+import LocalTrustPanel from "./components/LocalTrustPanel";
 
 // ── SCREENSHOT / SHARE UTILITY ──
 // Uses html2canvas loaded from CDN at runtime (no extra npm dep needed)
@@ -14,10 +16,10 @@ async function loadHtml2Canvas() {
   });
 }
 
-async function captureAndDownload(el, filename = "nbss-export.png", opts = {}) {
+async function captureAndDownload(el, filename = "gameplan-export.png", opts = {}) {
   const h2c = await loadHtml2Canvas();
   const canvas = await h2c(el, {
-    backgroundColor: "#050f1e",
+    backgroundColor: "#000000",
     scale: 2,
     useCORS: true,
     allowTaint: true,
@@ -44,10 +46,10 @@ function canvasToBlob(canvas, type = "image/png") {
   });
 }
 
-async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
+async function captureAndShare(el, title = "GamePlan", opts = {}) {
   const h2c = await loadHtml2Canvas();
   const canvas = await h2c(el, {
-    backgroundColor: "#050f1e",
+    backgroundColor: "#000000",
     scale: 2,
     useCORS: true,
     allowTaint: true,
@@ -61,7 +63,7 @@ async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
   });
   const blob = await canvasToBlob(canvas);
   if (typeof File !== "undefined") {
-    const file = new File([blob], "nbss-share.png", { type: "image/png" });
+    const file = new File([blob], "gameplan-share.png", { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ title, files: [file] });
       return "shared";
@@ -71,7 +73,7 @@ async function captureAndShare(el, title = "NBSS Football CCA", opts = {}) {
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     return "copied";
   }
-  await captureAndDownload(el, "nbss-share.png", opts);
+  await captureAndDownload(el, "gameplan-share.png", opts);
   return "downloaded";
 }
 
@@ -90,7 +92,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
   const handleSave = async () => {
     if (!targetRef.current) return;
     setSaving(true);
-    try { await captureAndDownload(targetRef.current, filename || "nbss-export.png"); }
+    try { await captureAndDownload(targetRef.current, filename || "gameplan-export.png"); }
     catch (e) { showToast("Screenshot failed — please try again.", "error"); }
     setSaving(false);
   };
@@ -99,7 +101,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
     if (!targetRef.current) return;
     setSharing(true);
     try {
-      const outcome = await captureAndShare(targetRef.current, title || "NBSS Football CCA");
+      const outcome = await captureAndShare(targetRef.current, title || "GamePlan");
       showToast(
         outcome === "copied"
           ? "Image copied to clipboard!"
@@ -116,31 +118,30 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8, ...s }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={handleShare} disabled={sharing} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
-          background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)",
-          border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8",
-          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer",
-          transition: "all 0.2s",
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999,
+          background: sharing ? C.navyCard : `${C.electric}15`,
+          border: `1px solid ${C.electric}30`, color: C.electric,
+          fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer",
+          transition: "opacity 0.15s ease",
         }}>
           {sharing ? "Sharing…" : "↗ Share"}
         </button>
         <button onClick={handleSave} disabled={saving} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8,
-          background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)",
-          border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429",
-          fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
-          transition: "all 0.2s",
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999,
+          background: saving ? C.navyCard : `${C.orange}15`,
+          border: `1px solid ${C.orange}30`, color: C.orange,
+          fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
+          transition: "opacity 0.15s ease",
         }}>
           {saving ? "Saving…" : "📸 Save Photo"}
         </button>
       </div>
       {toast && (
         <div style={{
-          padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: "'DM Sans', sans-serif",
-          background: toast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
-          border: `1px solid ${toast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
-          color: toast.type === "error" ? "#f87171" : "#22d3a5",
-          animation: "slideIn 0.2s ease",
+          padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: FONT_BODY,
+          background: toast.type === "error" ? `${C.danger}12` : `${C.success}12`,
+          border: `1px solid ${toast.type === "error" ? C.danger : C.success}30`,
+          color: toast.type === "error" ? C.danger : C.success,
         }}>{toast.msg}</div>
       )}
     </div>
@@ -150,7 +151,8 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
 
 // ── IMAGE COMPRESSION UTILITY ──
 // Crops to square, resizes to maxSize px, returns base64 JPEG
-function compressImage(file, maxSize = 220) {
+// 400px handles 2× retina without bloating storage (≈ 25–40 KB at 0.72 quality)
+function compressImage(file, maxSize = 400) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -175,55 +177,82 @@ function compressImage(file, maxSize = 220) {
 //  Naval Base Secondary School · GamePlan Platform
 // ═══════════════════════════════════════════════════════════════
 
-// ── DESIGN SYSTEM ──
+// ── DESIGN SYSTEM — Nothing Design Language ──
+// Dark: OLED instrument panel. Light: printed technical manual.
+// Monochromatic — color encodes data status only, never decoration.
 const DARK_C = {
-  navy: "#050f1e",
-  navyDeep: "#020810",
-  navyCard: "#0c1a2e",
-  navyBorder: "#1a2d45",
-  navyHover: "#142338",
-  gold: "#f0b429",
-  goldLight: "#ffd166",
-  goldDim: "#b8861e",
-  goldGlow: "rgba(240,180,41,0.15)",
-  electric: "#38bdf8",
-  electricDim: "#0284c7",
-  electricGlow: "rgba(56,189,248,0.12)",
-  success: "#22d3a5",
-  danger: "#f87171",
-  orange: "#fb923c",
-  textBright: "#f8fafc",
-  textMid: "#94a3b8",
-  textDim: "#475569",
-  surface: "#0a1628",
-  surfaceRaised: "#0e1f35",
-  surfaceBorder: "#1e3050",
-  surfaceSubtle: "rgba(255,255,255,0.04)",
+  // Surfaces — pure OLED stack, no blue tinting
+  navy:          "#000000",          // --black: OLED page background
+  navyDeep:      "#000000",          // deep insets — same true black
+  navyCard:      "#111111",          // --surface: elevated cards
+  navyBorder:    "#222222",          // --border: subtle dividers
+  navyHover:     "#1A1A1A",          // --surface-raised: hover / secondary elevation
+
+  // No decorative gold — white is the active / primary accent in Nothing's system
+  gold:          "#FFFFFF",          // active state, primary interactive (was gold)
+  goldLight:     "#E8E8E8",          // --text-primary: supporting highlight
+  goldDim:       "#999999",          // --text-secondary: metadata, labels
+  goldGlow:      "rgba(255,255,255,0.06)", // subtle white tint for active backgrounds
+
+  // Interactive / data blue — links and tappable values only, not buttons
+  electric:      "#5B9BF6",          // --interactive (dark)
+  electricDim:   "#3B7DE0",
+  electricGlow:  "rgba(91,155,246,0.10)",
+
+  // Data status — exempt from "no color" rule when encoding values
+  success:       "#4A9E5C",          // --success: in range, confirmed
+  danger:        "#D71921",          // --accent: signal red — one per screen, urgent only
+  orange:        "#D4A843",          // --warning: caution zone
+
+  // Text — four-level grayscale hierarchy (the hierarchy IS the palette)
+  textBright:    "#FFFFFF",          // --text-display 100%: hero numbers, one per screen
+  textMid:       "#E8E8E8",          // --text-primary  90%: body, primary content
+  textDim:       "#999999",          // --text-secondary 60%: labels, captions, metadata
+
+  // Semantic surface aliases
+  surface:       "#111111",          // --surface
+  surfaceRaised: "#1A1A1A",          // --surface-raised
+  surfaceBorder: "#333333",          // --border-visible: intentional / structural borders
+  surfaceSubtle: "rgba(255,255,255,0.03)", // barely-there tint for active rows
 };
 
+// ── LIGHT MODE — Nothing Design Language ──
+// Printed technical manual: off-white paper, black ink. No warmth, no decoration.
+// Cards = white (#FFFFFF) on off-white (#F5F5F5) = subtle elevation without shadows.
 const LIGHT_C = {
-  navy: "#f0f4f8",
-  navyDeep: "#e2e8f0",
-  navyCard: "#ffffff",
-  navyBorder: "#dce3ec",
-  navyHover: "#edf2f7",
-  gold: "#c07d0a",
-  goldLight: "#d4920e",
-  goldDim: "#a06808",
-  goldGlow: "rgba(192,125,10,0.12)",
-  electric: "#0284c7",
-  electricDim: "#0369a1",
-  electricGlow: "rgba(2,132,199,0.10)",
-  success: "#059669",
-  danger: "#dc2626",
-  orange: "#d97706",
-  textBright: "#0f172a",
-  textMid: "#334155",
-  textDim: "#64748b",
-  surface: "#f8fafc",
-  surfaceRaised: "#f1f5f9",
-  surfaceBorder: "#cbd5e1",
-  surfaceSubtle: "rgba(0,0,0,0.04)",
+  // Surfaces
+  navy:          "#F5F5F5",          // --black (light): off-white page background
+  navyDeep:      "#F0F0F0",          // deeper inset areas
+  navyCard:      "#FFFFFF",          // --surface (light): cards on off-white
+  navyBorder:    "#E8E8E8",          // --border (light)
+  navyHover:     "#F0F0F0",          // --surface-raised (light): hover
+
+  // Active accent — pure black in light mode
+  gold:          "#000000",          // active / primary interactive
+  goldLight:     "#1A1A1A",          // --text-primary (light)
+  goldDim:       "#666666",          // --text-disabled (light)
+  goldGlow:      "rgba(0,0,0,0.04)",
+
+  // Interactive blue — light mode variant
+  electric:      "#007AFF",          // --interactive (light)
+  electricDim:   "#0066DD",
+  electricGlow:  "rgba(0,122,255,0.08)",
+
+  // Status — identical across modes
+  success:       "#4A9E5C",
+  danger:        "#D71921",
+  orange:        "#D4A843",
+
+  // Text — four-level grayscale (inverted)
+  textBright:    "#000000",          // --text-display (light) 100%
+  textMid:       "#1A1A1A",          // --text-primary (light) 90%
+  textDim:       "#666666",          // --text-secondary (light) 60%
+
+  // Semantic surface aliases
+  surface:       "#FFFFFF",
+  surfaceRaised: "#F0F0F0",
+  surfaceBorder: "#CCCCCC",          // --border-visible (light)
+  surfaceSubtle: "rgba(0,0,0,0.02)",
 };
 
 // ── THEME CONTEXT ──
@@ -233,21 +262,29 @@ const useTheme = () => useContext(ThemeContext);
 // Fallback for module-level usage (StoryExportCard always uses dark)
 const C = DARK_C;
 
-const FONT_HEAD = "'Bebas Neue', sans-serif";
-const FONT_BODY = "'DM Sans', sans-serif";
-const FONT_SERIF = "'Playfair Display', serif";
+// ── NOTHING DESIGN FONTS ──
+// Doto: variable dot-matrix display — Nothing's NDot 57 spiritual twin.
+//   36px+ only, tight tracking, never body text. One hero moment per screen.
+// Space Grotesk: body and UI text — same Colophon foundry DNA as Nothing's typefaces.
+// Space Mono: ALL CAPS labels, data readouts, numeric values. The instrument-panel voice.
+const FONT_HEAD  = "'Doto', 'Space Mono', monospace";
+const FONT_BODY  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
+const FONT_SERIF = "'Space Mono', 'JetBrains Mono', 'SF Mono', monospace"; // data / labels
 
 // ── SHARED STYLES (theme-aware helpers) ──
+// Labels: always Space Mono (FONT_SERIF), ALL CAPS, 0.08em spacing — "instrument panel" voice.
 const makeLabelStyle = (C) => ({
-  fontFamily: FONT_BODY, fontSize: 10, color: C.textDim,
-  fontWeight: 700, textTransform: "uppercase", letterSpacing: "2px",
-  display: "block", marginBottom: 6,
+  fontFamily: FONT_SERIF, fontSize: 11, color: C.textDim,
+  fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em",
+  display: "block", marginBottom: 8,
 });
+// Inputs: underline-preferred. Border brightens to --text-primary on focus.
 const makeInputStyle = (C) => ({
-  width: "100%", padding: "11px 14px", borderRadius: 10,
-  background: C.navyCard, border: `1px solid ${C.navyBorder}`,
-  color: C.textBright, fontFamily: FONT_BODY, fontSize: 14, outline: "none",
-  boxSizing: "border-box", transition: "border-color 0.2s",
+  width: "100%", padding: "11px 0", borderRadius: 0,
+  background: "transparent", border: "none",
+  borderBottom: `1px solid ${C.surfaceBorder}`,
+  color: C.textBright, fontFamily: FONT_SERIF, fontSize: 14, outline: "none",
+  boxSizing: "border-box", transition: "border-color 0.15s ease-out",
 });
 // Module-level fallbacks (used by StoryExportCard which always uses dark theme)
 const labelStyle = makeLabelStyle(DARK_C);
@@ -262,9 +299,62 @@ const STORAGE_KEYS = {
   roster: "nbss-cluster-roster", attendance: "nbss-attendance-log",
   matchHistory: "nbss-match-history", wellnessLog: "nbss-wellness-log",
 };
+const DRAFT_KEYS = {
+  trackerForm: "gameplan-draft-session-entry",
+  wellnessForm: "gameplan-draft-availability-entry",
+  matchForm: "gameplan-draft-match-entry",
+  matchReview: "gameplan-draft-match-review",
+  lineupBuilder: "gameplan-draft-lineup-builder",
+};
 
-const ATTENDANCE_TEACHER_PASSWORD = "enitamur2026";
+// SECURITY NOTE: loaded from env var — not hardcoded in source.
+// Set VITE_TEACHER_PASSWORD in .env (local) or Netlify Environment Variables (production).
+const ATTENDANCE_TEACHER_PASSWORD = import.meta.env.VITE_TEACHER_PASSWORD ?? "";
 const ATTENDANCE_TEACHER_SESSION_KEY = "nbss-attendance-teacher-access";
+const STORAGE_META_SUFFIX = "__meta";
+
+function buildMetaForValue(value) {
+  return {
+    updatedAt: new Date().toISOString(),
+    count: Array.isArray(value) ? value.length : value && typeof value === "object" ? Object.keys(value).length : value ? 1 : 0,
+  };
+}
+
+function writeStorageMeta(key, value) {
+  try {
+    localStorage.setItem(`${key}${STORAGE_META_SUFFIX}`, JSON.stringify(buildMetaForValue(value)));
+  } catch {}
+}
+
+function readStorageMeta(key) {
+  try {
+    const raw = localStorage.getItem(`${key}${STORAGE_META_SUFFIX}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-SG", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function stampRecord(record, previous = null) {
+  const now = new Date().toISOString();
+  return {
+    ...record,
+    createdAt: previous?.createdAt || record.createdAt || now,
+    updatedAt: now,
+  };
+}
 
 function usePersistedState(key, defaultVal) {
   const [state, setState] = useState(() => {
@@ -274,11 +364,72 @@ function usePersistedState(key, defaultVal) {
   const setPersisted = useCallback((valOrFn) => {
     setState(prev => {
       const next = typeof valOrFn === "function" ? valOrFn(prev) : valOrFn;
-      try { localStorage.setItem(key, JSON.stringify(next)); } catch (e) { console.error(e); }
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+        writeStorageMeta(key, next);
+      } catch (e) { console.error(e); }
       return next;
     });
   }, [key]);
   return [state, setPersisted, true];
+}
+
+function useDraftState(key, initialState) {
+  const [state, setState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? { ...initialState, ...JSON.parse(saved) } : initialState;
+    } catch {
+      return initialState;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+      writeStorageMeta(key, state);
+    } catch {}
+  }, [key, state]);
+
+  const clearDraft = useCallback((nextState = initialState) => {
+    setState(nextState);
+    try {
+      localStorage.removeItem(key);
+      localStorage.removeItem(`${key}${STORAGE_META_SUFFIX}`);
+    } catch {}
+  }, [initialState, key]);
+
+  return [state, setState, clearDraft];
+}
+
+function getReadinessDirective(readiness) {
+  if (readiness == null) return "Complete sleep, energy, and soreness inputs to unlock a decision-grade readiness score.";
+  if (readiness < 60) return "Recovery takes priority. Reduce intensity, stay technical, and protect sleep before adding more load.";
+  if (readiness < 75) return "Train with control. Keep quality high but trim unnecessary volume and repeated high-speed work.";
+  return "Clear to push the planned session. Hold quality and capture the full recovery check-in afterwards.";
+}
+
+function getLoadDirective(acwr) {
+  if (acwr == null) return "Log session duration and RPE consistently to unlock load guidance.";
+  if (acwr > 1.5) return "Load spike is elevated. Pull back high-intensity exposure and monitor soreness closely.";
+  if (acwr > 1.3) return "Load is climbing. Keep the next block controlled and prioritise recovery behaviours.";
+  if (acwr < 0.8) return "You are underloaded. Rebuild rhythm with quality work before chasing intensity.";
+  return "Load is in range. Stay consistent and avoid unnecessary swings in volume.";
+}
+
+function getComplianceDirective(compliance) {
+  if (compliance >= 80) return "Data quality is strong enough to support confident coaching decisions.";
+  if (compliance >= 50) return "Capture the missing recovery and load fields so the guidance stays reliable.";
+  return "The decision layer is still weak. Complete your entries fully after each session.";
+}
+
+function getAvailabilityDirective(activeIssues) {
+  const severeIssue = activeIssues.some((log) => Number(log.severity) >= 3);
+  const moderateIssue = activeIssues.some((log) => Number(log.severity) === 2);
+  if (severeIssue) return "Medical or coach review should come before full-intensity training.";
+  if (moderateIssue) return "Modify sprint, contact, and volume demands until the issue settles.";
+  if (activeIssues.length) return "Minor issue logged. Train, but keep the area under review.";
+  return "No active constraints are recorded. Full availability is clear.";
 }
 
 // ── NAVIGATION ──
@@ -290,6 +441,19 @@ const NAV_GROUPS = [
   { id: "progress", label: "Progress" },
   { id: "culture",  label: "Culture" },
   { id: "hub",      label: "Hub" },
+];
+
+const PLAYER_PRIMARY_NAV = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "performance", label: "Performance" },
+  { id: "match", label: "Match" },
+];
+
+const COACH_PRIMARY_NAV = [
+  { id: "dashboard",  label: "Dashboard" },
+  { id: "squad",      label: "Squad" },
+  { id: "operations", label: "Operations" },
+  { id: "hub",        label: "Hub" },
 ];
 
 // ══════════════════════════════════════════════════
@@ -410,7 +574,7 @@ const POSITION_DRILLS = {
     ],
   },
   CB: {
-    label: "Centre Back", icon: "🏔️", color: "#38bdf8",
+    label: "Centre Back", icon: "🏔️", color: C.electric,
     focus: "Aerial dominance, blocking channels and composure in possession from the back.",
     drills: [
       { text: "Heading duels — timed jumps (3×10)", video: "https://www.youtube.com/results?search_query=centre+back+heading+drill+aerial+duel" },
@@ -420,7 +584,7 @@ const POSITION_DRILLS = {
     ],
   },
   LB: {
-    label: "Left Back", icon: "🏃", color: "#fb923c",
+    label: "Left Back", icon: "🏃", color: C.orange,
     focus: "Overlapping runs, recovery pace and delivery from wide areas.",
     drills: [
       { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
@@ -430,7 +594,7 @@ const POSITION_DRILLS = {
     ],
   },
   RB: {
-    label: "Right Back", icon: "🏃", color: "#fb923c",
+    label: "Right Back", icon: "🏃", color: C.orange,
     focus: "Overlapping runs, recovery pace and delivery from wide areas.",
     drills: [
       { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
@@ -440,7 +604,7 @@ const POSITION_DRILLS = {
     ],
   },
   CDM: {
-    label: "Defensive Mid", icon: "🛡️", color: "#38bdf8",
+    label: "Defensive Mid", icon: "🛡️", color: C.electric,
     focus: "Screening the defence, winning second balls and playing simple under pressure.",
     drills: [
       { text: "Interception reads — shadow ball through middle (3×8)", video: "https://www.youtube.com/results?search_query=defensive+midfielder+interception+drill" },
@@ -450,7 +614,7 @@ const POSITION_DRILLS = {
     ],
   },
   CM: {
-    label: "Central Mid", icon: "♟️", color: "#f0b429",
+    label: "Central Mid", icon: "♟️", color: C.orange,
     focus: "Box-to-box engine: pressing, receiving on the half-turn and arriving late into the box.",
     drills: [
       { text: "Half-turn receive + drive forward (3×12)", video: "https://www.youtube.com/results?search_query=central+midfielder+half+turn+receive+drill" },
@@ -460,7 +624,7 @@ const POSITION_DRILLS = {
     ],
   },
   CAM: {
-    label: "Attacking Mid", icon: "🎨", color: "#f0b429",
+    label: "Attacking Mid", icon: "🎨", color: C.orange,
     focus: "Creating in tight spaces, vision, and timing runs in behind the defensive line.",
     drills: [
       { text: "Turn + shoot in the pocket (3×10)", video: "https://www.youtube.com/results?search_query=attacking+midfielder+turn+shoot+pocket+drill" },
@@ -470,7 +634,7 @@ const POSITION_DRILLS = {
     ],
   },
   LW: {
-    label: "Left Wing", icon: "⚡", color: "#fb923c",
+    label: "Left Wing", icon: "⚡", color: C.orange,
     focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
     drills: [
       { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
@@ -480,7 +644,7 @@ const POSITION_DRILLS = {
     ],
   },
   RW: {
-    label: "Right Wing", icon: "⚡", color: "#fb923c",
+    label: "Right Wing", icon: "⚡", color: C.orange,
     focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
     drills: [
       { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
@@ -490,7 +654,7 @@ const POSITION_DRILLS = {
     ],
   },
   ST: {
-    label: "Striker", icon: "🎯", color: "#f87171",
+    label: "Striker", icon: "🎯", color: C.danger,
     focus: "Movement to lose your marker, clinical finishing and hold-up play.",
     drills: [
       { text: "Movement to lose defender — check + spin (3×10)", video: "https://www.youtube.com/results?search_query=striker+movement+check+spin+lose+defender" },
@@ -775,65 +939,171 @@ const EMPTY_MATCH = {
 
 function SectionHeader({ icon, title, subtitle, accent }) {
   const C = useTheme();
-  const accentColor = accent || C.gold;
+  // Nothing design: flat divider, no gradient, Space Mono label above Doto headline
   return (
-    <div style={{ marginBottom: 40 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
-        <span style={{
-          width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 22, background: `${accentColor}15`, border: `1px solid ${accentColor}30`, flexShrink: 0,
-        }}>{icon}</span>
-        <h2 style={{
-          fontFamily: FONT_HEAD, fontSize: "clamp(32px, 5vw, 52px)",
-          color: C.textBright, margin: 0, letterSpacing: 2, lineHeight: 1,
-        }}>{title}</h2>
+    <div style={{ marginBottom: 40, borderBottom: `1px solid ${C.navyBorder}`, paddingBottom: 24 }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+        {icon ? `${icon} ` : ""}{title}
       </div>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: "0 0 0 58px", lineHeight: 1.5 }}>{subtitle}</p>
-      <div style={{ height: 1, background: `linear-gradient(90deg, ${accentColor}40, transparent)`, marginTop: 20 }} />
+      <h2 style={{
+        fontFamily: FONT_HEAD, fontSize: "clamp(28px, 5vw, 44px)",
+        color: C.textBright, margin: "0 0 8px", letterSpacing: "0.02em", lineHeight: 1,
+      }}>{title}</h2>
+      {subtitle && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: 0, lineHeight: 1.6, maxWidth: 760 }}>{subtitle}</p>}
     </div>
   );
 }
 
-function Pill({ children, active, onClick, color = "#f0b429" }) {
+function Pill({ children, active, onClick, color }) {
   const C = useTheme();
+  // Nothing design: segmented control style — active = solid white/black inverted, inactive = transparent outlined
   return (
     <button onClick={onClick} style={{
-      padding: "8px 18px", borderRadius: 24, cursor: "pointer",
-      background: active ? color : C.navyCard,
+      padding: "7px 16px", borderRadius: 999, cursor: "pointer",
+      background: active ? C.textBright : "transparent",
       color: active ? C.navy : C.textMid,
-      border: active ? "none" : `1px solid ${C.navyBorder}`,
-      fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600,
-      transition: "all 0.2s ease",
-      boxShadow: active ? `0 4px 16px ${color}30` : "none",
+      border: `1px solid ${active ? C.textBright : C.navyBorder}`,
+      fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 400,
+      textTransform: "uppercase", letterSpacing: "0.06em",
+      transition: "all 0.15s ease",
       whiteSpace: "nowrap",
       flexShrink: 0,
     }}>{children}</button>
   );
 }
 
-function GoldButton({ children, onClick, style: s = {}, secondary }) {
+function ContextTabs({ items, active, setActive, color }) {
   const C = useTheme();
+  // Nothing design: flat sticky bar, OLED black, no blur, underline-only active indicator
   return (
-    <button onClick={onClick} style={{
-      padding: "12px 24px", borderRadius: 10, cursor: "pointer",
-      background: secondary ? C.navyCard : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-      color: secondary ? C.textMid : C.navy,
-      border: secondary ? `1px solid ${C.navyBorder}` : "none",
-      fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700,
-      boxShadow: secondary ? "none" : `0 4px 20px ${C.gold}30`,
-      transition: "all 0.2s ease",
-      ...s,
-    }}>{children}</button>
+    <div style={{
+      position: "sticky",
+      top: 64,
+      zIndex: 900,
+      background: C.navy,
+      borderBottom: `1px solid ${C.navyBorder}`,
+      padding: "0 24px",
+    }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", gap: 0, overflowX: "auto" }}>
+        {items.map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActive(item.id)}
+            style={{
+              padding: "12px 16px",
+              borderRadius: 0,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              background: "transparent",
+              border: "none",
+              borderBottom: `2px solid ${active === item.id ? C.textBright : "transparent"}`,
+              color: active === item.id ? C.textBright : C.textDim,
+              fontFamily: FONT_SERIF,
+              fontSize: 11,
+              fontWeight: 400,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              transition: "color 0.15s, border-color 0.15s",
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MetricPanel({ label, value, note, tone, compact }) {
+  const C = useTheme();
+  // Nothing design: flat card, no shadow, 12px radius, status color on value only
+  const color = tone || C.textBright;
+  return (
+    <div style={{
+      padding: compact ? "14px 16px" : "18px 20px",
+      borderRadius: 12,
+      background: C.navyCard,
+      border: `1px solid ${C.navyBorder}`,
+    }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
+      <div style={{ fontFamily: FONT_HEAD, fontSize: compact ? 26 : 36, color, letterSpacing: "0.02em", lineHeight: 1 }}>{value}</div>
+      {note && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, lineHeight: 1.6, marginTop: 8 }}>{note}</div>}
+    </div>
+  );
+}
+
+// ── SegmentedBar — Nothing instrument-panel style ──
+// N discrete rectangular segments filled left-to-right. Color per zone threshold.
+// zones: [{ from, to, color }] where from/to are in 0–max scale.
+function SegmentedBar({ value, max = 100, segments = 12, zones, style: s = {} }) {
+  const C = useTheme();
+  const filled = Math.round((Math.min(Math.max(value, 0), max) / max) * segments);
+  const getColor = (idx) => {
+    const segVal = ((idx + 1) / segments) * max;
+    if (zones) { for (const z of zones) { if (segVal > z.from && segVal <= z.to) return z.color; } }
+    return C.gold;
+  };
+  return (
+    <div style={{ display: "flex", gap: 3, height: 5, ...s }}>
+      {Array.from({ length: segments }, (_, i) => (
+        <div key={i} style={{ flex: 1, borderRadius: 1, background: i < filled ? getColor(i) : C.navyBorder }} />
+      ))}
+    </div>
+  );
+}
+
+// ── DotMatrixPanel — large Doto display + segmented bar below ──
+// Reserved for Readiness % and ACWR — one hero moment per metric.
+// value: numeric for bar calculation; displayValue: formatted string shown in display.
+function DotMatrixPanel({ label, value, displayValue, sub, zones, max = 100, segments = 10, tone, style: s = {}, compact }) {
+  const C = useTheme();
+  const color = tone || C.textBright;
+  const numeric = typeof value === "number" ? value : null;
+  return (
+    <div style={{ padding: compact ? "16px 18px" : "22px 26px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}`, ...s }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{label}</div>
+      <div style={{ fontFamily: FONT_HEAD, fontSize: compact ? 44 : 60, color, letterSpacing: "0.04em", lineHeight: 0.88, marginBottom: 14 }}>
+        {displayValue ?? value}
+      </div>
+      {numeric !== null && (
+        <SegmentedBar value={numeric} max={max} segments={segments} zones={zones} style={{ marginBottom: 8 }} />
+      )}
+      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5, marginTop: 6 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function GoldButton({ children, onClick, style: s = {}, secondary, destructive }) {
+  const C = useTheme();
+  // Nothing design: Primary = solid white pill, Secondary = transparent outlined pill, Destructive = accent-bordered
+  const base = {
+    padding: "12px 24px", borderRadius: 999, cursor: "pointer",
+    fontFamily: FONT_SERIF, fontSize: 13, fontWeight: 400,
+    textTransform: "uppercase", letterSpacing: "0.06em",
+    minHeight: 44, border: "none", background: "none",
+    transition: "opacity 0.15s ease",
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+  };
+  let variant = {};
+  if (destructive) {
+    variant = { border: `1px solid ${C.accent}`, color: C.accent };
+  } else if (secondary) {
+    variant = { border: `1px solid ${C.surfaceBorder}`, color: C.textMid };
+  } else {
+    variant = { background: C.textBright, color: C.navy, border: "none" };
+  }
+  return (
+    <button onClick={onClick} style={{ ...base, ...variant, ...s }}>{children}</button>
   );
 }
 
 function Card({ children, style: s = {}, glow }) {
   const C = useTheme();
+  // Nothing design: flat surface, border separation, no shadows
   return (
     <div style={{
       background: C.navyCard, border: `1px solid ${C.navyBorder}`,
       borderRadius: 16, padding: 24,
-      boxShadow: glow ? `0 0 0 1px ${C.navyBorder}, 0 8px 32px rgba(0,0,0,0.3)` : "none",
       ...s,
     }}>{children}</div>
   );
@@ -876,8 +1146,8 @@ function OnboardingModal({ onComplete }) {
       <div style={{ width: "100%", maxWidth: 440 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 10px", boxShadow: `0 8px 24px ${C.gold}40` }}>⚽</div>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 2 }}>NBSS FOOTBALL</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginTop: 2 }}>GamePlan Platform</div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 2 }}>GAMEPLAN</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginTop: 2 }}>Performance Platform</div>
         </div>
         {/* Progress bar — dots scale with role */}
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 24 }}>
@@ -889,12 +1159,12 @@ function OnboardingModal({ onComplete }) {
           {/* ── STEP 1: Role Selection ── */}
           {step === 1 && (
             <>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHO ARE YOU?</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>Select your role so we can tailor the platform for you.</p>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>SELECT YOUR ROLE</div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We will configure the platform around the decisions you need to make most often.</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
                 {[
-                  { key: "player", icon: "⚽", label: "Player", desc: "Train, track progress, earn XP" },
-                  { key: "coach",  icon: "📋", label: "Coach / Teacher", desc: "Manage squad, lineups & attendance" },
+                  { key: "player", icon: "GP", label: "Player", desc: "Performance, readiness, load, and match output." },
+                  { key: "coach",  icon: "GP", label: "Coach", desc: "Squad availability, attendance, lineups, and operations." },
                 ].map(r => (
                   <div key={r.key} onClick={() => setRole(r.key)} style={{
                     padding: "18px 16px", borderRadius: 14, cursor: "pointer", textAlign: "center",
@@ -908,15 +1178,15 @@ function OnboardingModal({ onComplete }) {
                   </div>
                 ))}
               </div>
-              <GoldButton onClick={() => setStep(2)} style={{ width: "100%" }}>Next →</GoldButton>
+              <GoldButton onClick={() => setStep(2)} style={{ width: "100%" }}>Continue</GoldButton>
             </>
           )}
 
           {/* ── STEP 2: Name + Position (players) / Name only (coaches) ── */}
           {step === 2 && (
             <>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHAT'S YOUR NAME?</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We'll personalise your experience from day one.</p>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>IDENTITY</div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>This sets the profile header and command-centre context.</p>
               <div style={{ marginBottom: role === "player" ? 16 : 0 }}>
                 <label style={labelStyle}>{role === "coach" ? "Your name" : "Your name"}</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder={role === "coach" ? "e.g. Mr Herwanto" : "e.g. Aryan"} style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(role === "coach" ? 4 : 3)} />
@@ -930,8 +1200,8 @@ function OnboardingModal({ onComplete }) {
                 </div>
               )}
               <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
-                <GoldButton onClick={() => setStep(1)} secondary style={{ flex: 1 }}>← Back</GoldButton>
-                <GoldButton onClick={() => setStep(role === "coach" ? 4 : 3)} style={{ flex: 2 }}>Next →</GoldButton>
+                <GoldButton onClick={() => setStep(1)} secondary style={{ flex: 1 }}>Back</GoldButton>
+                <GoldButton onClick={() => setStep(role === "coach" ? 4 : 3)} style={{ flex: 2 }}>Continue</GoldButton>
               </div>
             </>
           )}
@@ -948,8 +1218,8 @@ function OnboardingModal({ onComplete }) {
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                <GoldButton onClick={() => setStep(2)} secondary style={{ flex: 1 }}>← Back</GoldButton>
-                <GoldButton onClick={() => setStep(4)} style={{ flex: 2 }}>Next →</GoldButton>
+                <GoldButton onClick={() => setStep(2)} secondary style={{ flex: 1 }}>Back</GoldButton>
+                <GoldButton onClick={() => setStep(4)} style={{ flex: 2 }}>Continue</GoldButton>
               </div>
             </>
           )}
@@ -973,8 +1243,8 @@ function OnboardingModal({ onComplete }) {
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <GoldButton onClick={() => setStep(role === "coach" ? 2 : 3)} secondary style={{ flex: 1 }}>← Back</GoldButton>
-                <GoldButton onClick={handleComplete} style={{ flex: 2 }}>Let's Go 🔥</GoldButton>
+                <GoldButton onClick={() => setStep(role === "coach" ? 2 : 3)} secondary style={{ flex: 1 }}>Back</GoldButton>
+                <GoldButton onClick={handleComplete} style={{ flex: 2 }}>Enter Platform</GoldButton>
               </div>
             </>
           )}
@@ -1005,10 +1275,10 @@ function TrainGroup() {
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.success} active={sub} setActive={setSub} items={[
-        { id: "training", label: "🏃 Training Lab" },
-        { id: "warmup",   label: "🔥 Warm-Up" },
-        { id: "fitness",  label: "💪 Fitness Tests" },
-        { id: "mindset",  label: "🧠 Mindset" },
+        { id: "training", label: "Training" },
+        { id: "warmup",   label: "Preparation" },
+        { id: "fitness",  label: "Testing" },
+        { id: "mindset",  label: "Mental Performance" },
       ]} />
       {sub === "training" && <TrainingSection />}
       {sub === "warmup"   && <WarmUpSection />}
@@ -1024,10 +1294,10 @@ function MatchGroup() {
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
-        { id: "prematch",  label: "⚡ Pre-Match" },
-        { id: "history",   label: "📊 Match History" },
-        { id: "lineup",    label: "📋 Lineup Builder" },
-        { id: "nutrition", label: "⛽ Nutrition" },
+        { id: "prematch",  label: "Preparation" },
+        { id: "history",   label: "Match Output" },
+        { id: "lineup",    label: "Lineups" },
+        { id: "nutrition", label: "Nutrition" },
       ]} />
       {sub === "prematch"  && <PreMatchSection />}
       {sub === "history"   && <MatchHistorySection />}
@@ -1044,9 +1314,9 @@ function ProgressGroup({ profile, setActive }) {
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
-        ...(!isCoach ? [{ id: "tracker", label: "📊 Tracker" }] : []),
-        ...(!isCoach ? [{ id: "wellness", label: "🩹 Wellness" }] : []),
-        { id: "squad", label: "👥 Squad" },
+        ...(!isCoach ? [{ id: "tracker", label: "Sessions" }] : []),
+        ...(!isCoach ? [{ id: "wellness", label: "Availability" }] : []),
+        { id: "squad", label: isCoach ? "Squad Operations" : "Profile" },
       ]} />
       {sub === "tracker" && !isCoach && <TrackerSection />}
       {sub === "wellness" && !isCoach && <WellnessSection />}
@@ -1056,19 +1326,18 @@ function ProgressGroup({ profile, setActive }) {
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 0" }}>
               <div style={{ padding: "16px 18px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20`, marginBottom: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontSize: 16 }}>🏟️</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.electric, fontWeight: 700 }}>
-                    Coach shortcuts
+                    Coach navigation
                   </span>
                 </div>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>
-                  The Squad page mainly shows the player-card experience. For coach tasks, jump straight to the tools below.
+                  This view is player-facing. Use the coach tools below for squad management and operations.
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {[
-                    { id: "hub", label: "Team Hub" },
-                    { id: "match", label: "Lineup Builder" },
-                    { id: "culture", label: "Legends" },
+                    { id: "dashboard", label: "Dashboard" },
+                    { id: "operations", label: "Operations" },
+                    { id: "match", label: "Lineups" },
                   ].map((item) => (
                     <button
                       key={item.id}
@@ -1102,7 +1371,7 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 //  NAVBAR
 // ══════════════════════════════════════════════════
-function Navbar({ active, setActive, isDark, onToggleTheme }) {
+function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "" }) {
   const C = useTheme();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -1112,30 +1381,31 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const navBg = isDark
-    ? (scrolled ? "rgba(5,15,30,0.96)" : "rgba(5,15,30,0.85)")
-    : (scrolled ? "rgba(240,244,248,0.97)" : "rgba(240,244,248,0.90)");
+  // Nothing design: flat OLED black bar, no blur, no gradient. Border only when scrolled.
+  const navBg = C.navy; // pure black (dark) / off-white (light)
 
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
       background: navBg,
-      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
-      transition: "all 0.3s ease",
+      transition: "border-color 0.2s ease",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setActive("home")}>
+        {/* Logo — flat monochrome mark, no gradient, no shadow */}
+        <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "none", border: "none" }} onClick={() => setActive("dashboard")}>
           <div style={{
-            width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-            boxShadow: `0 4px 16px ${C.gold}40`,
-          }}>⚽</div>
+            width: 32, height: 32, borderRadius: 4,
+            background: C.textBright,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 11, fontFamily: FONT_SERIF, letterSpacing: "0.08em",
+            color: C.navy, fontWeight: 400,
+          }}>GP</div>
           <div>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>GamePlan</div>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
+            {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
           </div>
-        </div>
+        </button>
 
         {/* Right side: Instagram link, theme toggle + hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1143,59 +1413,66 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
             href="https://www.instagram.com/nbssfootball/"
             target="_blank"
             rel="noreferrer"
+            aria-label="Open Instagram"
             title="Open @nbssfootball on Instagram"
             style={{
-              background: C.surfaceSubtle,
+              background: "none",
               border: `1px solid ${C.navyBorder}`,
-              color: C.textBright,
+              color: C.textMid,
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: 4,
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               textDecoration: "none",
-              transition: "all 0.2s",
+              transition: "color 0.15s, border-color 0.15s",
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>📷</span>
+            <span style={{ fontSize: 10, lineHeight: 1, fontFamily: FONT_SERIF, letterSpacing: "0.06em", textTransform: "uppercase" }}>IG</span>
           </a>
 
-          {/* Theme toggle — always visible */}
+          {/* Theme toggle — flat, no colored glow */}
           <button
             onClick={onToggleTheme}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             style={{
-              background: isDark ? `${C.gold}18` : `${C.electric}14`,
-              border: `1px solid ${isDark ? C.gold + "35" : C.electric + "35"}`,
-              color: isDark ? C.gold : C.electric,
-              width: 36, height: 36, borderRadius: 10, cursor: "pointer",
+              background: "none",
+              border: `1px solid ${C.navyBorder}`,
+              color: C.textMid,
+              width: 36, height: 36, borderRadius: 4, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 16, transition: "all 0.2s", flexShrink: 0,
+              fontFamily: FONT_SERIF, fontSize: 10, letterSpacing: "0.06em",
+              textTransform: "uppercase", transition: "color 0.15s", flexShrink: 0,
             }}
-          >{isDark ? "☀️" : "🌙"}</button>
+          >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontSize: 18, cursor: "pointer", padding: "6px 10px", borderRadius: 8 }}>
-            {open ? "✕" : "☰"}
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: 11, letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4 }}>
+            {open ? "[ X ]" : "[ ≡ ]"}
           </button>
         </div>
 
-        <div className={`nav-l ${open ? "nav-open" : ""}`} style={{ display: "flex", gap: 2, alignItems: "center" }}>
-          {NAV_GROUPS.map(g => (
+        {/* Nav items — Nothing bracket/underline treatment, Space Mono ALL CAPS */}
+        <div className={`nav-l ${open ? "nav-open" : ""}`} style={{ display: "flex", gap: 0, alignItems: "center" }}>
+          {navItems.map(g => (
             <button key={g.id} onClick={() => { setActive(g.id); setOpen(false); }} style={{
-              background: active === g.id ? `${C.gold}15` : "transparent",
-              color: active === g.id ? C.gold : C.textMid,
-              border: active === g.id ? `1px solid ${C.gold}30` : "1px solid transparent",
-              padding: "7px 14px", borderRadius: 8, cursor: "pointer",
-              fontFamily: FONT_BODY, fontSize: 14, fontWeight: active === g.id ? 700 : 500,
-              transition: "all 0.2s", letterSpacing: 0.2,
+              background: "transparent",
+              color: active === g.id ? C.textBright : C.textDim,
+              border: "none",
+              borderBottom: active === g.id ? `2px solid ${C.textBright}` : "2px solid transparent",
+              padding: "7px 16px",
+              cursor: "pointer",
+              fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              transition: "color 0.15s, border-color 0.15s",
             }}
-              onMouseEnter={e => { if (active !== g.id) { e.currentTarget.style.color = C.textBright; e.currentTarget.style.background = C.surfaceSubtle; } }}
-              onMouseLeave={e => { if (active !== g.id) { e.currentTarget.style.color = C.textMid; e.currentTarget.style.background = "transparent"; } }}
-            >{g.label}</button>
+              onMouseEnter={e => { if (active !== g.id) e.currentTarget.style.color = C.textMid; }}
+              onMouseLeave={e => { if (active !== g.id) e.currentTarget.style.color = C.textDim; }}
+            >{active === g.id ? `[ ${g.label} ]` : g.label}</button>
           ))}
         </div>
       </div>
@@ -1208,7 +1485,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme }) {
 // ══════════════════════════════════════════════════
 function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const C = useTheme();
-  const [nextEvent, setNextEvent] = useState(null);
+  const [allEvents, setAllEvents] = useState([]);
 
   // Compute latest ACWR from sessions that have load data
   const acwrData = sessions?.length ? computeACWR(sessions) : [];
@@ -1225,61 +1502,115 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   useEffect(() => {
     let active = true;
     fetchScheduleEntries()
-      .then((events) => {
-        if (active) setNextEvent(getNextScheduledEvent(events));
-      })
-      .catch(() => {
-        if (active) setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS));
-      });
+      .then((events) => { if (active) setAllEvents(events); })
+      .catch(() => { if (active) setAllEvents(SEEDED_SCHEDULE_EVENTS); });
     return () => { active = false; };
   }, []);
+
+  // Derive next match and next training separately from the full event list
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = allEvents.filter(e => e.date >= today);
+  const nextMatch    = upcoming.find(e => e.type === "Match" || e.type === "Friendly") || null;
+  const nextTraining = upcoming.find(e => e.type === "Training") || null;
+  const nextEvent    = upcoming[0] || null;
+
+  // Days until next match
+  const daysToMatch = nextMatch
+    ? Math.ceil((new Date(nextMatch.date + "T00:00:00") - new Date()) / 86400000)
+    : null;
+  const daysToTraining = nextTraining
+    ? Math.ceil((new Date(nextTraining.date + "T00:00:00") - new Date()) / 86400000)
+    : null;
+
+  const coachTrustItems = [
+    { key: STORAGE_KEYS.lineups, label: "Lineups", fallback: [], tone: C.orange },
+    { key: STORAGE_KEYS.roster, label: "Roster", fallback: [], tone: C.gold },
+    { key: STORAGE_KEYS.attendance, label: "Attendance", fallback: {}, tone: C.success },
+    { key: STORAGE_KEYS.sessions, label: "Sessions", fallback: [], tone: C.electric },
+    { key: STORAGE_KEYS.matchHistory, label: "Match records", fallback: [], tone: C.goldLight },
+    { key: STORAGE_KEYS.wellnessLog, label: "Availability", fallback: [], tone: C.danger },
+  ];
 
   // Build dynamic ticker items
   const items = [];
 
-  // Identity / welcome
+  // ── Identity ──
   if (name) {
     items.push({ icon: isCoach ? "📋" : "⚽", text: isCoach ? `Coach ${name} — Team Dashboard Active` : `Welcome back, ${name}!`, color: C.gold });
   } else {
-    items.push({ icon: "⚽", text: "NBSS Football CCA — GamePlan Platform", color: C.gold });
+    items.push({ icon: "GP", text: "GamePlan — Performance Platform", color: C.gold });
   }
 
-  if (nextEvent) {
-    const eventLabel = `${nextEvent.date}${nextEvent.time ? ` • ${nextEvent.time}` : ""}`;
-    items.push({
-      icon: nextEvent.type === "Match" || nextEvent.type === "Friendly" ? "🏆" : "📅",
-      text: `Next event: ${nextEvent.title} — ${eventLabel}`,
-      color: nextEvent.type === "Match" || nextEvent.type === "Friendly" ? C.gold : C.success,
+  // ── Next Match ──
+  if (nextMatch) {
+    const matchTime = nextMatch.time ? ` · ${nextMatch.time}` : "";
+    if (daysToMatch === 0) {
+      items.push({ icon: "🏆", text: `MATCH DAY — ${nextMatch.title} is TODAY${matchTime}. Lock your checklist and intentions NOW.`, color: C.gold });
+    } else if (daysToMatch === 1) {
+      items.push({ icon: "🏆", text: `Match TOMORROW — ${nextMatch.title}${matchTime}. Final prep day. Sleep early, eat right.`, color: C.gold });
+    } else if (daysToMatch !== null && daysToMatch <= 7) {
+      items.push({ icon: "🏆", text: `${nextMatch.title} in ${daysToMatch} day${daysToMatch === 1 ? "" : "s"}${matchTime}. Pre-match routine opens now.`, color: C.gold });
+    } else if (nextMatch) {
+      items.push({ icon: "📅", text: `Next match — ${nextMatch.title} · ${nextMatch.date}${matchTime}`, color: C.gold });
+    }
+  }
+
+  // ── Next Training ──
+  if (nextTraining && (!nextMatch || nextTraining.date !== nextMatch.date)) {
+    const trainTime = nextTraining.time ? ` · ${nextTraining.time}` : "";
+    if (daysToTraining === 0) {
+      items.push({ icon: "🏃", text: `Training TODAY — ${nextTraining.title}${trainTime}. Log your RPE afterwards.`, color: C.success });
+    } else if (daysToTraining === 1) {
+      items.push({ icon: "🏃", text: `Training TOMORROW — ${nextTraining.title}${trainTime}. Prep your kit tonight.`, color: C.success });
+    } else if (daysToTraining !== null && daysToTraining <= 5) {
+      items.push({ icon: "🏃", text: `Next training — ${nextTraining.title} in ${daysToTraining} days${trainTime}`, color: C.success });
+    }
+  }
+
+  // ── Announcements: any future event with notes ──
+  upcoming
+    .filter(e => e.notes && e.notes.trim())
+    .slice(0, 2)
+    .forEach(e => {
+      items.push({ icon: "📢", text: `Announcement: ${e.notes.trim()} (${e.title} · ${e.date})`, color: C.electric });
     });
-  }
 
-  // Session stats (players)
+  // ── Session stats (players) ──
   if (!isCoach && sessions?.length > 0) {
     items.push({ icon: "📊", text: `${sessions.length} session${sessions.length === 1 ? "" : "s"} logged total`, color: C.electric });
     if (streak > 1) items.push({ icon: "🔥", text: `${streak}-session training streak — keep it up!`, color: C.danger });
-    if (daysSinceLast === 0) items.push({ icon: "✅", text: "You trained today — great work!", color: C.success });
-    else if (daysSinceLast === 1) items.push({ icon: "⏰", text: "Last session was yesterday — time to train again?", color: C.gold });
-    else if (daysSinceLast >= 3) items.push({ icon: "💤", text: `${daysSinceLast} days since last session — your body misses the pitch!`, color: C.orange });
+    if (daysSinceLast === 0) items.push({ icon: "✅", text: "You trained today — great work.", color: C.success });
+    else if (daysSinceLast === 1) items.push({ icon: "⏰", text: "Last session was yesterday — time to go again?", color: C.gold });
+    else if (daysSinceLast >= 3) items.push({ icon: "💤", text: `${daysSinceLast} days since last session — your body misses the pitch.`, color: C.orange });
   }
 
-  // Coach stats
+  // ── Coach stats ──
   if (isCoach && sessions?.length > 0) {
-    items.push({ icon: "📅", text: `${sessions.length} squad sessions on record`, color: C.electric });
+    items.push({ icon: "📅", text: `${sessions.length} squad session${sessions.length === 1 ? "" : "s"} on record`, color: C.electric });
   }
 
-  // ACWR load alert
+  // ── ACWR load alert ──
   if (acwrZone && latestACWR !== null) {
     items.push({ icon: acwrZone.emoji, text: `Training Load (ACWR): ${latestACWR.toFixed(2)} — ${acwrZone.label}`, color: acwrZone.color });
-    if (latestACWR > 1.3) items.push({ icon: "🧊", text: "High load detected — prioritise sleep, hydration and recovery today.", color: C.orange });
+    if (latestACWR > 1.3) items.push({ icon: "🧊", text: "High load detected — prioritise sleep, hydration and a proper cool-down today.", color: C.orange });
   }
 
-  // Training reminders (always present)
-  items.push({ icon: "💧", text: "Hydration reminder — drink water before, during and after every session.", color: C.electric });
+  // ── Contextual reminders ──
+  // Match countdown nudge
+  if (daysToMatch !== null && daysToMatch <= 3 && daysToMatch > 0) {
+    items.push({ icon: "📝", text: `${daysToMatch === 1 ? "1 day" : `${daysToMatch} days`} to match day — complete your pre-match checklist in the Match tab.`, color: C.gold });
+  }
+  // Training day nudge
+  if (daysToTraining === 0) {
+    items.push({ icon: "📈", text: "Training today — log your session RPE and wellness check-in afterwards. Takes 60 seconds.", color: C.electric });
+  }
+
+  // ── Standing reminders ──
+  items.push({ icon: "💧", text: "Hydration reminder — water before, during and after every session.", color: C.electric });
   items.push({ icon: "😴", text: "Sleep is your #1 recovery tool — aim for 8–9 hours on school nights.", color: "#a78bfa" });
-  items.push({ icon: "🧠", text: "Check today's Football IQ question below — one question a day sharpens the mind.", color: C.gold });
+  items.push({ icon: "🧠", text: "Today's Football IQ question is below — one question a day sharpens the mind.", color: C.gold });
   items.push({ icon: "💪", text: "RECIPE Value of the day: push your EXCELLENCE in every drill.", color: C.success });
-  items.push({ icon: "🎯", text: "Set a micro-goal before training — one thing to improve today.", color: C.gold });
-  items.push({ icon: "📈", text: "Log your session RPE after training — it takes 30 seconds and builds your ACWR picture.", color: C.electric });
+  items.push({ icon: "🎯", text: "Set one micro-goal before the next session — one specific thing to improve.", color: C.gold });
 
   // Separator dot
   const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none" }}>•</span>;
@@ -1360,160 +1691,166 @@ function HeroSection({ setActive, profile, sessions }) {
   const lastSession = sessions?.length ? [...sessions].sort((a,b) => new Date(b.date)-new Date(a.date))[0] : null;
   const daysSinceLast = lastSession ? Math.round((new Date() - new Date(lastSession.date)) / 86400000) : null;
   const isPersonalised = profile?.name?.trim();
-  const heroAccentStyle = (() => {
-    const fallback = { color: C.gold, display: "inline-block" };
-    if (typeof CSS === "undefined" || !CSS.supports) return fallback;
-    const supportsClipText =
-      CSS.supports("background-clip", "text") ||
-      CSS.supports("-webkit-background-clip", "text");
-    if (!supportsClipText) return fallback;
-    return {
-      ...fallback,
-      background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-    };
-  })();
 
+  // Dot-matrix live metrics (players only, computed once here)
+  const heroSorted = sessions?.length ? [...sessions].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
+  const heroReadiness = heroSorted.find(s => s.readinessScore != null)?.readinessScore ?? null;
+  const heroAcwrData  = sessions?.length ? computeACWR(sessions) : [];
+  const heroACWR      = heroAcwrData.length ? heroAcwrData[heroAcwrData.length - 1].acwr : null;
+  const heroRColor    = heroReadiness === null ? C.textDim : heroReadiness < 60 ? C.danger : heroReadiness < 75 ? C.orange : C.success;
+  const heroAColor    = heroACWR === null ? C.textDim : heroACWR < 0.8 ? C.electric : heroACWR <= 1.3 ? C.success : heroACWR <= 1.5 ? C.orange : C.danger;
+  const showLiveMetrics = profile?.role !== "coach" && (heroReadiness !== null || heroACWR !== null);
+
+  // Nothing design: left-anchored, asymmetric, monochrome, no gradients/blobs
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column",
-      justifyContent: "center", alignItems: "center", textAlign: "center",
-      padding: "90px 24px 60px", position: "relative", overflow: "hidden",
+      justifyContent: "center", alignItems: "flex-start",
+      padding: "96px 24px 64px", position: "relative",
       background: C.navy,
+      maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box",
     }}>
-      <div style={{ position: "absolute", top: "10%", left: "5%", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}08 0%, transparent 70%)`, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "15%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.electric}06 0%, transparent 70%)`, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", inset: 0, opacity: 0.025, backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 80px, ${C.gold} 80px, ${C.gold} 81px)`, pointerEvents: "none" }} />
-
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 780, width: "100%" }}>
-        {/* Eyebrow / personalised greeting */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 24, border: `1px solid ${C.gold}30`, background: `${C.gold}08`, marginBottom: 16 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.success, display: "inline-block", animation: "pulse 2s infinite" }} />
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
+      <div style={{ maxWidth: 720, width: "100%" }}>
+        {/* Eyebrow label — Space Mono ALL CAPS, no pill background */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.success, display: "inline-block" }} />
+          <span style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             {isPersonalised
-              ? profile.role === "coach"
-                ? `Welcome back, ${profile.name}`
-                : `Welcome back, ${profile.name}`
-              : "Naval Base Secondary School"}
+              ? `${profile.role === "coach" ? "Coach" : "Player"} — ${profile.name}`
+              : "Naval Base Secondary School · Football CCA"}
           </span>
         </div>
 
-        {/* Role badge for coach */}
-        {isPersonalised && profile.role === "coach" && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-            <div style={{ padding: "5px 14px", borderRadius: 20, background: `${C.electric}15`, border: `1px solid ${C.electric}30` }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.electric, fontWeight: 700 }}>📋 Coach / Teacher View</span>
-            </div>
-          </div>
-        )}
-
-        {/* Streak / nudge chips — players only */}
-        {isPersonalised && profile.role !== "coach" && (
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20, flexWrap: "wrap" }}>
-            {streak > 0 && <div style={{ padding: "5px 14px", borderRadius: 20, background: `${C.danger}15`, border: `1px solid ${C.danger}30` }}><span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, fontWeight: 700 }}>🔥 {streak} session streak</span></div>}
-            {daysSinceLast !== null && <div style={{ padding: "5px 14px", borderRadius: 20, background: daysSinceLast > 3 ? `${C.orange}15` : `${C.success}15`, border: `1px solid ${daysSinceLast > 3 ? C.orange : C.success}30` }}><span style={{ fontFamily: FONT_BODY, fontSize: 12, color: daysSinceLast > 3 ? C.orange : C.success, fontWeight: 700 }}>{daysSinceLast === 0 ? "✅ Trained today" : daysSinceLast > 3 ? `⚠️ ${daysSinceLast} days since last session` : `⏱️ Last session ${daysSinceLast}d ago`}</span></div>}
-          </div>
-        )}
-
-        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(56px, 10vw, 104px)", color: C.textBright, margin: 0, lineHeight: 0.95, letterSpacing: 3 }}>
-          FOOTBALL{" "}<span style={heroAccentStyle}>CCA</span>
+        {/* Hero headline — Doto display, tight tracking, left-anchored */}
+        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.textBright, margin: "0 0 8px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
+          FOOTBALL
         </h1>
-        <p style={{ fontFamily: FONT_BODY, fontSize: "clamp(14px, 2vw, 17px)", color: C.textMid, marginTop: 16, letterSpacing: 2, textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
+        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.accent, margin: "0 0 32px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
+          CCA
+        </h1>
+        <p style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textDim, margin: "0 0 48px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
 
-        {/* Quote carousel */}
-        <div style={{ marginTop: 44, padding: "28px 36px", background: C.navyCard, borderRadius: 20, border: `1px solid ${C.navyBorder}`, opacity: fade ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 120, boxShadow: "0 8px 40px rgba(0,0,0,0.3)" }}>
-          <span style={{ fontSize: 28, display: "block", marginBottom: 10 }}>{q.emoji}</span>
-          <p style={{ fontFamily: FONT_SERIF, fontSize: 17, color: C.textBright, fontStyle: "italic", margin: "0 0 10px", lineHeight: 1.6 }}>"{q.text}"</p>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: 0 }}>— {q.author}</p>
-        </div>
-
-        {/* CTA Buttons — different for coaches vs players */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 36 }}>
+        {/* CTA buttons — Nothing pill spec */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 56 }}>
           {(profile.role === "coach"
             ? [
-                { s: "hub",      label: "Team Hub",        icon: "🏟️", primary: true },
-                { s: "match",    label: "Lineup Builder",  icon: "📋" },
-                { s: "progress", label: "Squad",           icon: "👥" },
-                { s: "culture",  label: "Legends",         icon: "🌟" },
+                { s: "operations", label: "Lineups & Ops", primary: true },
+                { s: "squad",      label: "Squad" },
+                { s: "dashboard",  label: "Overview" },
+                { s: "hub",        label: "Team Hub" },
               ]
             : [
-                { s: "train",    label: "Start Training",  icon: "🏃", primary: true },
-                { s: "progress", label: "Track Progress",  icon: "📊" },
-                { s: "match",    label: "Match Day",       icon: "⚽" },
-                { s: "culture",  label: "Legends",         icon: "🌟" },
+                { s: "train",    label: "Start Training", primary: true },
+                { s: "progress", label: "Track Progress" },
+                { s: "match",    label: "Match Day" },
+                { s: "culture",  label: "Legends" },
               ]
           ).map(b => (
-            <button key={b.s} onClick={() => setActive(b.s)} style={{
-              background: b.primary ? `linear-gradient(135deg, ${C.gold}, ${C.goldLight})` : C.navyCard,
-              color: b.primary ? C.navy : C.textMid, border: b.primary ? "none" : `1px solid ${C.navyBorder}`,
-              padding: "14px 28px", borderRadius: 12, cursor: "pointer",
-              fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700,
-              display: "flex", alignItems: "center", gap: 8,
-              boxShadow: b.primary ? `0 8px 32px ${C.gold}35` : "none", transition: "all 0.25s ease",
-            }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; }}
-            ><span>{b.icon}</span> {b.label}</button>
+            <GoldButton key={b.s} onClick={() => setActive(b.s)} secondary={!b.primary}>
+              {b.label}
+            </GoldButton>
           ))}
         </div>
 
-        {/* Daily IQ Question */}
-        <div style={{ marginTop: 48, textAlign: "left" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: `${C.electric}15`, border: `1px solid ${C.electric}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🧠</span>
-            <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.electric, letterSpacing: 2 }}>TODAY'S FOOTBALL IQ</span>
-          </div>
-          <div style={{ padding: "20px 24px", background: C.navyCard, borderRadius: 16, border: `1px solid ${C.navyBorder}` }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textBright, fontWeight: 600, margin: "0 0 16px", lineHeight: 1.5 }}>{todayQ.q}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-              {todayQ.opts.map((opt, i) => (
-                <button key={i} onClick={() => setIqRevealed(true)} style={{
-                  padding: "10px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left",
-                  background: iqRevealed ? (i === todayQ.correct ? `${C.success}20` : `${C.navyBorder}40`) : C.navyCard,
-                  border: `1px solid ${iqRevealed ? (i === todayQ.correct ? C.success : C.navyBorder) : C.navyBorder}`,
-                  fontFamily: FONT_BODY, fontSize: 13,
-                  color: iqRevealed ? (i === todayQ.correct ? C.success : C.textDim) : C.textMid,
-                  fontWeight: iqRevealed && i === todayQ.correct ? 700 : 400, transition: "all 0.2s",
-                }}>{opt}</button>
-              ))}
-            </div>
-            {iqRevealed
-              ? <div style={{ padding: "10px 14px", borderRadius: 8, background: `${C.success}10`, border: `1px solid ${C.success}20` }}><p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, margin: 0, lineHeight: 1.5 }}>✅ {todayQ.explain}</p></div>
-              : <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, margin: 0, textAlign: "center" }}>Tap any answer to reveal — one per day 🎯</p>
-            }
-          </div>
+        {/* Quote carousel — flat card, no shadow, border only */}
+        <div style={{ padding: "20px 24px", background: C.navyCard, borderRadius: 12, border: `1px solid ${C.navyBorder}`, opacity: fade ? 1 : 0, transition: "opacity 0.35s ease", marginBottom: 48 }}>
+          <p style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.textBright, fontStyle: "italic", margin: "0 0 8px", lineHeight: 1.6 }}>"{q.text}"</p>
+          <p style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>— {q.author}</p>
         </div>
 
-        {/* Stats strip — personal metrics for players, team snapshot for coaches */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 56, flexWrap: "wrap" }}>
+        {/* Stats strip — Nothing stat row style, no color on values by default */}
+        <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginBottom: 48, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 24 }}>
           {(profile.role === "coach"
             ? [
                 { val: sessions?.length ?? 0, label: "Sessions Logged" },
-                { val: streak > 0 ? `${streak}` : "—", label: "Current Streak" },
+                { val: streak > 0 ? `${streak}` : "—", label: "Streak" },
                 { val: "B + C", label: "Divisions" },
                 { val: 4, label: "Cluster Schools" },
               ]
             : sessions?.length > 0
               ? [
-                  { val: sessions.length, label: "Total Sessions" },
-                  { val: streak > 0 ? `🔥 ${streak}` : "—", label: "Session Streak" },
-                  { val: profile.level ? profile.level.charAt(0).toUpperCase() + profile.level.slice(1) : "—", label: "Training Level" },
-                  { val: daysSinceLast === 0 ? "Today" : daysSinceLast === 1 ? "Yesterday" : daysSinceLast ? `${daysSinceLast}d ago` : "—", label: "Last Session" },
+                  { val: sessions.length, label: "Sessions" },
+                  { val: streak > 0 ? `${streak}` : "—", label: "Streak", color: streak > 0 ? C.warning : null },
+                  { val: profile.level ? profile.level.charAt(0).toUpperCase() + profile.level.slice(1) : "—", label: "Level" },
+                  { val: daysSinceLast === 0 ? "Today" : daysSinceLast === 1 ? "Yesterday" : daysSinceLast ? `${daysSinceLast}d ago` : "—", label: "Last Session", color: daysSinceLast > 3 ? C.accent : null },
                 ]
               : [
                   { val: "3", label: "Training Levels" },
                   { val: "10+", label: "Mindset Cards" },
-                  { val: "20+", label: "Food Items" },
+                  { val: "20+", label: "Nutrition Items" },
                   { val: "20", label: "IQ Questions" },
                 ]
           ).map((s, i) => (
-            <div key={i} style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 36, color: C.gold, letterSpacing: 1 }}>{s.val}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 2 }}>{s.label}</div>
+            <div key={i}>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 28, color: s.color || C.textBright, letterSpacing: "0.02em", lineHeight: 1 }}>{s.val}</div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* ── Live Metrics: dot-matrix panels ── */}
+        {showLiveMetrics && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 48 }}>
+            {heroReadiness !== null && (
+              <DotMatrixPanel
+                label="Readiness"
+                value={heroReadiness}
+                displayValue={`${heroReadiness}%`}
+                sub={getReadinessDirective(heroReadiness)}
+                max={100} segments={10}
+                zones={[
+                  { from: 0,  to: 60,  color: C.danger  },
+                  { from: 60, to: 75,  color: C.orange  },
+                  { from: 75, to: 100, color: C.success },
+                ]}
+                tone={heroRColor} compact
+                style={{ flex: "1 1 200px" }}
+              />
+            )}
+            {heroACWR !== null && (
+              <DotMatrixPanel
+                label="ACWR"
+                value={Math.min(heroACWR / 2, 1) * 100}
+                displayValue={heroACWR.toFixed(2)}
+                sub={getLoadDirective(heroACWR)}
+                max={100} segments={10}
+                zones={[
+                  { from: 0,  to: 40,  color: C.electric },
+                  { from: 40, to: 65,  color: C.success  },
+                  { from: 65, to: 75,  color: C.orange   },
+                  { from: 75, to: 100, color: C.danger   },
+                ]}
+                tone={heroAColor} compact
+                style={{ flex: "1 1 200px" }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Daily IQ Question — flat, no colored icon background */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, borderBottom: `1px solid ${C.navyBorder}`, paddingBottom: 8 }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>Football IQ · Daily Question</span>
+          </div>
+          <div style={{ padding: "16px 20px", background: C.navyCard, borderRadius: 8, border: `1px solid ${C.navyBorder}` }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, margin: "0 0 14px", lineHeight: 1.5 }}>{todayQ.q}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              {todayQ.opts.map((opt, i) => (
+                <button key={i} onClick={() => setIqRevealed(true)} style={{
+                  padding: "9px 12px", borderRadius: 4, cursor: "pointer", textAlign: "left",
+                  background: "transparent",
+                  border: `1px solid ${iqRevealed ? (i === todayQ.correct ? C.success : C.navyBorder) : C.navyBorder}`,
+                  fontFamily: FONT_BODY, fontSize: 13,
+                  color: iqRevealed ? (i === todayQ.correct ? C.success : C.textDim) : C.textMid,
+                  fontWeight: 400, transition: "border-color 0.2s, color 0.2s",
+                }}>{opt}</button>
+              ))}
+            </div>
+            {iqRevealed
+              ? <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, margin: 0, lineHeight: 1.5, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 10 }}>{todayQ.explain}</p>
+              : <p style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, margin: 0, letterSpacing: "0.06em", textTransform: "uppercase" }}>Tap any answer to reveal</p>
+            }
+          </div>
         </div>
       </div>
 
@@ -1530,6 +1867,8 @@ function PerformanceHome({ setActive, profile, sessions }) {
   const C = useTheme();
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
   const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [nextEvent, setNextEvent] = useState(null);
   const sorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
   const recent = sorted.slice(0, 4);
   const last = recent[0] || null;
@@ -1551,27 +1890,62 @@ function PerformanceHome({ setActive, profile, sessions }) {
   const latestReady = sorted.find(s => s.readinessScore != null)?.readinessScore ?? null;
   const latestSleep = (() => { const s = sorted.find(x => x.sleep != null); return s ? Number(s.sleep) : null; })();
   const latestEnergy = (() => { const s = sorted.find(x => x.energy != null); return s ? Number(s.energy) : null; })();
+  const completeRecentEntries = recent.filter(s => s.duration && s.rpe && s.sleep && s.energy && s.soreness).length;
+  const compliance = recent.length ? Math.round((completeRecentEntries / recent.length) * 100) : 0;
   const weeklyLoad = sorted.reduce((sum, s) => {
     const diff = (new Date() - new Date(s.date)) / 86400000;
     return diff >= 0 && diff < 7 ? sum + (Number(s.load) || 0) : sum;
   }, 0);
   const acwrData = computeACWR(sessions || []);
   const latestACWR = acwrData.length ? acwrData[acwrData.length - 1].acwr : null;
+  const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
+  const readinessTrend = sorted
+    .filter(s => s.readinessScore != null)
+    .slice(0, 6)
+    .reverse()
+    .map(s => ({ date: s.date.slice(5), readiness: Number(s.readinessScore) }));
+  const loadTrend = acwrData.slice(-6).map(s => ({ date: s.date.slice(5), acute: s.acute, chronic: s.chronic }));
   const { xp, earned } = computeXpAndBadges(sessions || [], growthEntries || []);
   const level = getLevel(xp);
   const name = squad.name?.trim() || profile?.name?.trim() || "Player";
   const position = squad.position?.trim() || profile?.position?.trim() || "Midfielder";
+  const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
+  const availability = activeIssues.some(log => Number(log.severity) >= 3)
+    ? { label: "Unavailable", color: C.danger, note: "Severe issue on record. Recover before full load." }
+    : activeIssues.some(log => Number(log.severity) === 2)
+      ? { label: "Modified", color: C.orange, note: "Monitor pain and adjust load." }
+      : activeIssues.length > 0
+        ? { label: "Available", color: C.gold, note: "Minor issue logged. Watch response." }
+        : { label: "Available", color: C.success, note: "No active issues recorded." };
+  const recommendation = latestReady !== null && latestReady < 60
+    ? "Reduce intensity today. Prioritise recovery work and log your next session honestly."
+    : latestACWR !== null && latestACWR > 1.3
+      ? "Load is rising. Keep volume controlled and protect sleep over the next 48 hours."
+      : daysSinceLast !== null && daysSinceLast >= 3
+        ? "Rebuild momentum with a controlled technical session before pushing intensity."
+        : "You are in a stable zone. Execute the next session with intent and maintain data quality.";
+  const currentFocus = last?.goals?.trim() || profile?.firstGoal?.trim() || "Set a single performance focus for the next session.";
   const formatDate = (value) => {
     if (!value) return "-";
     const d = new Date(`${value}T00:00:00`);
     return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
   };
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then(events => { if (active) setNextEvent(getNextScheduledEvent(events)); })
+      .catch(() => { if (active) setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS)); });
+    return () => { active = false; };
+  }, []);
+  const squadDirective = activeIssues.length ? getAvailabilityDirective(activeIssues) : "Squad availability is clear enough to plan the next block aggressively.";
+  const loadDirective = getLoadDirective(latestLoad?.acwr ?? null);
   const stats = [
     { label: "Sessions", value: sessions?.length ?? 0, sub: "Total logged", color: C.gold },
     { label: "Avg Rating", value: avgRating !== null ? avgRating.toFixed(1) : "-", sub: "All sessions", color: C.electric },
     { label: "Streak", value: streak || "-", sub: "Current run", color: C.success },
     { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "-", sub: "Latest status", color: latestReady !== null && latestReady < 60 ? C.danger : C.goldLight },
-    { label: "Weekly Load", value: weeklyLoad || "-", sub: "Last 7 days", color: C.orange },
+    { label: "Acute Load", value: latestLoad ? latestLoad.acute : "-", sub: "7-day average", color: C.orange },
+    { label: "Chronic Load", value: latestLoad ? latestLoad.chronic : "-", sub: "28-day average", color: C.electric },
     { label: "XP", value: xp, sub: `Level ${level.level}`, color: C.success },
   ];
 
@@ -1655,19 +2029,18 @@ function TrainingSection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🏃" title="TRAINING LAB" subtitle="Progressive drills from foundation to elite — tap 🎬 to see how it's done" accent={C.success} />
+      <SectionHeader icon="" title="TRAINING" subtitle="Progressive technical work from foundation to advanced execution." accent={C.success} />
 
       {/* Level selector */}
       <div style={{ display: "flex", gap: 8, marginBottom: 32, flexWrap: "wrap" }}>
         {Object.entries(TRAINING_DATA).map(([key, val]) => (
           <button key={key} onClick={() => { setLevel(key); setOpenWeek(0); }} style={{
-            padding: "10px 22px", borderRadius: 10, cursor: "pointer",
+            padding: "10px 22px", borderRadius: 999, cursor: "pointer",
             background: level === key ? val.color : C.navyCard,
             color: level === key ? (key === "beginner" ? C.navy : C.textBright) : C.textMid,
             border: level === key ? "none" : `1px solid ${C.navyBorder}`,
             fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
-            boxShadow: level === key ? `0 4px 20px ${val.color}30` : "none",
-            transition: "all 0.2s",
+            transition: "opacity 0.15s ease",
           }}>
             {val.title}
             <span style={{ display: "block", fontSize: 10, fontWeight: 400, marginTop: 1, opacity: 0.8 }}>{val.subtitle.split("·")[0].trim()}</span>
@@ -1790,7 +2163,7 @@ function NutritionSection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🍽️" title="FUEL STATION" subtitle="What to eat, when to eat it — simplified for student athletes" accent={C.success} />
+      <SectionHeader icon="" title="NUTRITION" subtitle="Meal timing, food choices, and fuelling support for performance." accent={C.success} />
 
       {/* Food Checker */}
       <button onClick={() => setCheckerOpen(!checkerOpen)} style={{
@@ -1801,7 +2174,7 @@ function NutritionSection() {
         fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
       }}>
-        {checkerOpen ? "✕ Close Food Checker" : "🔍 Food Checker — Is your meal match-ready?"}
+        {checkerOpen ? "Close Food Checker" : "Open Food Checker"}
       </button>
 
       {checkerOpen && (
@@ -2073,7 +2446,7 @@ function MindsetSection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🧠" title="MINDSET ZONE" subtitle="The mental game separates good players from great ones" accent={C.electric} />
+      <SectionHeader icon="" title="MENTAL PERFORMANCE" subtitle="Mental routines, composure, and growth habits that support performance." accent={C.electric} />
 
       {/* Mindset cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14, marginBottom: 40 }}>
@@ -2249,17 +2622,17 @@ function WarmUpSection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🔥" title="WARM-UP & COOL-DOWN" subtitle="Structured protocols — don't skip this, it's where injuries are prevented" accent={accentColor} />
+      <SectionHeader icon="" title="PREPARATION AND RECOVERY" subtitle="Structured pre-session and post-session routines that support availability." accent={accentColor} />
 
       {/* Toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-        {[{ id: "warmup", label: "🔥 Pre-Session Warm-Up" }, { id: "cooldown", label: "🧊 Post-Session Cool-Down" }].map(t => (
+        {[{ id: "warmup", label: "Pre-Session Preparation" }, { id: "cooldown", label: "Post-Session Recovery" }].map(t => (
           <button key={t.id} onClick={() => { setMode(t.id); setActiveStep(0); }} style={{
-            padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+            padding: "10px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
             background: mode === t.id ? accentColor : C.navyCard,
             color: mode === t.id ? C.navyDeep : C.textMid,
             border: mode === t.id ? "none" : `1px solid ${C.navyBorder}`,
-            transition: "all 0.2s",
+            transition: "opacity 0.15s ease",
           }}>{t.label}</button>
         ))}
       </div>
@@ -2293,7 +2666,7 @@ function WarmUpSection() {
           <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>
             {mode === "warmup" ? "Your joints, muscles and brain are primed. Go play your game." : "Your body is in recovery mode. Hydrate, eat within 45 mins, rest."}
           </p>
-          <button onClick={resetFlow} style={{ padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid }}>Reset Protocol</button>
+          <button onClick={resetFlow} style={{ padding: "8px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid }}>Reset Protocol</button>
         </div>
       )}
 
@@ -2369,6 +2742,7 @@ function FitnessSection() {
   };
 
   const deleteResult = (testName, id) => {
+    if (!window.confirm("Delete this benchmark entry?")) return;
     setResults(prev => ({ ...prev, [testName]: { ...prev[testName], entries: prev[testName].entries.filter(e => e.id !== id) } }));
   };
 
@@ -2383,7 +2757,7 @@ function FitnessSection() {
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
-      <SectionHeader icon="💪" title="FITNESS BENCHMARKS" subtitle="Track your results, see your progress, set your targets" accent={C.danger} />
+      <SectionHeader icon="" title="FITNESS BENCHMARKS" subtitle="Track results, monitor progress, and set performance targets." accent={C.danger} />
 
       {/* ── ATHLETE EDUCATION: ACWR & RPE ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 32 }}>
@@ -2413,10 +2787,10 @@ function FitnessSection() {
               {/* Zone chart */}
               <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${C.navyBorder}`, marginBottom: 16 }}>
                 {[
-                  { range: "Below 0.8", label: "Under-loaded", desc: "You're doing too little. Risk of detraining and injury when load suddenly spikes.", color: "#38bdf8", bg: "#38bdf820" },
-                  { range: "0.8 – 1.3", label: "✅ Optimal Zone", desc: "Sweet spot. Training load is well-managed. Keep this range to perform and stay healthy.", color: "#22c55e", bg: "#22c55e20" },
-                  { range: "1.3 – 1.5", label: "⚠️ Caution Zone", desc: "Load is rising quickly. Prioritise recovery — sleep, nutrition, stretching.", color: "#f0b429", bg: "#f0b42920" },
-                  { range: "Above 1.5", label: "🚨 High Risk", desc: "Overload warning. High injury risk. Reduce session intensity and rest immediately.", color: "#ef4444", bg: "#ef444420" },
+                  { range: "Below 0.8", label: "Under-loaded", desc: "You're doing too little. Risk of detraining and injury when load suddenly spikes.", color: C.electric, bg: `${C.electric}20` },
+                  { range: "0.8 – 1.3", label: "Optimal Zone", desc: "Sweet spot. Training load is well-managed. Keep this range to perform and stay healthy.", color: C.success, bg: `${C.success}18` },
+                  { range: "1.3 – 1.5", label: "Caution Zone", desc: "Load is rising quickly. Prioritise recovery — sleep, nutrition, stretching.", color: C.orange, bg: `${C.orange}18` },
+                  { range: "Above 1.5", label: "High Risk", desc: "Overload warning. High injury risk. Reduce session intensity and rest immediately.", color: C.danger, bg: `${C.danger}15` },
                 ].map((z, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: z.bg, borderBottom: i < 3 ? `1px solid ${C.navyBorder}` : "none" }}>
                     <div style={{ minWidth: 72, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: z.color, paddingTop: 1 }}>{z.range}</div>
@@ -2457,12 +2831,12 @@ function FitnessSection() {
               {/* RPE Scale */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
                 {[
-                  { val: "1–2", label: "Very Easy", desc: "Light walk, warm-up", color: "#94a3b8" },
-                  { val: "3–4", label: "Easy", desc: "Comfortable jog, recovery session", color: "#38bdf8" },
-                  { val: "5–6", label: "Moderate", desc: "You're working but can still talk", color: "#22c55e" },
-                  { val: "7–8", label: "Hard", desc: "Breathless, high effort, match intensity", color: "#f0b429" },
-                  { val: "9",   label: "Very Hard", desc: "Near max — sprint intervals, final whistle push", color: "#f97316" },
-                  { val: "10",  label: "Maximum", desc: "Total effort — cannot sustain beyond seconds", color: "#ef4444" },
+                  { val: "1–2", label: "Very Easy", desc: "Light walk, warm-up", color: C.textDim },
+                  { val: "3–4", label: "Easy", desc: "Comfortable jog, recovery session", color: C.electric },
+                  { val: "5–6", label: "Moderate", desc: "You're working but can still talk", color: C.success },
+                  { val: "7–8", label: "Hard", desc: "Breathless, high effort, match intensity", color: C.orange },
+                  { val: "9",   label: "Very Hard", desc: "Near max — sprint intervals, final whistle push", color: C.orange },
+                  { val: "10",  label: "Maximum", desc: "Total effort — cannot sustain beyond seconds", color: C.danger },
                 ].map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: `${r.color}10`, border: `1px solid ${r.color}25` }}>
                     <div style={{ minWidth: 32, fontFamily: FONT_HEAD, fontSize: 15, color: r.color, letterSpacing: 1 }}>{r.val}</div>
@@ -2519,7 +2893,7 @@ function FitnessSection() {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => { setShowLog(showLog === test.name ? null : test.name); setShowChart(null); }} style={{
-                  padding: "8px 16px", borderRadius: 8, cursor: "pointer", border: "none",
+                  padding: "8px 16px", borderRadius: 999, cursor: "pointer", border: "none",
                   background: showLog === test.name ? `${C.danger}15` : C.gold,
                   color: showLog === test.name ? C.danger : C.navy,
                   fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
@@ -2528,7 +2902,7 @@ function FitnessSection() {
                 </button>
                 {entries.length >= 2 && (
                   <button onClick={() => { setShowChart(showChart === test.name ? null : test.name); setShowLog(null); }} style={{
-                    padding: "8px 16px", borderRadius: 8, cursor: "pointer",
+                    padding: "8px 16px", borderRadius: 999, cursor: "pointer",
                     background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`,
                     color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
                   }}>
@@ -2594,6 +2968,95 @@ function FitnessSection() {
 //  TRACKER
 // ══════════════════════════════════════════════════
 
+// ── PERSONALISED ALERT BUILDER ──
+// Produces structured InsightStack items with tone, delta, and rolling-baseline context.
+// Compares against the player's own rolling history — not just fixed thresholds.
+function buildPlayerAlerts({ C, availability, activeIssues, latestLoad, latestReady, readinessTrend, sessions, currentFocus, acwrData }) {
+  const alerts = [];
+
+  // 1. AVAILABILITY — colour-coded by severity
+  const availHigh = activeIssues.some((l) => Number(l.severity) >= 3);
+  const availMod  = activeIssues.some((l) => Number(l.severity) === 2);
+  const availTone = availHigh ? C.danger : availMod ? C.orange : activeIssues.length ? C.gold : C.success;
+  alerts.push({
+    label: "Availability",
+    labelTone: availTone,
+    value: `${availability.label}. ${getAvailabilityDirective(activeIssues)}`,
+    bg:     availHigh ? `${C.danger}08`  : availMod ? `${C.orange}08`  : undefined,
+    border: availHigh ? `${C.danger}25`  : availMod ? `${C.orange}25`  : undefined,
+  });
+
+  // 2. LOAD STATUS — ACWR with session-over-session delta
+  if (latestLoad) {
+    const acwr    = latestLoad.acwr;
+    const prevACWR = acwrData.length >= 2 ? acwrData[acwrData.length - 2].acwr : null;
+    const delta    = prevACWR !== null ? acwr - prevACWR : null;
+    const deltaStr = delta !== null
+      ? ` (${delta > 0.01 ? `↑ ${delta.toFixed(2)}` : delta < -0.01 ? `↓ ${Math.abs(delta).toFixed(2)}` : "→ stable"} vs last session)`
+      : "";
+    const loadTone = acwr > 1.5 ? C.danger : acwr > 1.3 ? C.orange : acwr < 0.8 ? C.electric : C.success;
+    alerts.push({
+      label: "Load status",
+      labelTone: loadTone,
+      value: `ACWR ${acwr.toFixed(2)}${deltaStr}. ${getLoadDirective(acwr)}`,
+      note:  `Acute ${latestLoad.acute} AU · Chronic ${latestLoad.chronic} AU`,
+      bg:     acwr > 1.5 ? `${C.danger}08`  : acwr > 1.3 ? `${C.orange}08`  : undefined,
+      border: acwr > 1.5 ? `${C.danger}25`  : acwr > 1.3 ? `${C.orange}25`  : undefined,
+    });
+  } else {
+    alerts.push({ label: "Load status", value: "Log sessions with duration and RPE to unlock load guidance." });
+  }
+
+  // 3. RECOVERY — readiness vs rolling 4-session baseline (personalised, not fixed threshold)
+  if (latestReady !== null) {
+    const prevPoints = (readinessTrend || []).slice(1, 5); // exclude most recent, look back 4
+    const baseline = prevPoints.length
+      ? Math.round(prevPoints.reduce((s, p) => s + p.readiness, 0) / prevPoints.length)
+      : null;
+    const delta = baseline !== null ? latestReady - baseline : null;
+    const deltaStr = delta !== null
+      ? ` (${delta >= 0 ? `↑ ${delta}pts` : `↓ ${Math.abs(delta)}pts`} vs ${prevPoints.length}-session avg of ${baseline}%)`
+      : "";
+    const readyTone = latestReady < 60 ? C.danger : latestReady < 75 ? C.gold : C.success;
+    alerts.push({
+      label: "Recovery status",
+      labelTone: readyTone,
+      value: `Readiness ${latestReady}%${deltaStr}. ${getReadinessDirective(latestReady)}`,
+      bg:     latestReady < 60 ? `${C.danger}08`  : undefined,
+      border: latestReady < 60 ? `${C.danger}25`  : undefined,
+    });
+  } else {
+    alerts.push({ label: "Recovery status", value: "Track sleep, energy, and soreness to unlock recovery signals." });
+  }
+
+  // 4. PERFORMANCE DIRECTION — recent-block vs previous-block trend
+  if (sessions && sessions.length) {
+    const sorted5  = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recent5  = sorted5.slice(0, 5);
+    const prev5    = sorted5.slice(5, 10);
+    const recentAvg = recent5.reduce((s, x) => s + (Number(x.rating) || 0), 0) / recent5.length;
+    const prevAvg   = prev5.length ? prev5.reduce((s, x) => s + (Number(x.rating) || 0), 0) / prev5.length : null;
+    const trendStr  = prevAvg !== null
+      ? recentAvg > prevAvg + 0.1
+        ? ` — ↑ ${(recentAvg - prevAvg).toFixed(1)} from previous block.`
+        : recentAvg < prevAvg - 0.1
+          ? ` — ↓ ${(prevAvg - recentAvg).toFixed(1)} from previous block. Review session quality.`
+          : " — consistent with previous block."
+      : "";
+    const perfTone = prevAvg !== null && recentAvg < prevAvg - 0.1 ? C.orange : C.electric;
+    alerts.push({
+      label: "Performance direction",
+      labelTone: perfTone,
+      value: `Last 5 sessions avg ${recentAvg.toFixed(1)}/5${trendStr}`,
+      note:  `Current focus: ${currentFocus}`,
+    });
+  } else {
+    alerts.push({ label: "Performance direction", value: "No performance records logged yet. Log your first session to activate the centre." });
+  }
+
+  return alerts;
+}
+
 // ACWR (Acute:Chronic Workload Ratio) computation
 function computeACWR(sessions) {
   const withLoad = sessions.filter(s => s.date && s.load > 0).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2611,50 +3074,61 @@ function TrackerSection() {
   const C = useTheme();
   const [sessions, setSessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ date: "", type: "training", rating: 3, notes: "", goals: "", mood: "😊", duration: "", rpe: 5, sleep: 3, energy: 3, soreness: 3 });
+  const emptyForm = { date: "", type: "training", rating: 3, notes: "", goals: "", mood: "4", duration: "", rpe: 5, sleep: 3, energy: 3, soreness: 3 };
+  const [form, setForm, clearFormDraft] = useDraftState(DRAFT_KEYS.trackerForm, emptyForm);
   const [year, setYear] = useState("Sec 1");
   const [quickType, setQuickType] = useState("training");
   const [quickRating, setQuickRating] = useState(3);
   const exportRef = useRef(null);
 
-  const moods = ["😤", "😔", "😐", "😊", "🔥"];
+  const moods = ["1", "2", "3", "4", "5"];
 
   const addEntry = () => {
     if (!form.date) return;
     const load = (parseInt(form.rpe) || 0) * (parseInt(form.duration) || 0);
     const readinessScore = Math.round(((+form.sleep + +form.energy + (6 - +form.soreness)) / 15) * 100);
-    setSessions(prev => [...prev, { ...form, id: Date.now(), year, load, readinessScore }]);
-    setForm({ date: "", type: "training", rating: 3, notes: "", goals: "", mood: "😊", duration: "", rpe: 5, sleep: 3, energy: 3, soreness: 3 });
+    setSessions(prev => [...prev, stampRecord({ ...form, id: Date.now(), year, load, readinessScore })]);
+    clearFormDraft(emptyForm);
     setShowForm(false);
   };
 
   const quickLog = () => {
     const today = new Date().toISOString().split("T")[0];
-    setSessions(prev => [...prev, { date: today, type: quickType, rating: quickRating, notes: "", goals: "", mood: "😊", id: Date.now(), year, load: 0, readinessScore: null }]);
+    setSessions(prev => [...prev, stampRecord({ date: today, type: quickType, rating: quickRating, notes: "", goals: "", mood: "4", id: Date.now(), year, load: 0, readinessScore: null })]);
   };
 
-  const deleteEntry = (id) => setSessions(prev => prev.filter(e => e.id !== id));
+  const deleteEntry = (id) => {
+    if (!window.confirm("Delete this session entry?")) return;
+    setSessions(prev => prev.filter(e => e.id !== id));
+  };
 
   const yearSessions = sessions.filter(s => s.year === year);
   const avgRating = yearSessions.length ? (yearSessions.reduce((s, e) => s + e.rating, 0) / yearSessions.length).toFixed(1) : "–";
 
+  const draftUpdatedAt = readStorageMeta(DRAFT_KEYS.trackerForm)?.updatedAt;
+  const sessionsMeta = readStorageMeta(STORAGE_KEYS.sessions);
+  const latestAcwr = computeACWR(sessions).slice(-1)[0]?.acwr ?? null;
   const typeColors = { training: C.electric, match: C.gold, fitness: C.success, recovery: C.orange };
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
-      <SectionHeader icon="📊" title="PROGRESS TRACKER" subtitle="Log sessions, track your load and growth from Sec 1 to Sec 4" accent={C.electric} />
+      <SectionHeader icon="" title="SESSION LOG" subtitle="Log sessions, track workload, and monitor performance progression." accent={C.electric} />
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+        <span>Last updated {formatDateTime(sessionsMeta?.updatedAt)}</span>
+        <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
+      </div>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 24 }}>
         {[
-          { label: "Total Sessions", value: sessions.length, icon: "📝", color: C.electric },
-          { label: `${year} Sessions`, value: yearSessions.length, icon: "📅", color: C.gold },
-          { label: "Avg Rating", value: avgRating, icon: "⭐", color: C.success },
-          { label: "Current Year", value: year, icon: "🎓", color: C.orange },
+          { label: "Total sessions", value: sessions.length, icon: "", color: C.electric },
+          { label: `${year} sessions`, value: yearSessions.length, icon: "", color: C.gold },
+          { label: "Average rating", value: avgRating, icon: "", color: C.success },
+          { label: "Current year", value: year, icon: "", color: C.orange },
         ].map((s, i) => (
           <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "18px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
-            <span style={{ fontSize: 22 }}>{s.icon}</span>
+            {s.icon ? <span style={{ fontSize: 22 }}>{s.icon}</span> : null}
             <div style={{ fontFamily: FONT_HEAD, fontSize: 30, color: s.color, marginTop: 6 }}>{s.value}</div>
             <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
           </div>
@@ -2670,15 +3144,18 @@ function TrackerSection() {
         return (
           <Card style={{ marginBottom: 24, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>⚡ TRAINING LOAD — ACWR</div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>TRAINING LOAD - ACWR</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontFamily: FONT_HEAD, fontSize: 22, color: acwrColor }}>{last.acwr.toFixed(2)}</span>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "3px 10px", borderRadius: 6, background: `${acwrColor}15`, color: acwrColor, fontWeight: 700 }}>
-                  {last.acwr > 1.5 ? "⚠️ HIGH RISK" : last.acwr > 1.3 ? "🔶 CAUTION" : last.acwr < 0.8 ? "📉 UNDERTRAINING" : "✅ OPTIMAL"}
+                  {last.acwr > 1.5 ? "HIGH RISK" : last.acwr > 1.3 ? "CAUTION" : last.acwr < 0.8 ? "UNDERLOADED" : "OPTIMAL"}
                 </span>
               </div>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Acute:Chronic Workload Ratio (7-day vs 28-day). Target: 0.8 – 1.3 ✅</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Acute:Chronic Workload Ratio (7-day vs 28-day). Target zone: 0.8 - 1.3.</p>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, lineHeight: 1.6, marginBottom: 14 }}>
+              {getLoadDirective(last.acwr)}
+            </div>
             <div style={{ width: "100%", overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={acwrData} margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
@@ -2710,7 +3187,7 @@ function TrackerSection() {
         return (
           <Card style={{ marginBottom: 24, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>😴 SLEEP & ENERGY TREND</div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>SLEEP AND ENERGY TREND</div>
               <div style={{ display: "flex", gap: 12, fontSize: 11, fontFamily: FONT_BODY }}>
                 <span style={{ color: C.electric }}>— Sleep quality (1–5)</span>
                 <span style={{ color: C.success }}>— Energy (1–5)</span>
@@ -2741,10 +3218,10 @@ function TrackerSection() {
 
       {/* Quick Log */}
       <Card style={{ marginBottom: 16, border: `1px solid ${C.electric}25` }}>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.electric, letterSpacing: 1, marginBottom: 8 }}>⚡ QUICK LOG</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>Log today in 2 taps — no form needed.</p>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.electric, letterSpacing: 1, marginBottom: 8 }}>QUICK ENTRY</div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>Log today quickly when speed matters.</p>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-          {[{type:"training",label:"🏃 Training",color:C.electric},{type:"match",label:"⚽ Match",color:C.gold},{type:"fitness",label:"💪 Fitness",color:C.success},{type:"recovery",label:"🧊 Recovery",color:C.orange}].map(t => (
+          {[{type:"training",label:"Training",color:C.electric},{type:"match",label:"Match",color:C.gold},{type:"fitness",label:"Fitness",color:C.success},{type:"recovery",label:"Recovery",color:C.orange}].map(t => (
             <button key={t.type} onClick={() => setQuickType(t.type)} style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", background: quickType === t.type ? `${t.color}20` : C.navyCard, border: `1px solid ${quickType === t.type ? t.color : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, color: quickType === t.type ? t.color : C.textMid, fontWeight: quickType === t.type ? 700 : 400 }}>{t.label}</button>
           ))}
         </div>
@@ -2754,11 +3231,14 @@ function TrackerSection() {
             <button key={r} onClick={() => setQuickRating(r)} style={{ width: 36, height: 36, borderRadius: 8, cursor: "pointer", background: quickRating >= r ? C.gold : C.navyCard, border: quickRating >= r ? "none" : `1px solid ${C.navyBorder}`, color: quickRating >= r ? C.navy : C.textDim, fontSize: 14, fontWeight: 700 }}>{r}</button>
           ))}
         </div>
-        <GoldButton onClick={quickLog} style={{ width: "100%" }}>Log {quickType.charAt(0).toUpperCase()+quickType.slice(1)} Session ✓</GoldButton>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 12 }}>
+          {getLoadDirective(latestAcwr)}
+        </div>
+        <GoldButton onClick={quickLog} style={{ width: "100%" }}>Save {quickType.charAt(0).toUpperCase()+quickType.slice(1)} Session</GoldButton>
       </Card>
 
       <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm} style={{ width: "100%", marginBottom: 20 }}>
-        {showForm ? "✕ Cancel" : "+ Log Detailed Session"}
+        {showForm ? "Cancel" : "Open Detailed Session Entry"}
       </GoldButton>
 
       {showForm && (
@@ -2817,7 +3297,7 @@ function TrackerSection() {
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Mood After Session</label>
+            <label style={labelStyle}>Session State</label>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               {moods.map(m => (
                 <button key={m} onClick={() => setForm({ ...form, mood: m })} style={{
@@ -2836,16 +3316,17 @@ function TrackerSection() {
             <label style={labelStyle}>Goal for next session</label>
             <input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} placeholder="e.g. Complete 5 successful dribbles" style={inputStyle} />
           </div>
-          <GoldButton onClick={addEntry} style={{ marginTop: 18, width: "100%" }}>Save Entry ✓</GoldButton>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+            Draft autosaves on this device. Updated {formatDateTime(draftUpdatedAt)}.
+          </div>
+          <GoldButton onClick={addEntry} style={{ marginTop: 18, width: "100%" }}>Save Entry</GoldButton>
         </Card>
       )}
 
       {yearSessions.length === 0 ? (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📋</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions logged for {year} yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use the Quick Log above to start — takes 5 seconds. Your first log earns you the <strong style={{ color: C.gold }}>First Touch 🏅</strong> badge.</p>
-          <p style={{ fontFamily: FONT_SERIF, color: C.textDim, fontSize: 13, fontStyle: "italic", marginTop: 12 }}>"What gets measured, gets improved."</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use the quick entry above to start building your performance history.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2862,8 +3343,9 @@ function TrackerSection() {
                     {entry.load > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.orange, background: `${C.orange}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Load: {entry.load}</span>}
                     {entry.readinessScore != null && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger, background: `${entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Ready: {entry.readinessScore}%</span>}
                   </div>
+                  {entry.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(entry.updatedAt)}</div>}
                   {entry.notes && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, marginTop: 2 }}>{entry.notes}</div>}
-                  {entry.goals && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.electric, marginTop: 2 }}>🎯 {entry.goals}</div>}
+                  {entry.goals && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.electric, marginTop: 2 }}>Focus: {entry.goals}</div>}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2877,7 +3359,7 @@ function TrackerSection() {
       </div>
       {sessions.length > 0 && (
         <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-          <ShareSaveBar targetRef={exportRef} filename="nbss-tracker.png" title="My NBSS Training Progress" />
+          <ShareSaveBar targetRef={exportRef} filename="gameplan-tracker.png" title="GamePlan Training Progress" />
         </div>
       )}
     </section>
@@ -2891,37 +3373,46 @@ function WellnessSection() {
   const [logs, setLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [showForm, setShowForm] = useState(false);
   const emptyForm = { date: "", type: "injury", location: "", severity: 2, notes: "", rtp: "", resolved: false };
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm, clearFormDraft] = useDraftState(DRAFT_KEYS.wellnessForm, emptyForm);
 
   const addLog = () => {
     if (!form.date || !form.location) return;
-    setLogs(prev => [...prev, { ...form, id: Date.now() }]);
-    setForm(emptyForm);
+    setLogs(prev => [...prev, stampRecord({ ...form, id: Date.now() })]);
+    clearFormDraft(emptyForm);
     setShowForm(false);
   };
 
-  const toggleResolved = (id) => setLogs(prev => prev.map(l => l.id === id ? { ...l, resolved: !l.resolved } : l));
-  const deleteLog = (id) => setLogs(prev => prev.filter(l => l.id !== id));
+  const toggleResolved = (id) => setLogs(prev => prev.map(l => l.id === id ? stampRecord({ ...l, resolved: !l.resolved }, l) : l));
+  const deleteLog = (id) => {
+    if (!window.confirm("Delete this availability record?")) return;
+    setLogs(prev => prev.filter(l => l.id !== id));
+  };
 
   const active = logs.filter(l => !l.resolved);
   const resolved = logs.filter(l => l.resolved);
+  const draftUpdatedAt = readStorageMeta(DRAFT_KEYS.wellnessForm)?.updatedAt;
+  const logsMeta = readStorageMeta(STORAGE_KEYS.wellnessLog);
 
   const severityLabel = (s) => ["", "Mild — continue training", "Moderate — modify load", "Severe — rest & see physio"][s] || "";
   const severityColor = (s) => [C.textDim, C.success, C.gold, C.danger][s] || C.textDim;
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🩹" title="WELLNESS LOG" subtitle="Track knocks, monitor return-to-play and protect your body long-term" accent={C.orange} />
+      <SectionHeader icon="" title="AVAILABILITY LOG" subtitle="Track issues, return-to-play timelines, and current training status." accent={C.orange} />
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+        <span>Last updated {formatDateTime(logsMeta?.updatedAt)}</span>
+        <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
+      </div>
 
       {/* Info banner */}
       <div style={{ background: `${C.orange}08`, border: `1px solid ${C.orange}25`, borderRadius: 12, padding: "14px 18px", marginBottom: 24, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
-        ⚠️ This log is for your own awareness only. Always tell your coach about injuries — don't train through pain without guidance.
+        This log supports awareness only. Always tell your coach about injuries and do not train through pain without guidance.
       </div>
 
       {/* Active injuries */}
       {active.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.danger, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>🔴 Active / Ongoing</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.danger, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Active</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {active.map(log => (
               <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${severityColor(log.severity)}35`, borderRadius: 14, padding: "16px 20px", borderLeft: `4px solid ${severityColor(log.severity)}` }}>
@@ -2934,10 +3425,11 @@ function WellnessSection() {
                     <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: log.notes ? 6 : 0 }}>
                       Logged: {log.date}{log.rtp ? ` · Est. return: ${log.rtp}` : ""}
                     </div>
+                    {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: 6 }}>Updated {formatDateTime(log.updatedAt)}</div>}
                     {log.notes && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0 }}>{log.notes}</p>}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                    <button onClick={() => toggleResolved(log.id)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: `${C.success}10`, border: `1px solid ${C.success}30`, color: C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Mark resolved ✓</button>
+                    <button onClick={() => toggleResolved(log.id)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.success}10`, border: `1px solid ${C.success}30`, color: C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Mark Resolved</button>
                     <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
                   </div>
                 </div>
@@ -2948,7 +3440,7 @@ function WellnessSection() {
       )}
 
       <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm} style={{ width: "100%", marginBottom: 20 }}>
-        {showForm ? "✕ Cancel" : "+ Log Injury / Knock"}
+        {showForm ? "Cancel" : "Open Availability Entry"}
       </GoldButton>
 
       {/* Log form */}
@@ -2983,23 +3475,27 @@ function WellnessSection() {
             <label style={makeLabelStyle(C)}>Notes (how it happened, what it feels like)</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="e.g. Twisted ankle going for a 50-50, dull ache in outer ankle when running." style={{ ...makeInputStyle(C), height: 70, resize: "vertical", marginTop: 4 }} />
           </div>
-          <GoldButton onClick={addLog} style={{ marginTop: 16, width: "100%" }}>Save Log ✓</GoldButton>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+            Draft autosaves on this device. Updated {formatDateTime(draftUpdatedAt)}.
+          </div>
+          <GoldButton onClick={addLog} style={{ marginTop: 16, width: "100%" }}>Save Log</GoldButton>
         </div>
       )}
 
       {/* Resolved log */}
       {resolved.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>✅ Resolved</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Resolved</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {resolved.map(log => (
               <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, opacity: 0.6 }}>
                 <div>
                   <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: 8 }}>{log.date}</span>
+                  {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(log.updatedAt)}</div>}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => toggleResolved(log.id)} style={{ padding: "4px 12px", borderRadius: 6, cursor: "pointer", background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11 }}>Reopen</button>
+                  <button onClick={() => toggleResolved(log.id)} style={{ padding: "4px 12px", borderRadius: 999, cursor: "pointer", background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11 }}>Reopen</button>
                   <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
                 </div>
               </div>
@@ -3010,8 +3506,7 @@ function WellnessSection() {
 
       {logs.length === 0 && !showForm && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>💪</span>
-          <p style={{ fontFamily: FONT_BODY, color: C.success, fontSize: 15, fontWeight: 600 }}>No injuries logged — keep it that way.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.success, fontSize: 15, fontWeight: 600 }}>No availability issues are currently logged.</p>
           <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use this log if you pick up a knock so you can track your recovery properly.</p>
         </div>
       )}
@@ -3047,13 +3542,13 @@ function SquadSection() {
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
-      <SectionHeader icon="🎮" title="SQUAD MODE" subtitle="Your football career card — earn XP, unlock badges, climb the ranks" accent={C.gold} />
+      <SectionHeader icon="" title="PLAYER PROFILE" subtitle="Identity, development history, and performance progression in one profile." accent={C.gold} />
 
       {/* Player Card */}
       {!hasProfile || editing ? (
         <Card style={{ marginBottom: 24 }}>
           <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 18px", letterSpacing: 1 }}>
-            {editing ? "EDIT PLAYER CARD" : "CREATE YOUR PLAYER CARD"}
+            {editing ? "EDIT PLAYER PROFILE" : "CREATE PLAYER PROFILE"}
           </h3>
 
           {/* Photo upload */}
@@ -3071,12 +3566,12 @@ function SquadSection() {
             </div>
             <div>
               <button onClick={() => photoInputRef.current?.click()} style={{
-                padding: "8px 16px", borderRadius: 8, cursor: "pointer",
+                padding: "8px 16px", borderRadius: 999, cursor: "pointer",
                 background: `${C.gold}15`, border: `1px solid ${C.gold}30`,
                 color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
-              }}>📷 {tempSquad.photo ? "Change Photo" : "Add Photo"}</button>
+              }}>{tempSquad.photo ? "Change Photo" : "Add Photo"}</button>
               {tempSquad.photo && (
-                <button onClick={() => setTempSquad(p => ({ ...p, photo: "" }))} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 8, cursor: "pointer", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12 }}>Remove</button>
+                <button onClick={() => setTempSquad(p => ({ ...p, photo: "" }))} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 999, cursor: "pointer", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12 }}>Remove</button>
               )}
               <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, margin: "6px 0 0" }}>Square photos work best. Stored on your device only.</p>
             </div>
@@ -3131,10 +3626,10 @@ function SquadSection() {
                 </div>
                 <div>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: C.textBright, letterSpacing: 2 }}>{squad.name.toUpperCase()}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>{squad.position || "No position"} · NBSS FC</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>{squad.position || "No position"} · GamePlan</div>
                 </div>
               </div>
-              <button onClick={startEdit} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "8px 18px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600 }}>Edit ✎</button>
+              <button onClick={startEdit} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "8px 18px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600 }}>Edit ✎</button>
             </div>
 
             {/* XP Bar */}
@@ -3195,7 +3690,7 @@ function SquadSection() {
       </div>
       {hasProfile && (
         <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-          <ShareSaveBar targetRef={exportRef} filename="nbss-player-card.png" title={`${squad.name} — NBSS Football Player Card`} />
+          <ShareSaveBar targetRef={exportRef} filename="gameplan-player-card.png" title={`${squad.name} - GamePlan Player Card`} />
         </div>
       )}
     </section>
@@ -3219,7 +3714,7 @@ function BadgeIcon({ legend, size = 28 }) {
   return <>{legend.badge}</>;
 }
 
-const RECIPE_COLORS = { Respect: "#38bdf8", Resilience: "#f97316", Care: "#22c55e", Integrity: "#a855f7", Passion: "#ef4444", Excellence: "#f0b429" };
+const RECIPE_COLORS = { Respect: C.electric, Resilience: C.orange, Care: C.success, Integrity: "#a855f7", Passion: C.danger, Excellence: C.orange };
 
 function getLegendReflectionPrompt(legend) {
   if (!legend) return "";
@@ -3294,7 +3789,7 @@ function LegendsSection() {
               <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.7, margin: "0 0 20px", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
                 Read a legend's story, answer the reflection prompt, and your entry will appear here. Your thoughts are private — only you can see them.
               </p>
-              <button onClick={() => { setTab("global"); setActiveIdx(0); }} style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navy, border: "none", padding: "12px 24px", borderRadius: 10, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>
+              <button onClick={() => { setTab("global"); setActiveIdx(0); }} style={{ background: C.textBright, color: C.navy, border: "none", padding: "12px 24px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>
                 Start with a Legend →
               </button>
             </div>
@@ -3329,7 +3824,7 @@ function LegendsSection() {
                       </div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <button onClick={() => { setTab(isGlobal ? "global" : "sg"); setActiveIdx(isGlobal ? LEGENDS_GLOBAL.findIndex(g => g.name === l.name) : LEGENDS_SG.findIndex(g => g.name === l.name)); setDraft(reflections[l.name] || ""); }} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>
+                      <button onClick={() => { setTab(isGlobal ? "global" : "sg"); setActiveIdx(isGlobal ? LEGENDS_GLOBAL.findIndex(g => g.name === l.name) : LEGENDS_SG.findIndex(g => g.name === l.name)); setDraft(reflections[l.name] || ""); }} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>
                         Edit ✎
                       </button>
                     </div>
@@ -3449,10 +3944,10 @@ function LegendsSection() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <button onClick={saveReflection} disabled={!draft.trim()} style={{
-                      background: draft.trim() ? `linear-gradient(135deg, #a855f7, #9333ea)` : C.surfaceSubtle,
-                      color: draft.trim() ? "#fff" : C.textDim,
-                      border: "none", padding: "10px 20px", borderRadius: 10, cursor: draft.trim() ? "pointer" : "not-allowed",
-                      fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "all 0.2s",
+                      background: draft.trim() ? C.textBright : C.surfaceSubtle,
+                      color: draft.trim() ? C.navy : C.textDim,
+                      border: "none", padding: "10px 20px", borderRadius: 999, cursor: draft.trim() ? "pointer" : "not-allowed",
+                      fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "opacity 0.15s ease",
                     }}>
                       {saved ? "✅ Saved!" : "Save Reflection"}
                     </button>
@@ -3466,8 +3961,8 @@ function LegendsSection() {
               <div style={{ marginTop: 16, padding: "12px 20px", borderRadius: 10, background: C.navyCard, border: `1px solid ${C.navyBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                 <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>Every legend started as someone who just loved kicking a ball around. Your story is still being written. ✍️</p>
                 {journalEntries.length > 0 && (
-                  <button onClick={() => setTab("journal")} style={{ background: `${"#a855f7"}15`, border: `1px solid ${"#a855f7"}30`, color: "#a855f7", padding: "7px 16px", borderRadius: 8, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
-                    📓 View Journal ({journalEntries.length})
+                  <button onClick={() => setTab("journal")} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "7px 16px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+                    View Journal ({journalEntries.length})
                   </button>
                 )}
               </div>
@@ -3528,7 +4023,7 @@ function StoryExportCard({ lineup }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚽</div>
             <div>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>NBSS FOOTBALL</div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>GAMEPLAN</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, letterSpacing: 3, textTransform: "uppercase" }}>Match Lineup</div>
             </div>
           </div>
@@ -3540,7 +4035,7 @@ function StoryExportCard({ lineup }) {
         {/* Match title */}
         <div style={{ background: C.navyCard, borderRadius: 12, padding: "14px 18px", border: `1px solid ${C.navyBorder}` }}>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 30, color: C.textBright, letterSpacing: 1, lineHeight: 1, marginBottom: 10 }}>
-            NBSS FC <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
+            GamePlan <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, background: `${C.gold}12`, padding: "3px 11px", borderRadius: 5, fontWeight: 700 }}>🏆 {lineup.competition}</span>}
@@ -3678,7 +4173,7 @@ function StoryExportCard({ lineup }) {
 
         {/* Footer watermark */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 4 }}>
-          <span style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 2 }}>NBSS FC</span>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 2 }}>GAMEPLAN</span>
           <span style={{ color: C.navyBorder, fontSize: 12 }}>·</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 1 }}>GamePlan</span>
         </div>
@@ -3736,7 +4231,7 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
           <div>
             <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>
-              NBSS FC <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
+              GamePlan <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
             </h3>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
               {lineup.date        && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.navyBorder}` }}>{lineup.date}</span>}
@@ -3776,12 +4271,12 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <GoldButton onClick={onEdit} style={{ fontSize: 12, padding: "8px 16px" }}>Edit ✎</GoldButton>
         <GoldButton secondary onClick={onDuplicate} style={{ fontSize: 12, padding: "8px 16px" }}>Duplicate</GoldButton>
-        <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 8, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
+        <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 999, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: sharing ? "#1a2d45" : "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
+          <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: sharing ? C.navyCard : `${C.electric}15`, border: `1px solid ${C.electric}30`, color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
             {sharing ? "Sharing…" : "↗ Share"}
           </button>
-          <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: saving ? "#1a2d45" : "rgba(240,180,41,0.1)", border: "1px solid rgba(240,180,41,0.25)", color: "#f0b429", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
+          <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: saving ? C.navyCard : `${C.orange}15`, border: `1px solid ${C.orange}30`, color: C.orange, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
             {saving ? "Saving…" : "📸 Save Story"}
           </button>
         </div>
@@ -3789,10 +4284,9 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
       {cardToast && (
         <div style={{
           marginTop: 8, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: FONT_BODY,
-          background: cardToast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
-          border: `1px solid ${cardToast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
+          background: cardToast.type === "error" ? `${C.danger}12` : `${C.success}12`,
+          border: `1px solid ${cardToast.type === "error" ? C.danger : C.success}30`,
           color: cardToast.type === "error" ? C.danger : C.success,
-          animation: "slideIn 0.2s ease",
         }}>{cardToast.msg}</div>
       )}
 
@@ -3833,13 +4327,13 @@ function PreMatchSection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="⚡" title="PRE-MATCH ROUTINE" subtitle="Match day preparation checklist — physical, mental, tactical" accent={C.gold} />
+      <SectionHeader icon="" title="PRE-MATCH ROUTINE" subtitle="Match-day preparation checklist across physical, mental, and tactical readiness." accent={C.gold} />
 
       {/* Readiness meter */}
       <div style={{ background: C.navyCard, border: `1px solid ${allReady ? C.success + "50" : C.navyBorder}`, borderRadius: 16, padding: "20px 24px", marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: allReady ? C.success : C.textBright, letterSpacing: 1 }}>
-            {allReady ? "✅ MATCH READY" : "MATCH READINESS"}
+            {allReady ? "MATCH READY" : "MATCH READINESS"}
           </span>
           <span style={{ fontFamily: FONT_HEAD, fontSize: 26, color: allReady ? C.success : C.gold }}>
             {Math.round((totalChecked / PRE_MATCH_ITEMS.length) * 100)}%
@@ -3879,7 +4373,6 @@ function PreMatchSection() {
                 }}>
                   {checked[item.id] && <span style={{ color: C.navyDeep, fontWeight: 900, fontSize: 14 }}>✓</span>}
                 </div>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
                 <span style={{
                   fontFamily: FONT_BODY, fontSize: 14, color: checked[item.id] ? C.textDim : C.textBright,
                   textDecoration: checked[item.id] ? "line-through" : "none", flex: 1,
@@ -3892,29 +4385,29 @@ function PreMatchSection() {
 
       {/* Match intention */}
       <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25`, borderRadius: 14, padding: "20px 24px", marginTop: 12 }}>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>🎯 MATCH INTENTION</div>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>MATCH INTENTION</div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 12 }}>
           One word or phrase that captures your focus for today's match. Write it and lock it in.
         </p>
         {editIntention ? (
           <div style={{ display: "flex", gap: 8 }}>
             <input value={tempIntention} onChange={e => setTempIntention(e.target.value)} placeholder="e.g. Aggressive. First. Calm." style={{ ...makeInputStyle(C), flex: 1 }} maxLength={40} />
-            <button onClick={() => { setIntention(tempIntention); setEditIntention(false); }} style={{ padding: "10px 18px", borderRadius: 8, cursor: "pointer", background: C.gold, border: "none", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: C.navyDeep }}>Save</button>
+            <button onClick={() => { setIntention(tempIntention); setEditIntention(false); }} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.gold, border: "none", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: C.navyDeep }}>Save</button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.gold, letterSpacing: 2, flex: 1 }}>
               {intention || <span style={{ color: C.textDim, fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic" }}>Not set yet…</span>}
             </div>
-            <button onClick={() => { setTempIntention(intention); setEditIntention(true); }} style={{ padding: "7px 16px", borderRadius: 8, cursor: "pointer", background: `${C.gold}15`, border: `1px solid ${C.gold}30`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            <button onClick={() => { setTempIntention(intention); setEditIntention(true); }} style={{ padding: "7px 16px", borderRadius: 999, cursor: "pointer", background: `${C.gold}15`, border: `1px solid ${C.gold}30`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
               {intention ? "Edit" : "Set Intention"}
             </button>
           </div>
         )}
       </div>
 
-      <p style={{ fontFamily: FONT_SERIF, fontSize: 13, color: C.textDim, textAlign: "center", margin: "28px 0 0", fontStyle: "italic" }}>
-        "Preparation is everything. The match is simply the test of the preparation." — José Mourinho
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, textAlign: "center", margin: "28px 0 0", lineHeight: 1.6 }}>
+        Preparation quality should reduce noise and sharpen the first actions of the match.
       </p>
     </section>
   );
@@ -3933,34 +4426,41 @@ function MatchHistorySection() {
     minutesPlayed: 90, goalsScored: 0, assists: 0, rating: 3,
     scoreFor: "", scoreAgainst: "", notes: "",
   };
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm, clearFormDraft] = useDraftState(DRAFT_KEYS.matchForm, emptyForm);
 
   // Post-match review form (5 guided questions)
-  const [review, setReview] = useState({ q1: "", q2: "", q3: 3, q4: 3, q5: "" });
+  const emptyReview = { q1: "", q2: "", q3: 3, q4: 3, q5: "" };
+  const [review, setReview, clearReviewDraft] = useDraftState(DRAFT_KEYS.matchReview, emptyReview);
 
   const addMatch = () => {
     if (!form.date || !form.opponent) return;
     const id = Date.now();
-    setMatches(prev => [...prev, { ...form, id, review: null }]);
-    setForm(emptyForm);
+    setMatches(prev => [...prev, stampRecord({ ...form, id, review: null })]);
+    clearFormDraft(emptyForm);
     setShowForm(false);
     // Prompt for review immediately
     setShowReview(id);
   };
 
   const saveReview = (id) => {
-    setMatches(prev => prev.map(m => m.id === id ? { ...m, review } : m));
-    setReview({ q1: "", q2: "", q3: 3, q4: 3, q5: "" });
+    setMatches(prev => prev.map(m => m.id === id ? stampRecord({ ...m, review: stampRecord(review, m.review) }, m) : m));
+    clearReviewDraft(emptyReview);
     setShowReview(null);
   };
 
-  const deleteMatch = (id) => setMatches(prev => prev.filter(m => m.id !== id));
+  const deleteMatch = (id) => {
+    if (!window.confirm("Delete this match record?")) return;
+    setMatches(prev => prev.filter(m => m.id !== id));
+  };
 
   // Aggregate stats
   const totalGoals = matches.reduce((s, m) => s + (Number(m.goalsScored) || 0), 0);
   const totalAssists = matches.reduce((s, m) => s + (Number(m.assists) || 0), 0);
   const avgRating = matches.length ? (matches.reduce((s, m) => s + Number(m.rating), 0) / matches.length).toFixed(1) : "–";
   const totalMinutes = matches.reduce((s, m) => s + (Number(m.minutesPlayed) || 0), 0);
+  const matchesMeta = readStorageMeta(STORAGE_KEYS.matchHistory);
+  const matchDraftUpdatedAt = readStorageMeta(DRAFT_KEYS.matchForm)?.updatedAt;
+  const reviewDraftUpdatedAt = readStorageMeta(DRAFT_KEYS.matchReview)?.updatedAt;
 
   const resultColor = (sf, sa) => {
     const f = Number(sf), a = Number(sa);
@@ -3975,20 +4475,24 @@ function MatchHistorySection() {
 
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="📊" title="MATCH HISTORY" subtitle="Record results, track personal stats and review your performances" accent={C.electric} />
+      <SectionHeader icon="" title="MATCH OUTPUT" subtitle="Record results, track output, and review match performance." accent={C.electric} />
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+        <span>Last updated {formatDateTime(matchesMeta?.updatedAt)}</span>
+        <span>Entry draft {matchDraftUpdatedAt ? `active · ${formatDateTime(matchDraftUpdatedAt)}` : "inactive"}</span>
+      </div>
 
       {/* Aggregate stats */}
       {matches.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12, marginBottom: 24 }}>
           {[
-            { label: "Appearances", value: matches.length, icon: "⚽", color: C.electric },
-            { label: "Goals", value: totalGoals, icon: "🎯", color: C.gold },
-            { label: "Assists", value: totalAssists, icon: "🤝", color: C.success },
-            { label: "Minutes", value: totalMinutes, icon: "⏱️", color: C.orange },
-            { label: "Avg Rating", value: avgRating, icon: "⭐", color: C.electric },
+            { label: "Appearances", value: matches.length, icon: "", color: C.electric },
+            { label: "Goals", value: totalGoals, icon: "", color: C.gold },
+            { label: "Assists", value: totalAssists, icon: "", color: C.success },
+            { label: "Minutes", value: totalMinutes, icon: "", color: C.orange },
+            { label: "Avg Rating", value: avgRating, icon: "", color: C.electric },
           ].map((s, i) => (
             <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "16px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
-              <span style={{ fontSize: 20 }}>{s.icon}</span>
+              {s.icon ? <span style={{ fontSize: 20 }}>{s.icon}</span> : null}
               <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: s.color, marginTop: 4 }}>{s.value}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
             </div>
@@ -3997,7 +4501,7 @@ function MatchHistorySection() {
       )}
 
       <GoldButton onClick={() => setShowForm(!showForm)} secondary={showForm} style={{ width: "100%", marginBottom: 20 }}>
-        {showForm ? "✕ Cancel" : "+ Log a Match"}
+        {showForm ? "Cancel" : "Open Match Entry"}
       </GoldButton>
 
       {/* Add match form */}
@@ -4059,14 +4563,17 @@ function MatchHistorySection() {
             <label style={makeLabelStyle(C)}>Notes</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering about this match?" style={{ ...makeInputStyle(C), height: 60, resize: "vertical" }} />
           </div>
-          <GoldButton onClick={addMatch} style={{ marginTop: 16, width: "100%" }}>Save Match → Write Review</GoldButton>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+            Draft autosaves on this device. Updated {formatDateTime(matchDraftUpdatedAt)}.
+          </div>
+          <GoldButton onClick={addMatch} style={{ marginTop: 16, width: "100%" }}>Save Match And Open Review</GoldButton>
         </div>
       )}
 
       {/* Post-match review modal */}
       {showReview && (
         <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}30`, borderRadius: 16, padding: "24px", marginBottom: 24 }}>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.gold, letterSpacing: 1, marginBottom: 4 }}>📝 POST-MATCH REVIEW</div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.gold, letterSpacing: 1, marginBottom: 4 }}>POST-MATCH REVIEW</div>
           <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 20 }}>Five questions. Honest answers. This is how you grow faster than everyone else.</p>
           {[
             { key: "q1", label: "What went well for you personally in this match?", type: "text" },
@@ -4094,9 +4601,12 @@ function MatchHistorySection() {
               )}
             </div>
           ))}
+          <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+            Review draft autosaves on this device. Updated {formatDateTime(reviewDraftUpdatedAt)}.
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <GoldButton onClick={() => saveReview(showReview)} style={{ flex: 1 }}>Save Review ✓</GoldButton>
-            <button onClick={() => setShowReview(null)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Skip for now</button>
+            <button onClick={() => setShowReview(null)} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Skip for now</button>
           </div>
         </div>
       )}
@@ -4104,7 +4614,6 @@ function MatchHistorySection() {
       {/* Match list */}
       {matches.length === 0 ? (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>⚽</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No matches logged yet.</p>
           <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Log your first match above — track goals, assists, result and write your review.</p>
         </div>
@@ -4133,10 +4642,11 @@ function MatchHistorySection() {
                       {m.date}{m.competition ? ` · ${m.competition}` : ""}{m.venue ? ` · ${m.venue}` : ""}
                     </div>
                   </div>
+                  {m.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(m.updatedAt)}</div>}
                   {/* Personal stats */}
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     {Number(m.goalsScored) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>⚽ {m.goalsScored}</span>}
-                    {Number(m.assists) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, background: `${C.success}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>🤝 {m.assists}</span>}
+                    {Number(m.assists) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, background: `${C.success}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>Assists {m.assists}</span>}
                     <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>⏱ {m.minutesPlayed}′</span>
                     <div style={{ display: "flex" }}>{[1,2,3,4,5].map(r => <span key={r} style={{ fontSize: 11, color: Number(m.rating) >= r ? C.gold : C.navyBorder }}>★</span>)}</div>
                     {!m.review && (
@@ -4173,7 +4683,7 @@ function MatchHistorySection() {
 function LineupBuilderSection() {
   const C = useTheme();
   const [lineups, setLineups] = usePersistedState(STORAGE_KEYS.lineups, []);
-  const [current, setCurrent] = useState({ ...EMPTY_MATCH });
+  const [current, setCurrent, clearCurrentDraft] = useDraftState(DRAFT_KEYS.lineupBuilder, { ...EMPTY_MATCH });
   const [viewMode, setViewMode] = useState("builder");
   const [editingId, setEditingId] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== "undefined" ? window.innerWidth : 1280);
@@ -4225,21 +4735,26 @@ function LineupBuilderSection() {
   const saveLineup = () => {
     if (!current.opponent && !current.date) return;
     if (editingId) {
-      setLineups(prev => prev.map(l => l.id === editingId ? { ...current, id: editingId } : l));
+      setLineups(prev => prev.map(l => l.id === editingId ? stampRecord({ ...current, id: editingId }, l) : l));
       setEditingId(null);
     } else {
-      setLineups(prev => [...prev, { ...current, id: Date.now() }]);
+      setLineups(prev => [...prev, stampRecord({ ...current, id: Date.now() })]);
     }
-    setCurrent({ ...EMPTY_MATCH });
+    clearCurrentDraft({ ...EMPTY_MATCH });
     setViewMode("saved");
   };
 
   const loadLineup = (lineup) => { setCurrent({ ...lineup }); setEditingId(lineup.id); setViewMode("builder"); };
-  const deleteLineup = (id) => setLineups(prev => prev.filter(l => l.id !== id));
-  const duplicateLineup = (lineup) => { setLineups(prev => [...prev, { ...lineup, id: Date.now(), date: "", opponent: lineup.opponent + " (copy)" }]); };
+  const deleteLineup = (id) => {
+    if (!window.confirm("Delete this lineup?")) return;
+    setLineups(prev => prev.filter(l => l.id !== id));
+  };
+  const duplicateLineup = (lineup) => { setLineups(prev => [...prev, stampRecord({ ...lineup, id: Date.now(), date: "", opponent: lineup.opponent + " (copy)" })]); };
 
   const filled = current.players.filter(p => p?.trim()).length;
   const subCount = current.subs.filter(s => s?.trim()).length;
+  const lineupsMeta = readStorageMeta(STORAGE_KEYS.lineups);
+  const lineupDraftUpdatedAt = readStorageMeta(DRAFT_KEYS.lineupBuilder)?.updatedAt;
 
   // Drawing layer state
   const [drawMode, setDrawMode] = useState(false);
@@ -4326,19 +4841,19 @@ function LineupBuilderSection() {
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
+        <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
           {drawMode ? "Drawing On - Tap Pitch" : "Draw Tactics"}
         </button>
         {isCompactLayout && !fullscreen && (
-          <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.28)", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+          <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
             {isTabletLayout ? "Expand Pitch" : "Full Screen"}
           </button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
+          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
+          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
         )}
       </div>
 
@@ -4420,11 +4935,15 @@ function LineupBuilderSection() {
 
   return (
     <section style={{ padding: isPhoneLayout ? "88px 16px 64px" : isTabletLayout ? "92px 20px 72px" : "100px 24px 80px", maxWidth: isTabletLayout ? 1120 : 1000, margin: "0 auto" }}>
-      <SectionHeader icon="📋" title="LINEUP BUILDER" subtitle="Plan formations, assign positions, save match lineups" accent={C.electric} />
+      <SectionHeader icon="" title="LINEUP BUILDER" subtitle="Plan formations, assign positions, and save match lineups." accent={C.electric} />
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+        <span>Last updated {formatDateTime(lineupsMeta?.updatedAt)}</span>
+        <span>Autosave draft {lineupDraftUpdatedAt ? `active · ${formatDateTime(lineupDraftUpdatedAt)}` : "inactive"}</span>
+      </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-        <Pill active={viewMode === "builder"} onClick={() => setViewMode("builder")} color={C.electric}>⚙️ Builder</Pill>
-        <Pill active={viewMode === "saved"} onClick={() => setViewMode("saved")} color={C.electric}>📁 Saved ({lineups.length})</Pill>
+        <Pill active={viewMode === "builder"} onClick={() => setViewMode("builder")} color={C.electric}>Builder</Pill>
+        <Pill active={viewMode === "saved"} onClick={() => setViewMode("saved")} color={C.electric}>Saved ({lineups.length})</Pill>
       </div>
 
       {viewMode === "builder" && (
@@ -4443,19 +4962,19 @@ function LineupBuilderSection() {
 
             {/* Draw mode controls */}
             <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
-                {drawMode ? "✏️ Drawing On — Tap Pitch" : "✏️ Draw Tactics"}
+              <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
+                {drawMode ? "Drawing Active" : "Draw Tactics"}
               </button>
               {isCompactLayout && (
-                <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.28)", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+                <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
                   {isTabletLayout ? "Expand Pitch" : "Full Screen"}
                 </button>
               )}
               {drawPaths.length > 0 && (
-                <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>↩ Undo</button>
+                <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
               )}
               {drawPaths.length > 0 && (
-                <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>🗑 Clear</button>
+                <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
               )}
             </div>
 
@@ -4551,6 +5070,9 @@ function LineupBuilderSection() {
               <label style={labelStyle}>Coach's Notes</label>
               <textarea value={current.notes} onChange={e => setCurrent({ ...current, notes: e.target.value })} placeholder="Tactical instructions, key matchups..." style={{ ...inputStyle, height: 70, resize: "vertical" }} />
             </div>
+            <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+              Draft autosaves on this device. Updated {formatDateTime(lineupDraftUpdatedAt)}.
+            </div>
 
             <GoldButton onClick={saveLineup} style={{ width: "100%" }}>
               {editingId ? "Update Lineup ✓" : "Save Lineup ✓"}
@@ -4567,7 +5089,7 @@ function LineupBuilderSection() {
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>TACTICS BOARD</div>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Full-screen pitch for cleaner arrows and easier touches</div>
               </div>
-              <button onClick={() => setIsDrawFullscreen(false)} style={{ padding: "8px 14px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: C.textBright }}>
+              <button onClick={() => setIsDrawFullscreen(false)} style={{ padding: "8px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: C.textBright }}>
                 Close
               </button>
             </div>
@@ -4580,7 +5102,6 @@ function LineupBuilderSection() {
         <>
           {lineups.length === 0 ? (
             <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-              <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📋</span>
               <p style={{ fontFamily: FONT_BODY, color: C.textDim }}>No lineups saved yet.</p>
             </div>
           ) : (
@@ -4775,24 +5296,22 @@ function FootballIQQuiz() {
 
   if (quizState === "intro") return (
     <Card style={{ textAlign: "center", padding: 40 }}>
-      <span style={{ fontSize: 56, display: "block", marginBottom: 16 }}>🧠</span>
       <h3 style={{ fontFamily: FONT_HEAD, fontSize: 32, color: C.textBright, margin: "0 0 8px", letterSpacing: 2 }}>FOOTBALL IQ QUIZ</h3>
       <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: "0 0 6px", lineHeight: 1.5 }}>{QUIZ_QUESTIONS.length} questions on tactics, rules, nutrition, and Singapore football history.</p>
-      {bestScore > 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, fontWeight: 700, margin: "0 0 16px" }}>🏆 Best: {bestScore}/{QUIZ_QUESTIONS.length}</p>}
-      <GoldButton onClick={startQuiz} style={{ marginTop: 24 }}>Start Quiz ⚡</GoldButton>
+      {bestScore > 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, fontWeight: 700, margin: "0 0 16px" }}>Best score: {bestScore}/{QUIZ_QUESTIONS.length}</p>}
+      <GoldButton onClick={startQuiz} style={{ marginTop: 24 }}>Start Quiz</GoldButton>
     </Card>
   );
 
   if (quizState === "results") {
     const pct = Math.round((score / QUIZ_QUESTIONS.length) * 100);
-    const grade = pct >= 90 ? { label: "Football Genius!", emoji: "🐐", color: C.success } :
-                  pct >= 70 ? { label: "Sharp Player", emoji: "⚡", color: C.electric } :
-                  pct >= 50 ? { label: "Getting There", emoji: "📈", color: C.orange } :
-                              { label: "Keep Learning!", emoji: "📚", color: C.danger };
+    const grade = pct >= 90 ? { label: "Elite Understanding", color: C.success } :
+                  pct >= 70 ? { label: "Strong Understanding", color: C.electric } :
+                  pct >= 50 ? { label: "Developing Understanding", color: C.orange } :
+                              { label: "Review Required", color: C.danger };
     return (
       <Card style={{ textAlign: "center" }}>
-        <span style={{ fontSize: 56, display: "block", marginBottom: 12 }}>{grade.emoji}</span>
-        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 8px", letterSpacing: 2 }}>QUIZ COMPLETE!</h3>
+        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 8px", letterSpacing: 2 }}>ASSESSMENT COMPLETE</h3>
         <div style={{ fontFamily: FONT_HEAD, fontSize: 56, color: grade.color, margin: "8px 0" }}>{score}/{QUIZ_QUESTIONS.length}</div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: grade.color, fontWeight: 700, margin: "0 0 4px" }}>{grade.label}</p>
         <div style={{ textAlign: "left", margin: "24px 0", display: "grid", gap: 6, maxHeight: 300, overflowY: "auto" }}>
@@ -4803,7 +5322,7 @@ function FootballIQQuiz() {
             </div>
           ))}
         </div>
-        <GoldButton onClick={startQuiz}>Try Again 🔄</GoldButton>
+        <GoldButton onClick={startQuiz}>Retake Assessment</GoldButton>
       </Card>
     );
   }
@@ -4839,9 +5358,9 @@ function FootballIQQuiz() {
       {showAnswer && (
         <div>
           <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 10, background: selected === q.correct ? `${C.success}06` : `${C.danger}06`, borderLeft: `3px solid ${selected === q.correct ? C.success : C.danger}` }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{selected === q.correct ? "✓ Correct! " : "✗ Not quite. "}{q.explain}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{selected === q.correct ? "Correct. " : "Review this. "}{q.explain}</p>
           </div>
-          <GoldButton onClick={nextQuestion} style={{ marginTop: 14, width: "100%" }}>{currentQ + 1 >= QUIZ_QUESTIONS.length ? "See Results 🏆" : "Next →"}</GoldButton>
+          <GoldButton onClick={nextQuestion} style={{ marginTop: 14, width: "100%" }}>{currentQ + 1 >= QUIZ_QUESTIONS.length ? "View Results" : "Continue"}</GoldButton>
         </div>
       )}
     </Card>
@@ -4873,7 +5392,10 @@ function GoalWall() {
   ];
 
   const toggleGoal = (id) => setGoals(prev => prev.map(g => g.id === id ? { ...g, done: !g.done } : g));
-  const deleteGoal = (id) => setGoals(prev => prev.filter(g => g.id !== id));
+  const deleteGoal = (id) => {
+    if (!window.confirm("Delete this goal?")) return;
+    setGoals(prev => prev.filter(g => g.id !== id));
+  };
 
   const addQuick = () => {
     if (!quick.text.trim()) return;
@@ -4900,12 +5422,12 @@ function GoalWall() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>🎯 GOAL WALL</h3>
+          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>GOALS</h3>
           <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>{completed.length}/{goals.length} completed</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {goals.length > 0 && <ShareSaveBar targetRef={exportRef} filename="nbss-goals.png" title="My NBSS Goal Wall" />}
-          <GoldButton onClick={() => { setShowForm(!showForm); setSmartStep(0); }} secondary={showForm}>{showForm ? "✕ Cancel" : "+ Set a Goal"}</GoldButton>
+          {goals.length > 0 && <ShareSaveBar targetRef={exportRef} filename="gameplan-goals.png" title="GamePlan Goals" />}
+          <GoldButton onClick={() => { setShowForm(!showForm); setSmartStep(0); }} secondary={showForm}>{showForm ? "Cancel" : "Set Goal"}</GoldButton>
         </div>
       </div>
 
@@ -4914,7 +5436,7 @@ function GoalWall() {
         <Card style={{ marginBottom: 24 }}>
           {/* Mode toggle */}
           <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-            {[{ id: "smart", label: "⭐ SMART Goal", desc: "Guided 5-step framework" }, { id: "quick", label: "⚡ Quick Goal", desc: "One line, fast" }].map(m => (
+            {[{ id: "smart", label: "SMART Goal", desc: "Guided 5-step framework" }, { id: "quick", label: "Quick Goal", desc: "One line, fast" }].map(m => (
               <button key={m.id} onClick={() => { setFormMode(m.id); setSmartStep(0); }} style={{
                 flex: 1, padding: "10px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left",
                 background: formMode === m.id ? `${C.gold}15` : C.surfaceSubtle,
@@ -4961,7 +5483,7 @@ function GoalWall() {
                   ))}
                 </div>
               </div>
-              <GoldButton onClick={addQuick} style={{ width: "100%" }}>Add Goal ✓</GoldButton>
+              <GoldButton onClick={addQuick} style={{ width: "100%" }}>Save Goal</GoldButton>
             </>
           )}
 
@@ -4989,15 +5511,15 @@ function GoalWall() {
                       ? <input type="date" value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} style={makeInputStyle(C)} />
                       : <textarea value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} placeholder={step.placeholder} style={{ ...makeInputStyle(C), height: 70, resize: "vertical" }} />
                     }
-                    <p style={{ fontFamily: FONT_SERIF, fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 8 }}>💡 {step.hint}</p>
+                    <p style={{ fontFamily: FONT_SERIF, fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 8 }}>{step.hint}</p>
 
                     <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                       {smartStep > 0 && (
-                        <button onClick={() => setSmartStep(s => s - 1)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>← Back</button>
+                        <button onClick={() => setSmartStep(s => s - 1)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Back</button>
                       )}
                       {smartStep < SMART_STEPS.length - 1
-                        ? <GoldButton onClick={() => setSmartStep(s => s + 1)} style={{ flex: 1 }}>Next →</GoldButton>
-                        : <GoldButton onClick={addSmart} style={{ flex: 1 }}>Save SMART Goal ✓</GoldButton>
+                        ? <GoldButton onClick={() => setSmartStep(s => s + 1)} style={{ flex: 1 }}>Continue</GoldButton>
+                        : <GoldButton onClick={addSmart} style={{ flex: 1 }}>Save SMART Goal</GoldButton>
                       }
                     </div>
                   </div>
@@ -5011,7 +5533,6 @@ function GoalWall() {
       {/* Empty state */}
       {goals.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>🎯</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No goals set yet.</p>
           <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Tap "Set a Goal" and use the SMART framework — it takes 2 minutes and makes the goal 3× more likely to happen.</p>
         </div>
@@ -5051,7 +5572,7 @@ function GoalWall() {
                       )}
                       {goal.actionStep && (
                         <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
-                          <span style={{ color: C.success, fontWeight: 700 }}>⚡ First step: </span>{goal.actionStep}
+                          <span style={{ color: C.success, fontWeight: 700 }}>First step: </span>{goal.actionStep}
                         </div>
                       )}
                     </div>
@@ -5233,13 +5754,13 @@ function ScheduleCard() {
               {s.title || "—"}
             </div>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              {s.time    && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>🕒 {s.time}</span>}
-              {s.teacher && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>👤 {s.teacher}</span>}
-              {s.venue   && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>📍 {s.venue}</span>}
+              {s.time    && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Time {s.time}</span>}
+              {s.teacher && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Staff {s.teacher}</span>}
+              {s.venue   && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Venue {s.venue}</span>}
             </div>
             {s.notes && (
               <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 7, background: `${C.electric}08`, border: `1px solid ${C.electric}15`, fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>
-                📝 {s.notes}
+                Notes: {s.notes}
               </div>
             )}
           </div>
@@ -5253,7 +5774,7 @@ function ScheduleCard() {
       {/* Toolbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>📅 SCHEDULE</div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>SCHEDULE</div>
           {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -5261,20 +5782,20 @@ function ScheduleCard() {
             <button onClick={() => {
               setShowEditUnlock(v => !v);
               setEditError("");
-            }} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            }} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
               Teacher Edit
             </button>
           )}
           <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer"
-            style={{ display: teacherEditUnlocked ? "inline-block" : "none", padding: "7px 14px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-            ✏️ Edit
+            style={{ display: teacherEditUnlocked ? "inline-block" : "none", padding: "7px 14px", borderRadius: 999, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            Edit
           </a>
           {teacherEditUnlocked && (
-            <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
               Lock Edit
             </button>
           )}
-          <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 8, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+          <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 999, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
             {loading ? "Loading…" : "↻ Refresh"}
           </button>
         </div>
@@ -5292,7 +5813,7 @@ function ScheduleCard() {
             placeholder="Teacher password"
             style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13 }}
           />
-          <button type="submit" style={{ padding: "9px 14px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
+          <button type="submit" style={{ padding: "9px 14px", borderRadius: 999, border: "none", background: C.textBright, color: C.navy, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
             Unlock Edit
           </button>
           {editError && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, fontWeight: 700 }}>{editError}</span>}
@@ -5318,7 +5839,7 @@ function ScheduleCard() {
 
       {/* States */}
       {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>Fetching schedule…</div>}
-      {!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>⚠️ {error}</div>}
+{!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>{error}</div>}
 
       {!loading && !error && sessions.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
@@ -5538,20 +6059,20 @@ function ClusterAttendance() {
 
   const btnPrimary = (color = C.gold) => ({
     fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, padding: "10px 18px",
-    borderRadius: 8, border: "none", cursor: "pointer",
-    background: color, color: color === C.gold ? C.navy : C.textBright, transition: "opacity 0.2s",
+    borderRadius: 999, border: "none", cursor: "pointer",
+    background: color, color: color === C.gold ? C.navy : C.textBright, transition: "opacity 0.15s ease",
   });
   const btnGhost = (color = C.electric) => ({
     fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px",
-    borderRadius: 7, border: `1px solid ${color}`, cursor: "pointer",
-    background: "transparent", color, transition: "all 0.2s",
+    borderRadius: 999, border: `1px solid ${color}`, cursor: "pointer",
+    background: "transparent", color, transition: "opacity 0.15s ease",
   });
 
   return (
     <div>
       {/* Sub-nav */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "take", label: "📋 Take Attendance" }, { id: "roster", label: "👥 Manage Roster" }, { id: "summary", label: "📊 Summary" }].map(v => (
+      {[{ id: "take", label: "Attendance" }, { id: "roster", label: "Roster" }, { id: "summary", label: "Summary" }].map(v => (
           <button key={v.id} onClick={() => setView(v.id)} style={{
             ...btnGhost(view === v.id ? C.gold : C.textMid),
             borderColor: view === v.id ? C.gold : C.navyBorder,
@@ -5600,13 +6121,13 @@ function ClusterAttendance() {
           </div>
 
           {/* Search */}
-          <input placeholder="🔍  Search by name, school or jersey #" value={search} onChange={e => setSearch(e.target.value)}
+          <input placeholder="Search by name, school or jersey #" value={search} onChange={e => setSearch(e.target.value)}
             style={{ ...inputStyle, width: "100%", padding: "11px 14px", fontSize: 14, marginBottom: 16, boxSizing: "border-box" }} />
 
           {roster.length === 0 && (
             <Card style={{ textAlign: "center", padding: 32 }}>
               <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>No players in roster yet.</p>
-              <button onClick={() => setView("roster")} style={{ ...btnPrimary(), marginTop: 12 }}>➕ Build Roster First</button>
+              <button onClick={() => setView("roster")} style={{ ...btnPrimary(), marginTop: 12 }}>Build Roster First</button>
             </Card>
           )}
 
@@ -5660,7 +6181,7 @@ function ClusterAttendance() {
 
           {/* Walk-in */}
           <Card style={{ marginTop: 16 }}>
-            <h4 style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.orange, margin: "0 0 12px", letterSpacing: 1 }}>➕ WALK-IN / VISITOR</h4>
+            <h4 style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.orange, margin: "0 0 12px", letterSpacing: 1 }}>WALK-IN / VISITOR</h4>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input placeholder="Player name" value={walkInName} onChange={e => setWalkInName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && addWalkIn()}
@@ -5696,11 +6217,11 @@ function ClusterAttendance() {
                   setRoster(prev => [...prev, ...missing]);
                   showCopyToast(`Added ${missing.length} new player${missing.length === 1 ? "" : "s"} from master list.`, "success");
                 }
-              }} style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.electric}40`, background: `${C.electric}10`, color: C.electric, cursor: "pointer" }}>
-                🔄 Sync Master List
+              }} style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 999, border: `1px solid ${C.electric}40`, background: `${C.electric}10`, color: C.electric, cursor: "pointer" }}>
+                Sync Master List
               </button>
               <button onClick={() => { setShowAddForm(true); setEditId(null); setNewPlayer({ name: "", school: SCHOOLS[0], div: "B Div", year: "", jersey: "", position: "" }); }} style={{ ...btnPrimary() }}>
-                ➕ Add Player
+                Add Player
               </button>
             </div>
           </div>
@@ -5708,7 +6229,7 @@ function ClusterAttendance() {
           {showAddForm && (
             <Card style={{ marginBottom: 20, borderColor: C.gold }}>
               <h4 style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.gold, margin: "0 0 16px", letterSpacing: 1 }}>
-                {editId ? "✏️ EDIT PLAYER" : "➕ NEW PLAYER"}
+                {editId ? "EDIT PLAYER" : "NEW PLAYER"}
               </h4>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
                 <div>
@@ -5810,7 +6331,7 @@ function ClusterAttendance() {
                 </p>
               </div>
               <button onClick={() => copyToClipboard(summaryText())} style={{ ...btnPrimary(C.electric) }}>
-                📋 Copy for SCMobile / WhatsApp
+                Copy for SCMobile / WhatsApp
               </button>
             </div>
             {copyToast && (
@@ -5826,7 +6347,7 @@ function ClusterAttendance() {
             {/* Present */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.success, letterSpacing: 1, marginBottom: 10 }}>
-                ✅ PRESENT — {presentList.length}
+                PRESENT — {presentList.length}
               </div>
               {SCHOOLS.map(school => {
                 const sp = presentList.filter(p => p.school === school);
@@ -5852,7 +6373,7 @@ function ClusterAttendance() {
             {absentList.length > 0 && (
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.danger, letterSpacing: 1, marginBottom: 10 }}>
-                  ❌ ABSENT — {absentList.length}
+                  ABSENT — {absentList.length}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {absentList.map(p => (
@@ -5867,7 +6388,7 @@ function ClusterAttendance() {
 
           {/* Historical log */}
           <Card>
-            <h4 style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, margin: "0 0 12px", letterSpacing: 1 }}>📅 PREVIOUS SESSIONS</h4>
+            <h4 style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, margin: "0 0 12px", letterSpacing: 1 }}>PREVIOUS SESSIONS</h4>
             {Object.keys(attendanceLog).sort().reverse().slice(0, 10).map(date => {
               const ids = attendanceLog[date] || [];
               return (
@@ -6168,7 +6689,7 @@ function AnnouncementBoard() {
       {/* Toolbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>📢 ANNOUNCEMENTS</div>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>ANNOUNCEMENTS</div>
           {lastFetched && (
             <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>
               Last updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -6176,12 +6697,12 @@ function AnnouncementBoard() {
           )}
         </div>
         <button onClick={fetchAnnouncements} disabled={loading} style={{
-          padding: "8px 16px", borderRadius: 8, cursor: loading ? "wait" : "pointer",
+          padding: "8px 16px", borderRadius: 999, cursor: loading ? "wait" : "pointer",
           background: C.navyCard, border: `1px solid ${C.navyBorder}`,
           color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
-          transition: "all 0.2s",
+          transition: "opacity 0.15s ease",
         }}>
-          {loading ? "Loading…" : "↻ Refresh"}
+          {loading ? "Loading..." : "Refresh"}
         </button>
       </div>
 
@@ -6194,13 +6715,12 @@ function AnnouncementBoard() {
 
       {!loading && error && (
         <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6 }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
       {!loading && !error && !nextEvent && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📅</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No upcoming events right now.</p>
           <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for the next training or match.</p>
         </div>
@@ -6273,21 +6793,21 @@ function TeamHubSection() {
   const C = useTheme();
   const [hubTab, setHubTab] = useState("announce");
   const tabs = [
-    { id: "announce",   label: "Announcements", icon: "📢" },
-    { id: "overview",   label: "Overview",      icon: "🏠" },
-    { id: "schedule",   label: "Schedule",      icon: "📅" },
-    { id: "recovery",   label: "Recovery",      icon: "🧊" },
-    { id: "quiz",       label: "Football IQ",   icon: "🧠" },
-    { id: "goals",      label: "Goal Wall",     icon: "🎯" },
-    { id: "attendance", label: "Attendance",    icon: "📋" },
+    { id: "announce",   label: "Announcements", icon: "" },
+    { id: "overview",   label: "Overview",      icon: "" },
+    { id: "schedule",   label: "Schedule",      icon: "" },
+    { id: "recovery",   label: "Recovery",      icon: "" },
+    { id: "quiz",       label: "Football IQ",   icon: "" },
+    { id: "goals",      label: "Goals",         icon: "" },
+    { id: "attendance", label: "Attendance",    icon: "" },
   ];
   return (
     <section style={{ padding: "100px 24px 80px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="🏟️" title="TEAM HUB" subtitle="Everything your CCA team needs in one place" accent={C.electric} />
+      <SectionHeader icon="" title="TEAM OPERATIONS" subtitle="Shared team tools, scheduling, recovery support, and communication." accent={C.electric} />
       <div style={{ display: "flex", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
         {tabs.map(t => (
           <Pill key={t.id} active={hubTab === t.id} onClick={() => setHubTab(t.id)} color={C.electric}>
-            {t.icon} {t.label}
+            {t.label}
           </Pill>
         ))}
       </div>
@@ -6306,11 +6826,682 @@ function TeamHubSection() {
   );
 }
 
+function PlayerDashboardPage({ setActive, profile, sessions }) {
+  const C = useTheme();
+  const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
+  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [nextEvent, setNextEvent] = useState(null);
+  const sorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recent = sorted.slice(0, 5);
+  const last = recent[0] || null;
+  const streak = (() => {
+    if (!sorted.length) return 0;
+    let count = 0;
+    let cur = new Date();
+    cur.setHours(0, 0, 0, 0);
+    for (const s of sorted) {
+      const d = new Date(s.date);
+      d.setHours(0, 0, 0, 0);
+      if (Math.round((cur - d) / 86400000) <= 1) { count++; cur = d; } else break; // contiguous training streak
+    }
+    return count;
+  })();
+  const daysSinceLast = last ? Math.round((new Date() - new Date(last.date)) / 86400000) : null;
+  const avgRating = sessions?.length ? sessions.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) / sessions.length : null;
+  const recentAvg = recent.length ? recent.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) / recent.length : null;
+  const latestReady = sorted.find(s => s.readinessScore != null)?.readinessScore ?? null;
+  const latestSleep = (() => { const s = sorted.find(x => x.sleep != null); return s ? Number(s.sleep) : null; })();
+  const latestEnergy = (() => { const s = sorted.find(x => x.energy != null); return s ? Number(s.energy) : null; })();
+  const completeRecentEntries = recent.filter(s => s.duration && s.rpe && s.sleep && s.energy && s.soreness).length;
+  const compliance = recent.length ? Math.round((completeRecentEntries / recent.length) * 100) : 0;
+  const acwrData = computeACWR(sessions || []);
+  const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
+  const latestACWR = latestLoad?.acwr ?? null;
+  const readinessTrend = sorted
+    .filter(s => s.readinessScore != null)
+    .slice(0, 6)
+    .reverse()
+    .map(s => ({ date: s.date.slice(5), readiness: Number(s.readinessScore) }));
+  const loadTrend = acwrData.slice(-6).map(s => ({ date: s.date.slice(5), acute: s.acute, chronic: s.chronic, acwr: s.acwr }));
+  const { xp } = computeXpAndBadges(sessions || [], growthEntries || []);
+  const level = getLevel(xp);
+  const name = squad.name?.trim() || profile?.name?.trim() || "Player";
+  const position = squad.position?.trim() || profile?.position?.trim() || "Midfielder";
+  const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
+  const availability = activeIssues.some(log => Number(log.severity) >= 3)
+    ? { label: "Unavailable", color: C.danger, note: "High-severity issue on record." }
+    : activeIssues.some(log => Number(log.severity) === 2)
+      ? { label: "Modified", color: C.orange, note: "Load should be adjusted." }
+      : activeIssues.length > 0
+        ? { label: "Available", color: C.gold, note: "Minor issue logged." }
+        : { label: "Available", color: C.success, note: "No active injury constraints." };
+  const currentFocus = last?.goals?.trim() || profile?.firstGoal?.trim() || "Set your next performance objective.";
+  const recommendation = latestReady !== null && latestReady < 60
+    ? "Reduce intensity. Prioritise recovery and keep the next session controlled."
+    : latestACWR !== null && latestACWR > 1.3
+      ? "Load is rising. Protect sleep and avoid unnecessary volume."
+      : daysSinceLast !== null && daysSinceLast >= 3
+        ? "Rebuild momentum with a technical session before chasing intensity."
+        : "You are in a workable zone. Execute the next session with intent.";
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const d = new Date(`${value}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
+  };
+
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then(events => { if (active) setNextEvent(getNextScheduledEvent(events)); })
+      .catch(() => { if (active) setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS)); });
+    return () => { active = false; };
+  }, []);
+
+  const metricCards = [
+    { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "-", note: getReadinessDirective(latestReady), tone: latestReady !== null && latestReady < 60 ? C.danger : C.success },
+    { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: getLoadDirective(latestACWR), tone: C.orange },
+    { label: "Chronic load", value: latestLoad ? latestLoad.chronic : "-", note: latestLoad ? "Use chronic load as the anchor before increasing intensity." : "28-day load unlocks after more complete logging.", tone: C.electric },
+    { label: "Availability", value: availability.label, note: getAvailabilityDirective(activeIssues), tone: availability.color },
+  ];
+
+  return (
+    <section style={{ minHeight: "100vh", padding: "96px 24px 72px", background: C.navy, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, opacity: 0.035, backgroundImage: `linear-gradient(135deg, transparent 0%, transparent 48%, ${C.gold} 49%, transparent 50%)`, backgroundSize: "140px 140px", pointerEvents: "none" }} />
+      <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) minmax(320px, 0.95fr)", gap: 20 }}>
+          <div style={{ borderRadius: 24, padding: 30, background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 58%, ${C.navy} 100%)`, border: `1px solid ${C.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>Player command centre</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Last updated {formatDate(last?.date)}</div>
+            </div>
+            <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 8vw, 88px)", color: C.textBright, margin: 0, lineHeight: 0.9, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{position} · Level {level.level} {level.title}. Readiness, load control, availability, and next actions are prioritised first.</p>
+
+            {/* ── Vital signs: dot-matrix panels ── */}
+            {(latestReady !== null || latestACWR !== null) && (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
+                {latestReady !== null && (
+                  <DotMatrixPanel
+                    label="Readiness"
+                    value={latestReady}
+                    displayValue={`${latestReady}%`}
+                    max={100} segments={10}
+                    zones={[
+                      { from: 0,  to: 60,  color: C.danger  },
+                      { from: 60, to: 75,  color: C.orange  },
+                      { from: 75, to: 100, color: C.success },
+                    ]}
+                    tone={latestReady < 60 ? C.danger : latestReady < 75 ? C.orange : C.success}
+                    compact style={{ flex: "1 1 160px" }}
+                  />
+                )}
+                {latestACWR !== null && (
+                  <DotMatrixPanel
+                    label="ACWR"
+                    value={Math.min(latestACWR / 2, 1) * 100}
+                    displayValue={latestACWR.toFixed(2)}
+                    max={100} segments={10}
+                    zones={[
+                      { from: 0,  to: 40,  color: C.electric },
+                      { from: 40, to: 65,  color: C.success  },
+                      { from: 65, to: 75,  color: C.orange   },
+                      { from: 75, to: 100, color: C.danger   },
+                    ]}
+                    tone={latestACWR < 0.8 ? C.electric : latestACWR <= 1.3 ? C.success : latestACWR <= 1.5 ? C.orange : C.danger}
+                    compact style={{ flex: "1 1 160px" }}
+                  />
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginTop: 24 }}>
+              {metricCards.map((item, idx) => <MetricPanel key={idx} label={item.label} value={item.value} note={item.note} tone={item.tone} compact />)}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 24 }}>
+              <GoldButton onClick={() => setActive("performance")} style={{ minWidth: 150 }}>Performance</GoldButton>
+              <GoldButton onClick={() => setActive("match")} secondary style={{ minWidth: 150 }}>Match</GoldButton>
+            </div>
+          </div>
+
+          <Card style={{ borderRadius: 24, padding: 28, boxShadow: "0 18px 60px rgba(0,0,0,0.22)" }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Decision support</div>
+            <h2 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Today&apos;s guidance</h2>
+            <div style={{ padding: "16px 16px 14px", borderRadius: 16, background: `${C.gold}08`, border: `1px solid ${C.gold}20`, marginBottom: 14 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>Recommendation</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.65 }}>{recommendation}</div>
+            </div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <MetricPanel label="Next session" value={nextEvent ? nextEvent.title : "No schedule"} note={nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Schedule feed unavailable"} tone={C.gold} compact />
+              <MetricPanel label="Current focus" value={currentFocus} note="Primary objective carried into the next session" tone={C.textBright} compact />
+              <MetricPanel label="Compliance" value={`${compliance}%`} note={getComplianceDirective(compliance)} tone={compliance >= 75 ? C.success : compliance >= 50 ? C.gold : C.danger} compact />
+            </div>
+          </Card>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 20 }}>
+          {[
+            { label: "Sessions", value: sessions?.length ?? 0, sub: "Total logged", color: C.gold },
+            { label: "Average rating", value: avgRating !== null ? avgRating.toFixed(1) : "-", sub: "Across all sessions", color: C.electric },
+            { label: "Streak", value: streak || "-", sub: "Current run", color: C.success },
+            { label: "Days since last", value: daysSinceLast !== null ? daysSinceLast : "-", sub: "Training recency", color: C.goldLight },
+            { label: "Sleep", value: latestSleep !== null ? latestSleep : "-", sub: "Latest self-report", color: C.orange },
+            { label: "Energy", value: latestEnergy !== null ? latestEnergy : "-", sub: "Latest self-report", color: C.success },
+          ].map((card, idx) => (
+            <div key={idx} style={{ padding: "18px 16px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${card.color}` }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20, marginTop: 20 }}>
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Load trend</h3>
+              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open performance</button>
+            </div>
+            {loadTrend.length < 2 ? (
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Add at least two sessions with duration and RPE to unlock load trend analysis.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={loadTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <YAxis tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <Line type="monotone" dataKey="acute" stroke={C.orange} strokeWidth={2.4} dot={{ fill: C.orange, r: 3 }} name="Acute" />
+                  <Line type="monotone" dataKey="chronic" stroke={C.electric} strokeWidth={2.4} dot={{ fill: C.electric, r: 3 }} name="Chronic" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recovery trend</h3>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Trend vs recent baseline</div>
+            </div>
+            {readinessTrend.length < 2 ? (
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Track sleep, energy, and soreness to unlock recovery trend analysis.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={readinessTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <ReferenceArea y1={0}  y2={60}  fill={C.danger}  fillOpacity={0.07} />
+                  <ReferenceArea y1={60} y2={75}  fill={C.orange}  fillOpacity={0.06} />
+                  <ReferenceArea y1={75} y2={100} fill={C.success} fillOpacity={0.05} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <ReferenceLine y={75} stroke={C.success} strokeDasharray="4 2" strokeOpacity={0.7} />
+                  <ReferenceLine y={60} stroke={C.danger}  strokeDasharray="4 2" strokeOpacity={0.5} />
+                  <Line type="monotone" dataKey="readiness" stroke={C.success} strokeWidth={2.4} dot={{ fill: C.success, r: 3 }} name="Readiness" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          {/* ── ACWR Sparkline — zone bands ── */}
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>ACWR</h3>
+              <div style={{ display: "flex", gap: 12 }}>
+                {[{ label: "< 0.8 Under", c: C.electric }, { label: "0.8–1.3 Optimal", c: C.success }, { label: "1.3–1.5 Caution", c: C.orange }, { label: "> 1.5 Risk", c: C.danger }].map(z => (
+                  <span key={z.label} style={{ fontFamily: FONT_BODY, fontSize: 10, color: z.c, letterSpacing: 0.3 }}>{z.label}</span>
+                ))}
+              </div>
+            </div>
+            {loadTrend.length < 2 ? (
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Log at least two sessions with RPE and duration to unlock ACWR tracking.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={loadTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <ReferenceArea y1={0}   y2={0.8} fill={C.electric} fillOpacity={0.07} />
+                  <ReferenceArea y1={0.8} y2={1.3} fill={C.success}  fillOpacity={0.06} />
+                  <ReferenceArea y1={1.3} y2={1.5} fill={C.orange}   fillOpacity={0.07} />
+                  <ReferenceArea y1={1.5} y2={2.5} fill={C.danger}   fillOpacity={0.07} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <YAxis domain={[0, 2.5]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <ReferenceLine y={0.8} stroke={C.electric} strokeDasharray="3 2" strokeOpacity={0.5} />
+                  <ReferenceLine y={1.3} stroke={C.orange}   strokeDasharray="3 2" strokeOpacity={0.5} />
+                  <ReferenceLine y={1.5} stroke={C.danger}   strokeDasharray="3 2" strokeOpacity={0.5} />
+                  <Line type="monotone" dataKey="acwr" stroke={C.gold} strokeWidth={2.4} dot={{ fill: C.gold, r: 3 }} name="ACWR" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20, marginTop: 20 }}>
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recent sessions</h3>
+              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open full log</button>
+            </div>
+            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
+          </Card>
+
+          <Card style={{ borderRadius: 20 }}>
+            <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Performance alerts</h3>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[
+                {
+                  tone: activeIssues.some(l => Number(l.severity) >= 3) ? C.danger : activeIssues.some(l => Number(l.severity) === 2) ? C.orange : activeIssues.length ? C.gold : C.success,
+                  label: "Availability",
+                  text: `${availability.label}. ${getAvailabilityDirective(activeIssues)}`,
+                },
+                {
+                  tone: daysSinceLast === null ? C.textDim : daysSinceLast === 0 ? C.success : daysSinceLast >= 3 ? C.orange : C.gold,
+                  label: "Training recency",
+                  text: daysSinceLast === null
+                    ? "No sessions logged yet. Start building your record."
+                    : daysSinceLast === 0
+                      ? "Session logged today. Recover well and prepare the next block."
+                      : `Last session was ${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago. ${daysSinceLast >= 3 ? "Re-establish rhythm before chasing intensity." : "Keep the momentum going."}`,
+                },
+                {
+                  tone: latestACWR === null ? C.textDim : latestACWR > 1.5 ? C.danger : latestACWR > 1.3 ? C.orange : latestACWR < 0.8 ? C.electric : C.success,
+                  label: "Load status",
+                  text: latestACWR !== null ? `ACWR ${latestACWR.toFixed(2)}. ${getLoadDirective(latestACWR)}` : "Log sessions with duration and RPE to unlock load guidance.",
+                },
+                {
+                  tone: compliance >= 75 ? C.success : compliance >= 50 ? C.gold : C.danger,
+                  label: "Data quality",
+                  text: `${compliance}% compliance on recent entries. ${getComplianceDirective(compliance)}`,
+                },
+              ].map((item, idx) => (
+                <div key={idx} style={{ padding: "14px 16px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: item.tone, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>{item.label}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.65 }}>{item.text}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlayerPerformancePage() {
+  const C = useTheme();
+  const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
+  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [profile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", firstGoal: "" });
+
+  const sorted = [...(sessions || [])].filter((entry) => entry?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recent = sorted.slice(0, 5);
+  const last = recent[0] || null;
+  const latestReady = sorted.find((entry) => entry.readinessScore != null)?.readinessScore ?? null;
+  const acwrData = computeACWR(sessions || []);
+  const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
+  const activeIssues = (wellnessLogs || []).filter((log) => !log.resolved);
+  const { xp } = computeXpAndBadges(sessions || [], growthEntries || []);
+  const level = getLevel(xp);
+  const avgRating = sessions?.length ? (sessions.reduce((sum, entry) => sum + (Number(entry.rating) || 0), 0) / sessions.length).toFixed(1) : "-";
+  const compliance = recent.length ? Math.round((recent.filter((entry) => entry.duration && entry.rpe && entry.sleep && entry.energy && entry.soreness).length / recent.length) * 100) : 0;
+  const readinessTrend = sorted.filter((entry) => entry.readinessScore != null).slice(0, 6).reverse().map((entry) => ({ date: entry.date.slice(5), readiness: Number(entry.readinessScore) }));
+  const loadTrend = acwrData.slice(-6).map((entry) => ({ date: entry.date.slice(5), acute: entry.acute, chronic: entry.chronic }));
+  const availability = activeIssues.some((log) => Number(log.severity) >= 3)
+    ? { label: "Unavailable", note: "High-severity issue on record.", tone: C.danger }
+    : activeIssues.some((log) => Number(log.severity) === 2)
+      ? { label: "Modified", note: "Load should be reduced or adjusted.", tone: C.orange }
+      : activeIssues.length
+        ? { label: "Available", note: "Minor issue still needs monitoring.", tone: C.gold }
+        : { label: "Available", note: "No active availability constraints.", tone: C.success };
+  const currentFocus = last?.goals?.trim() || profile?.firstGoal?.trim() || "Set the next performance objective.";
+  const recommendation = latestReady !== null && latestReady < 60
+    ? "Reduce intensity and prioritise recovery work before pushing volume."
+    : latestLoad?.acwr > 1.3
+      ? "Load is climbing. Protect sleep quality and control unnecessary volume."
+      : "You are in a workable zone. Execute the next block with intent and clean data capture.";
+  const playerTrustItems = [
+    { key: STORAGE_KEYS.sessions, label: "Sessions", fallback: [], tone: C.gold },
+    { key: STORAGE_KEYS.wellnessLog, label: "Availability", fallback: [], tone: C.orange },
+    { key: STORAGE_KEYS.matchHistory, label: "Match records", fallback: [], tone: C.electric },
+    { key: STORAGE_KEYS.growthJournal, label: "Development", fallback: [], tone: C.success },
+    { key: STORAGE_KEYS.goals, label: "Goals", fallback: [], tone: C.goldLight },
+    { key: STORAGE_KEYS.profile, label: "Profile", fallback: {}, tone: C.textBright },
+  ];
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
+  };
+
+  return (
+    <PlayerPerformanceSurface
+      theme={C}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      summary={{
+        title: "PERFORMANCE",
+        subtitle: `${squad.position?.trim() || profile?.position?.trim() || "Midfielder"} · Level ${level.level} ${level.title}. Training quality, recovery signals, and performance direction are prioritised first.`,
+        lastUpdated: formatDate(last?.date),
+        metrics: [
+          { label: "Readiness", value: latestReady != null ? `${latestReady}%` : "-", note: getReadinessDirective(latestReady), tone: latestReady != null && latestReady < 60 ? C.danger : C.success },
+          { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: getLoadDirective(latestLoad?.acwr ?? null), tone: C.orange },
+          { label: "Chronic load", value: latestLoad ? latestLoad.chronic : "-", note: latestLoad ? "Use chronic load as the stability anchor before adding spikes." : "28-day trend unlocks after more session logging.", tone: C.electric },
+          { label: "Availability", value: availability.label, note: getAvailabilityDirective(activeIssues), tone: availability.tone },
+          { label: "Compliance", value: `${compliance}%`, note: getComplianceDirective(compliance), tone: compliance >= 75 ? C.success : compliance >= 50 ? C.gold : C.danger },
+          { label: "Session volume", value: sessions.length, note: "Total sessions logged", tone: C.gold },
+          { label: "Average rating", value: avgRating, note: "Across all sessions", tone: C.electric },
+          { label: "Current level", value: level.level, note: level.title, tone: C.goldLight },
+        ],
+        guidance: [
+          { label: "Recommendation", value: recommendation, note: "Generated from readiness, load, and training recency.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          { label: "Recovery action", value: getReadinessDirective(latestReady), note: "Use this before deciding session intensity." },
+          { label: "Current focus", value: currentFocus, note: "This should carry into the next session block." },
+          { label: "Data quality", value: getComplianceDirective(compliance), note: "Better inputs improve the coaching guidance." },
+        ],
+        loadTrend,
+        readinessTrend,
+        recentEntries: recent.map((entry) => ({
+          id: entry.id,
+          title: (entry.type || "Session").toUpperCase(),
+          date: formatDate(entry.date),
+          metrics: [`Rating ${Number(entry.rating || 0).toFixed(1)}`, `Load ${entry.load || "-"}`, `Readiness ${entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}`],
+          note: entry.notes || "",
+          emphasis: entry.goals || "",
+          emphasisTone: C.electric,
+        })),
+        alerts: buildPlayerAlerts({ C, availability, activeIssues, latestLoad, latestReady, readinessTrend, sessions, currentFocus, acwrData }),
+      }}
+      renderSessions={() => <TrackerSection />}
+      renderRecovery={() => (<><WellnessSection /><NutritionSection /></>)}
+      renderDevelopment={() => (<><TrainingSection /><FitnessSection /><MindsetSection /></>)}
+      renderProfile={() => (
+        <>
+          <SquadSection />
+          <LocalTrustPanel
+            theme={C}
+            fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+            title="Local Data Integrity"
+            description="This device stores your performance records locally. Export backups regularly and import them when moving to a new device."
+            storageItems={playerTrustItems}
+          />
+        </>
+      )}
+    />
+  );
+}
+
+function PlayerMatchPage() {
+  const C = useTheme();
+  const [matches] = usePersistedState(STORAGE_KEYS.matchHistory, []);
+  const [nextEvent, setNextEvent] = useState(null);
+  const sorted = [...(matches || [])].filter((match) => match?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recentMatches = sorted.slice(0, 5);
+  const lastMatch = recentMatches[0] || null;
+  const totalGoals = matches.reduce((sum, match) => sum + (Number(match.goalsScored) || 0), 0);
+  const totalAssists = matches.reduce((sum, match) => sum + (Number(match.assists) || 0), 0);
+  const totalMinutes = matches.reduce((sum, match) => sum + (Number(match.minutesPlayed) || 0), 0);
+  const avgRating = matches.length ? (matches.reduce((sum, match) => sum + (Number(match.rating) || 0), 0) / matches.length).toFixed(1) : "-";
+  const ratingTrend = sorted.slice(0, 6).reverse().map((match) => ({ date: match.date.slice(5), rating: Number(match.rating) || 0 }));
+  const resultLabel = (match) => {
+    const scored = Number(match?.scoreFor);
+    const conceded = Number(match?.scoreAgainst);
+    if (Number.isNaN(scored) || Number.isNaN(conceded)) return "No score";
+    if (scored > conceded) return "Win";
+    if (scored < conceded) return "Loss";
+    return "Draw";
+  };
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
+  };
+
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then((events) => {
+        const matchEvents = events.filter((event) => event.type === "Match" || event.type === "Friendly");
+        if (active) setNextEvent(getNextScheduledEvent(matchEvents.length ? matchEvents : events));
+      })
+      .catch(() => {
+        const matchEvents = SEEDED_SCHEDULE_EVENTS.filter((event) => event.type === "Match" || event.type === "Friendly");
+        if (active) setNextEvent(getNextScheduledEvent(matchEvents.length ? matchEvents : SEEDED_SCHEDULE_EVENTS));
+      });
+    return () => { active = false; };
+  }, []);
+
+  const recommendation = nextEvent
+    ? `Preparation window is open for ${nextEvent.title}. Lock in your checklist and intention before match day.`
+    : lastMatch?.review?.q2
+      ? `Carry the latest review point forward: ${lastMatch.review.q2}`
+      : "Use the preparation routine and match log together so output becomes coaching, not memory.";
+  const outputDirective = lastMatch?.review?.q2
+    ? `Next improvement priority: ${lastMatch.review.q2}`
+    : lastMatch
+      ? "Review the last match honestly and carry one clear improvement into the next fixture."
+      : "Log matches and complete the review so your output becomes actionable coaching.";
+
+  return (
+    <PlayerMatchSurface
+      theme={C}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      summary={{
+        title: "MATCH",
+        subtitle: "Preparation, execution review, and match output are organised into one serious workflow.",
+        lastUpdated: formatDate(lastMatch?.date),
+        metrics: [
+          { label: "Next fixture", value: nextEvent ? nextEvent.title : "No fixture", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}. Lock your checklist and intention now.` : "Schedule feed unavailable", tone: C.gold },
+          { label: "Appearances", value: matches.length, note: "Matches logged", tone: C.electric },
+          { label: "Goals", value: totalGoals, note: matches.length ? "Use goals with rating and review quality, not in isolation." : "Total output", tone: C.gold },
+          { label: "Assists", value: totalAssists, note: matches.length ? "Support actions should align with your role and game plan." : "Total support actions", tone: C.success },
+          { label: "Minutes", value: totalMinutes, note: matches.length ? "Availability and trust on match day show up here." : "Total time on pitch", tone: C.orange },
+          { label: "Average rating", value: avgRating, note: outputDirective, tone: C.electric },
+        ],
+        guidance: [
+          { label: "Recommendation", value: recommendation, note: "Driven by upcoming fixtures and latest review notes.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          { label: "Latest result", value: lastMatch ? `${resultLabel(lastMatch)} vs ${lastMatch.opponent}` : "No match record yet.", note: lastMatch ? `${lastMatch.scoreFor || "-"}-${lastMatch.scoreAgainst || "-"} · ${formatDate(lastMatch.date)}` : "Log the first match to start the review cycle." },
+          { label: "Output coaching", value: outputDirective, note: "Every match log should produce one clear next action." },
+          { label: "Latest focus", value: lastMatch?.review?.q5 || "Set a match focus before the next fixture.", note: "Keep the focus narrow enough to carry into the first phase of the match." },
+        ],
+        ratingTrend,
+        recentMatches: recentMatches.map((match) => ({
+          id: match.id,
+          title: `vs ${match.opponent}`,
+          date: formatDate(match.date),
+          metrics: [`${resultLabel(match)} ${match.scoreFor !== "" && match.scoreAgainst !== "" ? `${match.scoreFor}-${match.scoreAgainst}` : ""}`.trim(), `Rating ${Number(match.rating || 0).toFixed(1)}`, `Minutes ${match.minutesPlayed || 0}`],
+          note: match.review?.q1 || match.notes || "",
+          emphasis: match.review?.q2 || "",
+          emphasisTone: C.orange,
+        })),
+      }}
+      renderPreparation={() => <PreMatchSection />}
+      renderHistory={() => <MatchHistorySection />}
+      renderLineups={() => <LineupBuilderSection />}
+      renderNutrition={() => <NutritionSection />}
+    />
+  );
+}
+
+function CoachDashboardPage({ setActive }) {
+  const C = useTheme();
+  const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [matches] = usePersistedState(STORAGE_KEYS.matchHistory, []);
+  const [nextEvent, setNextEvent] = useState(null);
+  const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
+  const availabilityCount = Math.max((roster || []).length - activeIssues.length, 0);
+  const acwrData = computeACWR(sessions || []);
+  const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
+  const recentSessions = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  const lastUpdated = recentSessions[0]?.date || null;
+
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then(events => { if (active) setNextEvent(getNextScheduledEvent(events)); })
+      .catch(() => { if (active) setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS)); });
+    return () => { active = false; };
+  }, []);
+
+  return (
+    <CoachDashboardSurface
+      theme={C}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      summary={{
+        title: "SQUAD BOARD",
+        subtitle: "Operations, athlete availability, and workload direction are prioritised before everything else.",
+        lastUpdated: lastUpdated || "-",
+        metrics: [
+          { label: "Roster", value: (roster || []).length, note: "Players in system", tone: C.gold },
+          { label: "Available", value: availabilityCount, note: "Without active issues", tone: C.success },
+          { label: "Active issues", value: activeIssues.length, note: "Need intervention", tone: activeIssues.length ? C.orange : C.success },
+          { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: "Latest 7-day average", tone: C.electric },
+          { label: "Match records", value: matches.length, note: "Stored outputs", tone: C.orange },
+          { label: "Current ACWR", value: latestLoad ? latestLoad.acwr.toFixed(2) : "-", note: "Latest load ratio", tone: latestLoad?.acwr > 1.3 ? C.orange : C.success },
+        ],
+        guidance: [
+          { label: "Next session", value: nextEvent ? nextEvent.title : "No schedule", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Schedule feed unavailable", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          { label: "Recommendation", value: squadDirective, note: "This recommendation updates from current availability constraints." },
+          { label: "Load coaching", value: loadDirective, note: latestLoad ? `Current ACWR ${latestLoad.acwr.toFixed(2)}.` : "Use consistent load capture to unlock this view." },
+        ],
+        watchlist: activeIssues.map((log) => ({
+          id: log.id,
+          title: log.location,
+          date: log.date || "-",
+          metrics: [log.rtp ? `Estimated return ${log.rtp}` : "Return date not set"],
+          note: log.notes || "Availability issue logged.",
+          emphasis: `Severity ${log.severity || "-"}`,
+          emphasisTone: Number(log.severity) >= 3 ? C.danger : C.orange,
+        })),
+        loadTrend: acwrData.slice(-6).map((entry) => ({ date: entry.date.slice(5), acute: entry.acute, chronic: entry.chronic })),
+      }}
+      renderActions={() => (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          <GoldButton onClick={() => setActive("squad")} style={{ minWidth: 150 }}>Squad</GoldButton>
+          <GoldButton onClick={() => setActive("operations")} secondary style={{ minWidth: 150 }}>Operations</GoldButton>
+        </div>
+      )}
+    />
+  );
+}
+
+function CoachSquadPage() {
+  const C = useTheme();
+  const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
+  return (
+    <CoachSquadSurface
+      theme={C}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      summary={{
+        title: "SQUAD",
+        subtitle: "Availability, roster status, and attendance access are organised into one surface.",
+        lastUpdated: activeIssues[0]?.date || "-",
+        metrics: [
+          { label: "Roster size", value: (roster || []).length, note: "Players currently stored", tone: C.gold },
+          { label: "Active issues", value: activeIssues.length, note: "Availability constraints", tone: activeIssues.length ? C.orange : C.success },
+          { label: "Available", value: Math.max((roster || []).length - activeIssues.length, 0), note: "Estimated available athletes", tone: C.success },
+        ],
+        guidance: [
+          { label: "Recommendation", value: getAvailabilityDirective(activeIssues), note: "Use the attendance view to lock the operational picture.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+        ],
+        watchlist: activeIssues.map((log) => ({
+          id: log.id,
+          title: log.location,
+          date: log.date || "-",
+          metrics: [log.rtp ? `Estimated return ${log.rtp}` : "Return date not set"],
+          note: log.notes || "Availability issue logged.",
+        })),
+      }}
+      renderAttendance={() => (
+        <TeacherAttendanceGate>
+          <ClusterAttendance />
+        </TeacherAttendanceGate>
+      )}
+    />
+  );
+}
+
+function CoachOperationsPage() {
+  const C = useTheme();
+  const [lineups] = usePersistedState(STORAGE_KEYS.lineups, []);
+  const [scheduleEvents, setScheduleEvents] = useState([]);
+  const [nextEvent, setNextEvent] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then((events) => {
+        if (!active) return;
+        setScheduleEvents(events);
+        setNextEvent(getNextScheduledEvent(events));
+        setLastFetched(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      })
+      .catch(() => {
+        if (!active) return;
+        setScheduleEvents(SEEDED_SCHEDULE_EVENTS);
+        setNextEvent(getNextScheduledEvent(SEEDED_SCHEDULE_EVENTS));
+        setLastFetched(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      });
+    return () => { active = false; };
+  }, []);
+
+  return (
+    <CoachOperationsSurface
+      theme={C}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      summary={{
+        title: "OPERATIONS",
+        subtitle: "Schedule control, lineups, and outbound communication stay inside one operational surface.",
+        lastUpdated: lastFetched || "-",
+        metrics: [
+          { label: "Next event", value: nextEvent ? nextEvent.title : "No schedule", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}. Confirm staff, venue, and comms.` : "Schedule feed unavailable", tone: C.gold },
+          { label: "Schedule items", value: scheduleEvents.length, note: "Current loaded events", tone: C.electric },
+          { label: "Saved lineups", value: lineups.length, note: lineups.length ? "Stored tactical plans ready for selection review." : "Stored tactical plans", tone: C.orange },
+        ],
+        guidance: [
+          { label: "Recommendation", value: nextEvent ? `Prepare operations for ${nextEvent.title} next.` : "Load the schedule and confirm the next operational milestone.", note: "Use schedule, lineups, and announcements together for cleaner execution.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          { label: "Selection readiness", value: lineups.length ? `${lineups.length} lineup plans are saved and available for review.` : "No lineup plan is saved yet.", note: "A saved plan should exist before the next match block." },
+        ],
+        scheduleHighlights: [
+          { label: "Schedule status", value: nextEvent ? `${nextEvent.title} is the next priority.` : "No upcoming event is available in the current feed.", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Refresh the schedule feed if needed." },
+          { label: "Lineup readiness", value: lineups.length ? `${lineups.length} saved lineup plans are available.` : "No lineup plan is saved yet.", note: "Store at least one live lineup plan before the next match block." },
+        ],
+        recentOutputs: lineups.slice(-3).reverse().map((lineup) => ({
+          id: lineup.id,
+          title: lineup.opponent || "Lineup",
+          date: lineup.date || "-",
+          metrics: [lineup.formation || "Formation not set", `${(lineup.players || []).filter((player) => (player || "").trim()).length}/11 starters`],
+          note: lineup.notes || "",
+        })),
+      }}
+      renderSchedule={() => <ScheduleCard />}
+      renderLineups={() => <LineupBuilderSection />}
+      renderAnnouncements={() => (
+        <>
+          <AnnouncementBoard />
+          <LocalTrustPanel
+            theme={C}
+            fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+            title="Operations Backup"
+            description="Operational records are stored on this device. Export backups before device changes and import them to restore coach-side data."
+            storageItems={coachTrustItems}
+          />
+        </>
+      )}
+    />
+  );
+}
+
 // ══════════════════════════════════════════════════
 //  MAIN APP
 // ══════════════════════════════════════════════════
 export default function App() {
-  const [active, setActive] = useState("home");
+  const [active, setActive] = useState("dashboard");
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", onboarded: false });
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [isDark, setIsDark] = useState(() => {
@@ -6328,6 +7519,14 @@ export default function App() {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [active]);
 
+  const isCoach = profile?.role === "coach";
+  const navItems = isCoach ? COACH_PRIMARY_NAV : PLAYER_PRIMARY_NAV;
+  const validRouteIds = navItems.map(item => item.id);
+
+  useEffect(() => {
+    if (!validRouteIds.includes(active)) setActive("dashboard");
+  }, [active, validRouteIds]);
+
   const handleOnboardingComplete = (data) => {
     setProfile(data);
   };
@@ -6336,7 +7535,7 @@ export default function App() {
     <ThemeContext.Provider value={theme}>
       {!profile?.onboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital@0;1&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
@@ -6353,7 +7552,7 @@ export default function App() {
         ::-webkit-scrollbar-thumb { background: ${theme.navyBorder}; border-radius: 2px; }
 
         input, select, textarea { color-scheme: ${isDark ? "dark" : "light"}; }
-        input:focus, select:focus, textarea:focus { border-color: ${theme.gold} !important; }
+        input:focus, select:focus, textarea:focus { border-color: ${theme.textMid} !important; }
         input::placeholder, textarea::placeholder { color: ${theme.textDim}; }
 
         @keyframes pulse {
@@ -6386,14 +7585,16 @@ export default function App() {
         }
       `}</style>
 
-      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} />
+      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} navItems={navItems} roleLabel={isCoach ? "Coach" : "Player"} />
 
-      {active === "home"     && <PerformanceHome setActive={setActive} profile={profile} sessions={sessions} />}
-      {active === "train"    && <TrainGroup />}
-      {active === "match"    && <MatchGroup />}
-      {active === "progress" && <ProgressGroup profile={profile} setActive={setActive} />}
-      {active === "culture"  && <LegendsSection />}
-      {active === "hub"      && <TeamHubSection />}
+      {!isCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} profile={profile} sessions={sessions} />}
+      {!isCoach && active === "performance" && <PlayerPerformancePage />}
+      {!isCoach && active === "match" && <PlayerMatchPage />}
+
+      {isCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} />}
+      {isCoach && active === "squad" && <CoachSquadPage />}
+      {isCoach && active === "operations" && <CoachOperationsPage />}
+      {isCoach && active === "hub" && <TeamHubSection />}
 
       <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
