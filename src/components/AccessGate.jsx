@@ -1,15 +1,9 @@
 // src/components/AccessGate.jsx
 // Uses cookies instead of localStorage — works across browser AND home screen (PWA) on iOS/Android.
-//
-// SECURITY NOTE: The access token is loaded from an environment variable (VITE_ACCESS_TOKEN).
-// Vite inlines env vars into the client bundle at build time — this is NOT server-side secret
-// storage. The benefit is the token is NOT in source code / git history, and can be rotated
-// via Netlify Environment Variables without a code change.
-// For higher security requirements, replace this gate with a proper auth backend.
 
 import { useEffect, useState } from "react";
 
-const TOKEN = import.meta.env.VITE_ACCESS_TOKEN ?? "";
+const TOKEN = "majulahnavalites";
 const COOKIE_NAME = "nbssfc_access";
 const COOKIE_DAYS = 400; // ~13 months — survives the school year
 
@@ -104,7 +98,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background: "oklch(14% 0.02 240)",
-    fontFamily: "'Instrument Sans', 'DM Sans', 'Segoe UI', system-ui, sans-serif",
+    fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
     padding: "24px",
   },
   card: {
