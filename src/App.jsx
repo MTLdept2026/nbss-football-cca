@@ -326,6 +326,9 @@ const ATTENDANCE_TEACHER_PASSWORD = import.meta.env.VITE_TEACHER_PASSWORD ?? "";
 const ATTENDANCE_TEACHER_SESSION_KEY = "nbss-attendance-teacher-access";
 const STORAGE_META_SUFFIX = "__meta";
 
+// Increment this to force all existing users through the onboarding flow again.
+const PROFILE_VERSION = 2;
+
 function buildMetaForValue(value) {
   return {
     updatedAt: new Date().toISOString(),
@@ -1644,10 +1647,10 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
 
   return (
     <div style={{
-      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 990,
-      overflow: "hidden", height: 38,
+      position: "fixed", top: 64, left: 0, right: 0, zIndex: 990,
+      overflow: "hidden", height: 36,
       background: C.navy,
-      borderTop: `1px solid ${C.navyBorder}`,
+      borderBottom: `2px solid ${C.orange}`,
       display: "flex", alignItems: "center",
     }}>
       {/* Left fade */}
@@ -1666,7 +1669,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "0 20px",
             fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
-            color: item.color || C.gold, letterSpacing: 0.3,
+            color: C.orange, letterSpacing: 0.3,
           }}>
             <span style={{ fontSize: 14 }}>{item.icon}</span>
             <span>{item.text}</span>
@@ -5835,7 +5838,7 @@ function ScheduleCard() {
               if (editError) setEditError("");
             }}
             placeholder="Teacher password"
-            style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13 }}
+            style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13, WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
           />
           <button type="submit" style={{ padding: "9px 14px", borderRadius: 999, border: "none", background: C.textBright, color: C.navy, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
             Unlock Edit
@@ -6510,7 +6513,7 @@ function TeacherAttendanceGate({ children }) {
       </p>
       <form onSubmit={unlockAttendance} style={{ display: "grid", gap: 14, maxWidth: 420 }}>
         <div>
-          <label style={labelStyle}>Teacher Password</label>
+          <label style={makeLabelStyle(C)}>Teacher Password</label>
           <input
             type="password"
             value={password}
@@ -6519,7 +6522,11 @@ function TeacherAttendanceGate({ children }) {
               if (error) setError("");
             }}
             placeholder="Enter password"
-            style={inputStyle}
+            style={{
+              ...makeInputStyle(C),
+              WebkitTextFillColor: C.textBright,
+              caretColor: C.textBright,
+            }}
           />
         </div>
         {error && (
@@ -6943,13 +6950,45 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
     <section style={{ minHeight: "100vh", padding: "96px 24px 88px", background: C.navy, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, opacity: 0.035, backgroundImage: `linear-gradient(135deg, transparent 0%, transparent 48%, ${C.gold} 49%, transparent 50%)`, backgroundSize: "140px 140px", pointerEvents: "none" }} />
       <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
+
+        {/* ── FC NBSS Club identity strip ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+          {/* Crest badge */}
+          <div style={{
+            width: 48, height: 48, borderRadius: 8, flexShrink: 0,
+            background: C.navyCard, border: `1px solid ${C.navyBorder}`,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+          }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: 9, color: C.orange, letterSpacing: "0.1em", textTransform: "uppercase" }}>FC</span>
+            <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: "0.06em", lineHeight: 1 }}>NBSS</span>
+          </div>
+          <div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
+          </div>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(320px, 0.95fr)", gap: 20 }}>
           <div style={{ borderRadius: 24, padding: 30, background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 58%, ${C.navy} 100%)`, border: `1px solid ${C.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>Player command centre</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Last updated {formatDate(last?.date)}</div>
             </div>
-            <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 8vw, 88px)", color: C.textBright, margin: 0, lineHeight: 0.9, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
+
+            {/* ── Player photo + name row ── */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 18, flexWrap: "wrap" }}>
+              {squad.photo ? (
+                <div style={{
+                  width: isMobile ? 64 : 80, height: isMobile ? 64 : 80,
+                  borderRadius: 12, flexShrink: 0, overflow: "hidden",
+                  border: `2px solid ${C.orange}`,
+                }}>
+                  <img src={squad.photo} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ) : null}
+              <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 8vw, 88px)", color: C.textBright, margin: 0, lineHeight: 0.9, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
+            </div>
+
             <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{position} · Level {level.level} {level.title}. Readiness, load control, availability, and next actions are prioritised first.</p>
 
             {/* ── Vital signs: dot-matrix panels ── */}
@@ -7379,10 +7418,28 @@ function CoachDashboardPage({ setActive }) {
     return () => { active = false; };
   }, []);
 
+  const clubBadge = (
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: 8, flexShrink: 0,
+        background: C.navyCard, border: `1px solid ${C.navyBorder}`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+      }}>
+        <span style={{ fontFamily: FONT_SERIF, fontSize: 9, color: C.orange, letterSpacing: "0.1em", textTransform: "uppercase" }}>FC</span>
+        <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: "0.06em", lineHeight: 1 }}>NBSS</span>
+      </div>
+      <div>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
+        <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
+      </div>
+    </div>
+  );
+
   return (
     <CoachDashboardSurface
       theme={C}
       fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      clubBadge={clubBadge}
       summary={{
         title: "SQUAD BOARD",
         subtitle: "Operations, athlete availability, and workload direction are prioritised before everything else.",
@@ -7551,6 +7608,15 @@ export default function App() {
     });
   };
 
+  // Force re-onboarding whenever PROFILE_VERSION is bumped.
+  // Preserves existing data but resets the onboarded flag so the user sees the new flow.
+  useEffect(() => {
+    if (profile.version !== PROFILE_VERSION) {
+      setProfile(prev => ({ ...prev, onboarded: false, version: PROFILE_VERSION }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [active]);
 
   const isCoach = profile?.role === "coach";
@@ -7576,7 +7642,7 @@ export default function App() {
   }, [active, validRouteIds]);
 
   const handleOnboardingComplete = (data) => {
-    setProfile(data);
+    setProfile({ ...data, version: PROFILE_VERSION });
   };
 
   return (
@@ -7593,7 +7659,7 @@ export default function App() {
           font-family: ${FONT_BODY};
           -webkit-font-smoothing: antialiased;
           transition: background 0.3s ease, color 0.3s ease;
-          padding-bottom: 38px;
+          padding-top: 36px;
         }
 
         ::-webkit-scrollbar { width: 4px; }

@@ -338,9 +338,10 @@ export function PlayerMatchSurface({ theme, fonts, summary, renderPreparation, r
   );
 }
 
-export function CoachDashboardSurface({ theme, fonts, summary, renderActions }) {
+export function CoachDashboardSurface({ theme, fonts, summary, renderActions, clubBadge }) {
   return (
     <SurfaceShell theme={theme}>
+      {clubBadge && <div style={{ marginBottom: 20 }}>{clubBadge}</div>}
       <HeroPanel
         theme={theme}
         headFont={fonts.head}
