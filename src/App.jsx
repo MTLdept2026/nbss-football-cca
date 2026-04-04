@@ -3562,6 +3562,7 @@ function WellnessSection() {
 // ══════════════════════════════════════════════════
 function SquadSection() {
   const C = useTheme();
+  const isMobile = useIsMobile();
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
   const [squad, setSquad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
@@ -3623,8 +3624,8 @@ function SquadSection() {
             <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div><label style={labelStyle}>Name</label><input value={tempSquad.name} onChange={e => setTempSquad({ ...tempSquad, name: e.target.value })} placeholder="Your name" style={inputStyle} /></div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ gridColumn: isMobile ? "1 / -1" : undefined }}><label style={labelStyle}>Name</label><input value={tempSquad.name} onChange={e => setTempSquad({ ...tempSquad, name: e.target.value })} placeholder="Your name" style={inputStyle} /></div>
             <div><label style={labelStyle}>Position</label>
               <select value={tempSquad.position} onChange={e => setTempSquad({ ...tempSquad, position: e.target.value })} style={inputStyle}>
                 <option value="">Select</option><option value="GK">Goalkeeper</option><option value="CB">Centre Back</option><option value="LB">Left Back</option><option value="RB">Right Back</option><option value="CDM">Defensive Mid</option><option value="CM">Central Mid</option><option value="CAM">Attacking Mid</option><option value="LW">Left Wing</option><option value="RW">Right Wing</option><option value="ST">Striker</option>
@@ -3647,24 +3648,40 @@ function SquadSection() {
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                {/* Avatar / jersey number */}
+                {/* Avatar / jersey number — tappable to change photo */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{
-                    width: 80, height: 80, borderRadius: 20, overflow: "hidden",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`,
-                    border: `2px solid ${C.gold}40`,
-                    fontFamily: FONT_HEAD, fontSize: 38, color: C.gold,
-                  }}>
-                    {squad.photo
-                      ? <img src={squad.photo} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : (squad.number || "?")}
-                  </div>
+                  <button
+                    onClick={startEdit}
+                    title="Change photo"
+                    style={{
+                      display: "block", padding: 0, border: "none", background: "none", cursor: "pointer",
+                      borderRadius: 20, position: "relative",
+                    }}
+                  >
+                    <div style={{
+                      width: 80, height: 80, borderRadius: 20, overflow: "hidden",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`,
+                      border: `2px solid ${C.gold}40`,
+                      fontFamily: FONT_HEAD, fontSize: 38, color: C.gold,
+                    }}>
+                      {squad.photo
+                        ? <img src={squad.photo} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : (squad.number || "?")}
+                    </div>
+                    {/* Camera edit badge — always visible */}
+                    <div style={{
+                      position: "absolute", bottom: -4, right: -4, width: 24, height: 24,
+                      borderRadius: "50%", background: C.navyCard, border: `2px solid ${C.navyBorder}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 11, lineHeight: 1,
+                    }}>✎</div>
+                  </button>
                   {squad.photo && squad.number && (
                     <div style={{
-                      position: "absolute", bottom: -6, right: -6, width: 26, height: 26,
-                      borderRadius: 8, background: C.gold, display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: FONT_HEAD, fontSize: 13, color: C.navyDeep,
+                      position: "absolute", top: -6, left: -6, width: 22, height: 22,
+                      borderRadius: 6, background: C.gold, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: FONT_HEAD, fontSize: 11, color: C.navyDeep,
                       border: `2px solid ${C.navyDeep}`,
                     }}>{squad.number}</div>
                   )}
@@ -4909,7 +4926,7 @@ function LineupBuilderSection() {
           position: "relative",
           width: "100%",
           ...(fullscreen
-            ? { height: isTabletLayout ? "calc(100vh - 210px)" : "calc(100vh - 220px)", minHeight: isTabletLayout ? 560 : 440, maxHeight: isTabletLayout ? 980 : 820 }
+            ? { aspectRatio: "100/140", maxHeight: isTabletLayout ? "calc(100vh - 210px)" : "calc(100vh - 220px)", minHeight: isTabletLayout ? 400 : 320 }
             : { paddingBottom: pitchAspectRatio }),
           background: "linear-gradient(180deg, #0a4a0a 0%, #0d5a0d 50%, #0a4a0a 100%)",
           borderRadius: 14,
@@ -5127,7 +5144,7 @@ function LineupBuilderSection() {
       )}
 
       {viewMode === "builder" && isCompactLayout && isDrawFullscreen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(5,15,30,0.98)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 80px)", overflowY: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: C.navy === "#000000" ? "rgba(5,15,30,0.98)" : `${C.navy}F9`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 80px)", overflowY: "auto" }}>
           <div style={{ width: "100%", maxWidth: isTabletLayout ? 920 : 620, margin: "0 auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <div>
@@ -6993,20 +7010,9 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
       <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* ── FC NBSS Club identity strip ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-          {/* Crest badge */}
-          <div style={{
-            width: 48, height: 48, borderRadius: 8, flexShrink: 0,
-            background: C.navyCard, border: `1px solid ${C.navyBorder}`,
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
-          }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 9, color: C.orange, letterSpacing: "0.1em", textTransform: "uppercase" }}>FC</span>
-            <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: "0.06em", lineHeight: 1 }}>NBSS</span>
-          </div>
-          <div>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
-            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
+          <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(320px, 0.95fr)", gap: 20 }}>
@@ -7463,19 +7469,9 @@ function CoachDashboardPage({ setActive }) {
   const loadDirective = getLoadDirective(latestLoad?.acwr ?? null);
 
   const clubBadge = (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 8, flexShrink: 0,
-        background: C.navyCard, border: `1px solid ${C.navyBorder}`,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
-      }}>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 9, color: C.orange, letterSpacing: "0.1em", textTransform: "uppercase" }}>FC</span>
-        <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: "0.06em", lineHeight: 1 }}>NBSS</span>
-      </div>
-      <div>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
-        <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
-      </div>
+    <div>
+      <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
     </div>
   );
 
