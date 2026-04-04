@@ -3292,13 +3292,13 @@ function TrackerSection() {
       {showForm && (
         <Card style={{ marginBottom: 20 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div><label style={labelStyle}>Date</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={inputStyle} /></div>
-            <div><label style={labelStyle}>Type</label>
-              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+            <div><label style={makeLabelStyle(C)}>Date</label><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={makeInputStyle(C)} /></div>
+            <div><label style={makeLabelStyle(C)}>Type</label>
+              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={makeInputStyle(C)}>
                 <option value="training">Training</option><option value="match">Match</option><option value="fitness">Fitness Test</option><option value="recovery">Recovery</option>
               </select>
             </div>
-            <div><label style={labelStyle}>Duration (minutes)</label><input type="number" min="0" max="300" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 90" style={inputStyle} /></div>
+            <div><label style={makeLabelStyle(C)}>Duration (minutes)</label><input type="number" min="0" max="300" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 90" style={makeInputStyle(C)} /></div>
             <div>
               <label style={labelStyle}>RPE — effort 1–10 (load = RPE × mins)</label>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -3316,7 +3316,7 @@ function TrackerSection() {
             <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.electric, letterSpacing: 1, marginBottom: 10 }}>READINESS CHECK-IN</div>
             {[{key:"sleep",label:"Sleep quality last night",inverse:false},{key:"energy",label:"Energy level right now",inverse:false},{key:"soreness",label:"Body soreness (lower = better)",inverse:true}].map(({key,label,inverse}) => (
               <div key={key} style={{ marginBottom: 10 }}>
-                <label style={{ ...labelStyle, marginBottom: 4 }}>{label}</label>
+                <label style={{ ...makeLabelStyle(C), marginBottom: 4 }}>{label}</label>
                 <div style={{ display: "flex", gap: 6 }}>
                   {[1,2,3,4,5].map(v => {
                     const isActive = form[key] === v;
@@ -3331,7 +3331,7 @@ function TrackerSection() {
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Performance Rating</label>
+            <label style={makeLabelStyle(C)}>Performance Rating</label>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               {[1,2,3,4,5].map(r => (
                 <button key={r} onClick={() => setForm({ ...form, rating: r })} style={{
@@ -3345,7 +3345,7 @@ function TrackerSection() {
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Session State</label>
+            <label style={makeLabelStyle(C)}>Session State</label>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               {moods.map(m => (
                 <button key={m} onClick={() => setForm({ ...form, mood: m })} style={{
@@ -3357,12 +3357,12 @@ function TrackerSection() {
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Reflections</label>
-            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="What went well? What to improve?" style={{ ...inputStyle, height: 70, resize: "vertical" }} />
+            <label style={makeLabelStyle(C)}>Reflections</label>
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="What went well? What to improve?" style={{ ...makeInputStyle(C), height: 70, resize: "vertical" }} />
           </div>
           <div style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Goal for next session</label>
-            <input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} placeholder="e.g. Complete 5 successful dribbles" style={inputStyle} />
+            <label style={makeLabelStyle(C)}>Goal for next session</label>
+            <input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} placeholder="e.g. Complete 5 successful dribbles" style={makeInputStyle(C)} />
           </div>
           <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
             Draft autosaves on this device. Updated {formatDateTime(draftUpdatedAt)}.
