@@ -1495,7 +1495,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
 
           {/* Hamburger — mobile only */}
           <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: 11, letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4 }}>
-            {open ? "[ X ]" : "[ ≡ ]"}
+            {open ? "[ X ]" : "[ = ]"}
           </button>
         </div>
 
