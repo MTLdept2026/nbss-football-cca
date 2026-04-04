@@ -464,6 +464,7 @@ const PLAYER_PRIMARY_NAV = [
   { id: "performance", label: "Performance" },
   { id: "match",       label: "Match" },
   { id: "hub",         label: "Hub" },
+  { id: "profile",     label: "Profile" },
 ];
 
 const COACH_PRIMARY_NAV = [
@@ -6969,12 +6970,12 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
   const position = squad.position?.trim() || profile?.position?.trim() || "Midfielder";
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
   const availability = activeIssues.some(log => Number(log.severity) >= 3)
-    ? { label: "Unavailable", color: C.danger, note: "High-severity issue on record." }
+    ? { label: "Unavailable", short: "OUT", color: C.danger, note: "High-severity issue on record." }
     : activeIssues.some(log => Number(log.severity) === 2)
-      ? { label: "Modified", color: C.orange, note: "Load should be adjusted." }
+      ? { label: "Modified", short: "MOD", color: C.orange, note: "Load should be adjusted." }
       : activeIssues.length > 0
-        ? { label: "Available", color: C.gold, note: "Minor issue logged." }
-        : { label: "Available", color: C.success, note: "No active injury constraints." };
+        ? { label: "Available", short: "OK", color: C.gold, note: "Minor issue logged." }
+        : { label: "Available", short: "OK", color: C.success, note: "No active injury constraints." };
   const currentFocus = last?.goals?.trim() || profile?.firstGoal?.trim() || "Set your next performance objective.";
   const recommendation = latestReady !== null && latestReady < 60
     ? "Reduce intensity. Prioritise recovery and keep the next session controlled."
@@ -6997,11 +6998,59 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
     return () => { active = false; };
   }, []);
 
+  // ── Greeting & personalisation ──
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = name.split(" ")[0];
+  const readinessTone = latestReady !== null ? (latestReady < 60 ? C.danger : latestReady < 75 ? C.orange : C.success) : C.textDim;
+
+  // Days until next event
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const daysUntil = nextEvent?.date
+    ? Math.max(0, Math.round((new Date(`${nextEvent.date}T00:00:00`) - todayStart) / 86400000))
+    : null;
+  const isMatchEvent = nextEvent?.type === "Match" || nextEvent?.type === "Friendly";
+
+  // Smart checklist — auto-checked from existing data
+  const today = new Date().toISOString().slice(0, 10);
+  const readinessLoggedToday = sorted.some(s => s.date === today && s.readinessScore != null);
+  const sessionLoggedToday = sorted.some(s => s.date === today);
+  const focusSet = !!(last?.goals?.trim() || profile?.firstGoal?.trim());
+  const checklist = [
+    {
+      label: "Log readiness",
+      done: readinessLoggedToday,
+      note: readinessLoggedToday ? `Logged at ${latestReady}%` : "Rate sleep, energy and soreness",
+      action: "performance",
+    },
+    {
+      label: "Check availability status",
+      done: activeIssues.length === 0,
+      note: activeIssues.length
+        ? `${activeIssues.length} active issue${activeIssues.length > 1 ? "s" : ""} — flag to coach`
+        : "No active issues",
+      action: "performance",
+    },
+    {
+      label: isMatchEvent ? "Set match intention" : "Set session focus",
+      done: focusSet,
+      note: focusSet ? currentFocus.slice(0, 48) + (currentFocus.length > 48 ? "…" : "") : isMatchEvent ? "One clear goal for the game" : "One thing to improve today",
+      action: isMatchEvent ? "match" : "performance",
+    },
+    ...(isMatchEvent ? [
+      { label: "Review lineup", done: false, note: "Check position, role and instructions", action: "match" },
+      { label: "Nutrition & hydration", done: false, note: "Pre-match meal done, 2L water target", action: null },
+    ] : [
+      { label: "Log this session", done: sessionLoggedToday, note: sessionLoggedToday ? "Session entry complete" : "Complete after training", action: "performance" },
+      { label: "Review your load", done: latestLoad !== null, note: latestLoad ? `Acute ${latestLoad.acute} · Chronic ${latestLoad.chronic}` : "Log sessions with duration + RPE", action: "performance" },
+    ]),
+  ];
+
   const metricCards = [
     { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "-", note: getReadinessDirective(latestReady), tone: latestReady !== null && latestReady < 60 ? C.danger : C.success },
     { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: getLoadDirective(latestACWR), tone: C.orange },
     { label: "Chronic load", value: latestLoad ? latestLoad.chronic : "-", note: latestLoad ? "Use chronic load as the anchor before increasing intensity." : "28-day load unlocks after more complete logging.", tone: C.electric },
-    { label: "Availability", value: availability.label, note: getAvailabilityDirective(activeIssues), tone: availability.color },
+    { label: "Availability", value: availability.short, note: `${availability.label}. ${getAvailabilityDirective(activeIssues)}`, tone: availability.color },
   ];
 
   return (
@@ -7009,94 +7058,156 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
       <div style={{ position: "absolute", inset: 0, opacity: 0.035, backgroundImage: `linear-gradient(135deg, transparent 0%, transparent 48%, ${C.gold} 49%, transparent 50%)`, backgroundSize: "140px 140px", pointerEvents: "none" }} />
       <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
-        {/* ── FC NBSS Club identity strip ── */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
-          <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
-        </div>
+        {/* ── GREETING HERO ── */}
+        <div style={{
+          borderRadius: 24, padding: isMobile ? "22px 20px" : "28px 32px", marginBottom: 16,
+          background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 100%)`,
+          border: `1px solid ${C.gold}20`,
+          boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
+        }}>
+          <div style={{ display: "flex", gap: isMobile ? 16 : 24, alignItems: "center" }}>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(320px, 0.95fr)", gap: 20 }}>
-          <div style={{ borderRadius: 24, padding: 30, background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 58%, ${C.navy} 100%)`, border: `1px solid ${C.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>Player command centre</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Last updated {formatDate(last?.date)}</div>
-            </div>
+            {/* Profile photo — circle, border colour = availability */}
+            <button onClick={() => setActive("profile")} title="Edit profile"
+              style={{ padding: 0, border: "none", background: "none", cursor: "pointer", flexShrink: 0, position: "relative" }}>
+              <div style={{
+                width: isMobile ? 80 : 100, height: isMobile ? 80 : 100,
+                borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                border: `3px solid ${availability.color}`,
+                background: `${availability.color}18`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {squad.photo
+                  ? <img src={squad.photo} alt={firstName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span style={{ fontFamily: FONT_HEAD, fontSize: isMobile ? 26 : 34, color: availability.color, letterSpacing: 1 }}>
+                      {name.slice(0, 2).toUpperCase()}
+                    </span>
+                }
+              </div>
+              <div style={{
+                position: "absolute", bottom: 2, right: 2, width: 22, height: 22,
+                borderRadius: "50%", background: C.navyCard, border: `2px solid ${C.navyBorder}`,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10,
+              }}>✎</div>
+            </button>
 
-            {/* ── Player photo + name row ── */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 18, flexWrap: "wrap" }}>
-              {squad.photo ? (
-                <div style={{
-                  width: isMobile ? 64 : 80, height: isMobile ? 64 : 80,
-                  borderRadius: 12, flexShrink: 0, overflow: "hidden",
-                  border: `2px solid ${C.orange}`,
-                }}>
-                  <img src={squad.photo} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-              ) : null}
-              <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 8vw, 88px)", color: C.textBright, margin: 0, lineHeight: 0.9, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
-            </div>
-
-            <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{position} · Level {level.level} {level.title}. Readiness, load control, availability, and next actions are prioritised first.</p>
-
-            {/* ── Vital signs: dot-matrix panels ── */}
-            {(latestReady !== null || latestACWR !== null) && (
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
+            {/* Greeting + status badges */}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+                FC NBSS · {position} · Lvl {level.level}
+              </div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(22px, 5vw, 38px)", color: C.textBright, letterSpacing: "0.03em", lineHeight: 1.1, marginBottom: 10 }}>
+                {greeting}, {firstName}.
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${availability.color}15`, border: `1px solid ${availability.color}40`, color: availability.color, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  {availability.label}
+                </span>
                 {latestReady !== null && (
-                  <DotMatrixPanel
-                    label="Readiness"
-                    value={latestReady}
-                    displayValue={`${latestReady}%`}
-                    max={100} segments={10}
-                    zones={[
-                      { from: 0,  to: 60,  color: C.danger  },
-                      { from: 60, to: 75,  color: C.orange  },
-                      { from: 75, to: 100, color: C.success },
-                    ]}
-                    tone={latestReady < 60 ? C.danger : latestReady < 75 ? C.orange : C.success}
-                    compact style={{ flex: "1 1 160px" }}
-                  />
+                  <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${readinessTone}15`, border: `1px solid ${readinessTone}40`, color: readinessTone, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    Readiness {latestReady}%
+                  </span>
                 )}
-                {latestACWR !== null && (
-                  <DotMatrixPanel
-                    label="ACWR"
-                    value={Math.min(latestACWR / 2, 1) * 100}
-                    displayValue={latestACWR.toFixed(2)}
-                    max={100} segments={10}
-                    zones={[
-                      { from: 0,  to: 40,  color: C.electric },
-                      { from: 40, to: 65,  color: C.success  },
-                      { from: 65, to: 75,  color: C.orange   },
-                      { from: 75, to: 100, color: C.danger   },
-                    ]}
-                    tone={latestACWR < 0.8 ? C.electric : latestACWR <= 1.3 ? C.success : latestACWR <= 1.5 ? C.orange : C.danger}
-                    compact style={{ flex: "1 1 160px" }}
-                  />
+                {streak > 1 && (
+                  <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${C.success}12`, border: `1px solid ${C.success}35`, color: C.success, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    {streak} session streak
+                  </span>
                 )}
               </div>
+            </div>
+
+            {/* Last updated — top right, desktop only */}
+            {!isMobile && (
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, flexShrink: 0, alignSelf: "flex-start" }}>
+                Updated {formatDate(last?.date)}
+              </div>
             )}
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginTop: 24 }}>
-              {metricCards.map((item, idx) => <MetricPanel key={idx} label={item.label} value={item.value} note={item.note} tone={item.tone} compact />)}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 24 }}>
-              <GoldButton onClick={() => setActive("performance")} style={{ minWidth: 150 }}>Performance</GoldButton>
-              <GoldButton onClick={() => setActive("match")} secondary style={{ minWidth: 150 }}>Match</GoldButton>
-            </div>
           </div>
+        </div>
 
-          <Card style={{ borderRadius: 24, padding: 28, boxShadow: "0 18px 60px rgba(0,0,0,0.22)" }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Decision support</div>
-            <h2 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Today&apos;s guidance</h2>
-            <div style={{ padding: "16px 16px 14px", borderRadius: 16, background: `${C.gold}08`, border: `1px solid ${C.gold}20`, marginBottom: 14 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>Recommendation</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.65 }}>{recommendation}</div>
+        {/* ── NEXT UP + CHECKLIST ── */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 16 }}>
+
+          {/* Next up */}
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>Next up</div>
+            {nextEvent ? (
+              <>
+                {/* Urgency badge */}
+                {daysUntil !== null && (
+                  <div style={{ display: "inline-block", marginBottom: 10, padding: "4px 10px", borderRadius: 999,
+                    background: daysUntil === 0 ? `${C.danger}15` : daysUntil <= 2 ? `${C.orange}12` : `${C.gold}10`,
+                    border: `1px solid ${daysUntil === 0 ? C.danger : daysUntil <= 2 ? C.orange : C.gold}35`,
+                  }}>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
+                      color: daysUntil === 0 ? C.danger : daysUntil <= 2 ? C.orange : C.gold,
+                      fontWeight: 700,
+                    }}>
+                      {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+                    </span>
+                  </div>
+                )}
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1.2, marginBottom: 8 }}>
+                  {nextEvent.title}
+                </div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>
+                  {nextEvent.date}{nextEvent.time ? ` · ${nextEvent.time}` : ""}
+                </div>
+                {nextEvent.venue && (
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4 }}>{nextEvent.venue}</div>
+                )}
+                <button onClick={() => setActive("hub")} style={{ marginTop: 14, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11, padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
+                  Full schedule →
+                </button>
+              </>
+            ) : (
+              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.6 }}>
+                No upcoming event scheduled.
+                <button onClick={() => setActive("hub")} style={{ display: "block", marginTop: 12, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11, padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
+                  Check schedule →
+                </button>
+              </div>
+            )}
+          </Card>
+
+          {/* Smart checklist */}
+          <Card style={{ borderRadius: 20 }}>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+              Before {isMatchEvent ? "match day" : "training"}
             </div>
-            <div style={{ display: "grid", gap: 12 }}>
-              <MetricPanel label="Next session" value={nextEvent ? nextEvent.title : "No schedule"} note={nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Schedule feed unavailable"} tone={C.gold} compact />
-              <MetricPanel label="Current focus" value={currentFocus} note="Primary objective carried into the next session" tone={C.textBright} compact />
-              <MetricPanel label="Compliance" value={`${compliance}%`} note={getComplianceDirective(compliance)} tone={compliance >= 75 ? C.success : compliance >= 50 ? C.gold : C.danger} compact />
+            <div style={{ display: "grid", gap: 10 }}>
+              {checklist.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => item.action && setActive(item.action)}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "none", border: "none", padding: "6px 0", cursor: item.action ? "pointer" : "default", textAlign: "left", width: "100%" }}
+                >
+                  {/* Checkbox */}
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                    background: item.done ? `${C.success}20` : "transparent",
+                    border: `2px solid ${item.done ? C.success : C.navyBorder}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, color: C.success, lineHeight: 1,
+                  }}>{item.done ? "✓" : ""}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: item.done ? C.textDim : C.textBright, fontWeight: item.done ? 400 : 600, textDecoration: item.done ? "line-through" : "none" }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.4, marginTop: 1 }}>
+                      {item.note}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           </Card>
+        </div>
+
+        {/* ── RECOMMENDATION ── */}
+        <div style={{ padding: "14px 18px", borderRadius: 14, background: `${C.gold}08`, border: `1px solid ${C.gold}20`, marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.gold, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Today&apos;s recommendation</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.65 }}>{recommendation}</div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 20 }}>
@@ -7269,12 +7380,12 @@ function PlayerPerformancePage() {
   const readinessTrend = sorted.filter((entry) => entry.readinessScore != null).slice(0, 6).reverse().map((entry) => ({ date: entry.date.slice(5), readiness: Number(entry.readinessScore) }));
   const loadTrend = acwrData.slice(-6).map((entry) => ({ date: entry.date.slice(5), acute: entry.acute, chronic: entry.chronic }));
   const availability = activeIssues.some((log) => Number(log.severity) >= 3)
-    ? { label: "Unavailable", note: "High-severity issue on record.", tone: C.danger }
+    ? { label: "Unavailable", short: "OUT", note: "High-severity issue on record.", tone: C.danger }
     : activeIssues.some((log) => Number(log.severity) === 2)
-      ? { label: "Modified", note: "Load should be reduced or adjusted.", tone: C.orange }
+      ? { label: "Modified", short: "MOD", note: "Load should be reduced or adjusted.", tone: C.orange }
       : activeIssues.length
-        ? { label: "Available", note: "Minor issue still needs monitoring.", tone: C.gold }
-        : { label: "Available", note: "No active availability constraints.", tone: C.success };
+        ? { label: "Available", short: "OK", note: "Minor issue still needs monitoring.", tone: C.gold }
+        : { label: "Available", short: "OK", note: "No active availability constraints.", tone: C.success };
   const currentFocus = last?.goals?.trim() || profile?.firstGoal?.trim() || "Set the next performance objective.";
   const recommendation = latestReady !== null && latestReady < 60
     ? "Reduce intensity and prioritise recovery work before pushing volume."
@@ -7307,7 +7418,7 @@ function PlayerPerformancePage() {
           { label: "Readiness", value: latestReady != null ? `${latestReady}%` : "-", note: getReadinessDirective(latestReady), tone: latestReady != null && latestReady < 60 ? C.danger : C.success },
           { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: getLoadDirective(latestLoad?.acwr ?? null), tone: C.orange },
           { label: "Chronic load", value: latestLoad ? latestLoad.chronic : "-", note: latestLoad ? "Use chronic load as the stability anchor before adding spikes." : "28-day trend unlocks after more session logging.", tone: C.electric },
-          { label: "Availability", value: availability.label, note: getAvailabilityDirective(activeIssues), tone: availability.tone },
+          { label: "Availability", value: availability.short, note: `${availability.label}. ${getAvailabilityDirective(activeIssues)}`, tone: availability.tone },
           { label: "Compliance", value: `${compliance}%`, note: getComplianceDirective(compliance), tone: compliance >= 75 ? C.success : compliance >= 50 ? C.gold : C.danger },
           { label: "Session volume", value: sessions.length, note: "Total sessions logged", tone: C.gold },
           { label: "Average rating", value: avgRating, note: "Across all sessions", tone: C.electric },
@@ -7411,7 +7522,7 @@ function PlayerMatchPage() {
         subtitle: "Preparation, execution review, and match output are organised into one serious workflow.",
         lastUpdated: formatDate(lastMatch?.date),
         metrics: [
-          { label: "Next fixture", value: nextEvent ? nextEvent.title : "No fixture", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}. Lock your checklist and intention now.` : "Schedule feed unavailable", tone: C.gold },
+          { label: "Next fixture", value: nextEvent ? (nextEvent.date ? nextEvent.date.slice(5).replace("-", "/") : "TBD") : "—", note: nextEvent ? `${nextEvent.title}${nextEvent.time ? ` · ${nextEvent.time}` : ""}. Lock your checklist and intention now.` : "Schedule feed unavailable", tone: C.gold },
           { label: "Appearances", value: matches.length, note: "Matches logged", tone: C.electric },
           { label: "Goals", value: totalGoals, note: matches.length ? "Use goals with rating and review quality, not in isolation." : "Total output", tone: C.gold },
           { label: "Assists", value: totalAssists, note: matches.length ? "Support actions should align with your role and game plan." : "Total support actions", tone: C.success },
@@ -7758,6 +7869,7 @@ export default function App() {
       {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage />}
       {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
       {!effectiveIsCoach && active === "hub" && <TeamHubSection />}
+      {!effectiveIsCoach && active === "profile" && <SquadSection />}
 
       {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} />}
       {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
