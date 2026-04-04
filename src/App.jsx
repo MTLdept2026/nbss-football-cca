@@ -1398,7 +1398,7 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 //  NAVBAR
 // ══════════════════════════════════════════════════
-function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "" }) {
+function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
   const C = useTheme();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -1419,20 +1419,35 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
       transition: "border-color 0.2s ease",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        {/* Logo — flat monochrome mark, no gradient, no shadow */}
-        <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "none", border: "none" }} onClick={() => setActive("dashboard")}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 4,
-            background: C.textBright,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontFamily: FONT_SERIF, letterSpacing: "0.08em",
-            color: C.navy, fontWeight: 400,
-          }}>GP</div>
-          <div>
-            <div style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
-            {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
-          </div>
-        </button>
+        {/* Logo + coach/player toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "none", border: "none" }} onClick={() => setActive("dashboard")}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 4,
+              background: C.textBright,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontFamily: FONT_SERIF, letterSpacing: "0.08em",
+              color: C.navy, fontWeight: 400,
+            }}>GP</div>
+            <div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
+              {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
+            </div>
+          </button>
+          {/* Coach ↔ Player view toggle — only for coach accounts */}
+          {isCoach && onToggleView && (
+            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
+              <button
+                onClick={() => { onToggleView(false); }}
+                style={{ padding: "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >Coach</button>
+              <button
+                onClick={() => { onToggleView(true); }}
+                style={{ padding: "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >Player</button>
+            </div>
+          )}
+        </div>
 
         {/* Right side: Instagram link, theme toggle + hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1645,18 +1660,21 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   // Double items for seamless loop
   const doubled = [...items, ...items];
 
+  // Bright orange bg always; text contrast flips with theme
+  const TICKER_BG = "#FF6200";
+  const tickerText = C.navy === "#000000" ? "#FFFFFF" : "#000000";
+
   return (
     <div style={{
       position: "fixed", top: 64, left: 0, right: 0, zIndex: 990,
       overflow: "hidden", height: 36,
-      background: C.navy,
-      borderBottom: `2px solid ${C.orange}`,
+      background: TICKER_BG,
       display: "flex", alignItems: "center",
     }}>
       {/* Left fade */}
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to right, ${C.navy}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to right, ${TICKER_BG}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
       {/* Right fade */}
-      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to left, ${C.navy}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(to left, ${TICKER_BG}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
 
       <div style={{
         display: "inline-flex", alignItems: "center",
@@ -1669,7 +1687,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "0 20px",
             fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
-            color: C.orange, letterSpacing: 0.3,
+            color: tickerText, letterSpacing: 0.3,
           }}>
             <span style={{ fontSize: 14 }}>{item.icon}</span>
             <span>{item.text}</span>
@@ -7729,26 +7747,16 @@ export default function App() {
         }
       `}</style>
 
-      <Navbar active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme} navItems={navItems} roleLabel={effectiveIsCoach ? "Coach" : "Player"} />
+      <Navbar
+        active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme}
+        navItems={navItems} roleLabel={effectiveIsCoach ? "Coach" : "Player"}
+        isCoach={isCoach} viewAsPlayer={viewAsPlayer}
+        onToggleView={(asPlayer) => { setViewAsPlayer(asPlayer); setActive("dashboard"); }}
+      />
 
       {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
       <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
-      {/* ── Coach view-as-player toggle strip ── */}
-      {isCoach && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "0 16px 0", marginBottom: -8 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, borderRadius: 999, overflow: "hidden" }}>
-            <button
-              onClick={() => { setViewAsPlayer(false); setActive("dashboard"); }}
-              style={{ padding: "5px 16px", border: "none", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: !viewAsPlayer ? theme.textBright : "transparent", color: !viewAsPlayer ? theme.navy : theme.textDim, transition: "all 0.15s" }}
-            >Coach View</button>
-            <button
-              onClick={() => { setViewAsPlayer(true); setActive("dashboard"); }}
-              style={{ padding: "5px 16px", border: "none", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: viewAsPlayer ? theme.textBright : "transparent", color: viewAsPlayer ? theme.navy : theme.textDim, transition: "all 0.15s" }}
-            >Player View</button>
-          </div>
-        </div>
-      )}
 
       {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} profile={profile} sessions={sessions} />}
       {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage />}
@@ -7761,7 +7769,7 @@ export default function App() {
       {effectiveIsCoach && active === "hub" && <TeamHubSection />}
 
       <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
           <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>· Performance and Development Platform</span>
