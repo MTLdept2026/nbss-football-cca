@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, PlayerMatchSurface, PlayerPerformanceSurface } from "./components/PremiumExperience";
 import LocalTrustPanel from "./components/LocalTrustPanel";
@@ -1401,6 +1402,7 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
   const C = useTheme();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -1440,12 +1442,12 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
             <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
               <button
                 onClick={() => { onToggleView(false); }}
-                style={{ padding: "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >Coach</button>
+                style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >{isMobile ? "C" : "Coach"}</button>
               <button
                 onClick={() => { onToggleView(true); }}
-                style={{ padding: "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >Player</button>
+                style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >{isMobile ? "P" : "Player"}</button>
             </div>
           )}
         </div>
@@ -7752,6 +7754,11 @@ export default function App() {
   const [viewAsPlayer, setViewAsPlayer] = useState(false);
   const theme = isDark ? DARK_C : LIGHT_C;
 
+  // PWA update detection
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
+    onRegistered(r) { r && setInterval(() => r.update(), 60 * 60 * 1000); },
+  });
+
   const toggleTheme = () => {
     setIsDark(d => {
       const next = !d;
@@ -7802,6 +7809,31 @@ export default function App() {
   return (
     <ThemeContext.Provider value={theme}>
       {!profile?.onboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
+
+      {/* PWA update banner */}
+      {needRefresh && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
+          background: theme.gold === "#FFFFFF" ? "#000" : "#fff",
+          color: theme.gold === "#FFFFFF" ? "#fff" : "#000",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 20px", gap: 12,
+          fontFamily: FONT_SERIF, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase",
+          borderTop: `2px solid ${theme.gold}`,
+        }}>
+          <span>Update available — new version ready</span>
+          <button
+            onClick={() => updateServiceWorker(true)}
+            style={{
+              background: theme.gold, color: theme.navy,
+              border: "none", borderRadius: 4, cursor: "pointer",
+              fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 700,
+              letterSpacing: "0.08em", textTransform: "uppercase",
+              padding: "6px 16px", whiteSpace: "nowrap",
+            }}
+          >Reload</button>
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
