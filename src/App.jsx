@@ -7694,19 +7694,30 @@ function PlayerMatchPage() {
   );
 }
 
-function CoachDashboardPage({ setActive }) {
+function CoachDashboardPage({ setActive, profile, setProfile }) {
   const C = useTheme();
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [matches] = usePersistedState(STORAGE_KEYS.matchHistory, []);
   const [nextEvent, setNextEvent] = useState(null);
+  const photoInputRef = useRef(null);
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
   const availabilityCount = Math.max((roster || []).length - activeIssues.length, 0);
   const acwrData = computeACWR(sessions || []);
   const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
   const recentSessions = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const lastUpdated = recentSessions[0]?.date || null;
+  const coachName = profile?.name?.trim() || "Coach";
+  const coachRole = profile?.position?.trim() || "Coach/Teacher";
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressImage(file, 220);
+    setProfile(prev => ({ ...prev, photo: compressed }));
+    e.target.value = "";
+  };
 
   useEffect(() => {
     let active = true;
@@ -7735,6 +7746,11 @@ function CoachDashboardPage({ setActive }) {
         title: "SQUAD BOARD",
         subtitle: "Operations, athlete availability, and workload direction are prioritised before everything else.",
         lastUpdated: lastUpdated || "-",
+        identity: {
+          name: coachName,
+          role: coachRole,
+          photo: profile?.photo || "",
+        },
         metrics: [
           { label: "Roster", value: (roster || []).length, note: "Players in system", tone: C.gold },
           { label: "Available", value: availabilityCount, note: "Without active issues", tone: C.success },
@@ -7760,10 +7776,39 @@ function CoachDashboardPage({ setActive }) {
         loadTrend: acwrData.slice(-6).map((entry) => ({ date: entry.date.slice(5), acute: entry.acute, chronic: entry.chronic })),
       }}
       renderActions={() => (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <GoldButton onClick={() => setActive("squad")} style={{ minWidth: 150 }}>Squad</GoldButton>
-          <GoldButton onClick={() => setActive("operations")} secondary style={{ minWidth: 150 }}>Operations</GoldButton>
-        </div>
+        <>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <GoldButton onClick={() => setActive("squad")} style={{ minWidth: 150 }}>Squad</GoldButton>
+            <GoldButton onClick={() => setActive("operations")} secondary style={{ minWidth: 150 }}>Operations</GoldButton>
+            <GoldButton onClick={() => photoInputRef.current?.click()} secondary style={{ minWidth: 150 }}>
+              {profile?.photo ? "Change Photo" : "Add Photo"}
+            </GoldButton>
+            {profile?.photo && (
+              <button
+                type="button"
+                onClick={() => setProfile(prev => ({ ...prev, photo: "" }))}
+                style={{
+                  minWidth: 120,
+                  padding: "12px 18px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  background: "transparent",
+                  border: `1px solid ${C.navyBorder}`,
+                  color: C.textDim,
+                  fontFamily: FONT_BODY,
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
+            Square photos work best. Stored on this device only.
+          </div>
+        </>
       )}
     />
   );
@@ -7893,7 +7938,7 @@ function CoachOperationsPage() {
 export default function App() {
   const [active, setActive] = useState("dashboard");
   const [perfInitTab, setPerfInitTab] = useState(null);
-  const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", onboarded: false });
+  const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", photo: "", onboarded: false });
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("nbss-theme") !== "light"; } catch { return true; }
@@ -8050,7 +8095,7 @@ export default function App() {
       {!effectiveIsCoach && active === "hub" && <TeamHubSection />}
       {!effectiveIsCoach && active === "profile" && <SquadSection />}
 
-      {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} />}
+      {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} profile={profile} setProfile={setProfile} />}
       {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
       {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
       {effectiveIsCoach && active === "hub" && <TeamHubSection />}

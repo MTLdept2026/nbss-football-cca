@@ -66,7 +66,7 @@ function SurfaceShell({ theme, children }) {
   );
 }
 
-function HeroPanel({ theme, headFont, bodyFont, eyebrow, title, subtitle, lastUpdated, aside }) {
+function HeroPanel({ theme, headFont, bodyFont, eyebrow, title, subtitle, lastUpdated, aside, lead }) {
   const isMobile = useIsMobile(700);
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.55fr) minmax(300px, 0.95fr)", gap: 20 }}>
@@ -75,6 +75,7 @@ function HeroPanel({ theme, headFont, bodyFont, eyebrow, title, subtitle, lastUp
           <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>{eyebrow}</div>
           <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.textDim }}>Last updated {lastUpdated || "-"}</div>
         </div>
+        {lead ? <div style={{ marginBottom: 22 }}>{lead}</div> : null}
         <h1 style={{ fontFamily: headFont, fontSize: "clamp(42px, 7vw, 82px)", color: theme.textBright, margin: 0, lineHeight: 0.92, letterSpacing: 2 }}>{title}</h1>
         <p style={{ fontFamily: bodyFont, fontSize: 15, color: theme.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{subtitle}</p>
       </div>
@@ -339,6 +340,15 @@ export function PlayerMatchSurface({ theme, fonts, summary, renderPreMatchPrep, 
 }
 
 export function CoachDashboardSurface({ theme, fonts, summary, renderActions, clubBadge }) {
+  const coachName = summary.identity?.name?.trim() || "Coach";
+  const coachInitials = coachName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "CT";
+
   return (
     <SurfaceShell theme={theme}>
       {clubBadge && <div style={{ marginBottom: 20 }}>{clubBadge}</div>}
@@ -350,6 +360,31 @@ export function CoachDashboardSurface({ theme, fonts, summary, renderActions, cl
         title={summary.title}
         subtitle={summary.subtitle}
         lastUpdated={summary.lastUpdated}
+        lead={summary.identity ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{
+              width: 86,
+              height: 86,
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: `2px solid ${theme.gold}40`,
+              background: `${theme.gold}10`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              {summary.identity.photo
+                ? <img src={summary.identity.photo} alt={coachName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontFamily: fonts.head, fontSize: 28, color: theme.gold, letterSpacing: 1 }}>{coachInitials}</span>}
+            </div>
+            <div>
+              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.6, marginBottom: 6 }}>Staff profile</div>
+              <div style={{ fontFamily: fonts.head, fontSize: 26, color: theme.textBright, letterSpacing: 1, lineHeight: 1 }}>{coachName}</div>
+              <div style={{ fontFamily: fonts.body, fontSize: 14, color: theme.textMid, marginTop: 8 }}>{summary.identity.role || "Coach/Teacher"}</div>
+            </div>
+          </div>
+        ) : null}
         aside={
           <>
             <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Operational focus</div>
