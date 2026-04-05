@@ -1594,15 +1594,6 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     ? Math.ceil((new Date(nextTraining.date + "T00:00:00") - new Date()) / 86400000)
     : null;
 
-  const coachTrustItems = [
-    { key: STORAGE_KEYS.lineups, label: "Lineups", fallback: [], tone: C.orange },
-    { key: STORAGE_KEYS.roster, label: "Roster", fallback: [], tone: C.gold },
-    { key: STORAGE_KEYS.attendance, label: "Attendance", fallback: {}, tone: C.success },
-    { key: STORAGE_KEYS.sessions, label: "Sessions", fallback: [], tone: C.electric },
-    { key: STORAGE_KEYS.matchHistory, label: "Match records", fallback: [], tone: C.goldLight },
-    { key: STORAGE_KEYS.wellnessLog, label: "Availability", fallback: [], tone: C.danger },
-  ];
-
   // Build dynamic ticker items
   const items = [];
 
@@ -2172,7 +2163,6 @@ function TrainingSection() {
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{
                   width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                  display: "flex", alignItems: "center", justifyContent: "center",
                   background: `${data.color}15`, flexShrink: 0,
                 }}><SportIcon name={week.icon} size={22} color={data.color} /></span>
                 <div style={{ textAlign: "left" }}>
@@ -7823,6 +7813,14 @@ function CoachOperationsPage() {
   const [scheduleEvents, setScheduleEvents] = useState([]);
   const [nextEvent, setNextEvent] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
+  const coachTrustItems = [
+    { key: STORAGE_KEYS.lineups, label: "Lineups", fallback: [], tone: C.orange },
+    { key: STORAGE_KEYS.roster, label: "Roster", fallback: [], tone: C.gold },
+    { key: STORAGE_KEYS.attendance, label: "Attendance", fallback: {}, tone: C.success },
+    { key: STORAGE_KEYS.sessions, label: "Sessions", fallback: [], tone: C.electric },
+    { key: STORAGE_KEYS.matchHistory, label: "Match records", fallback: [], tone: C.goldLight },
+    { key: STORAGE_KEYS.wellnessLog, label: "Availability", fallback: [], tone: C.danger },
+  ];
 
   useEffect(() => {
     let active = true;

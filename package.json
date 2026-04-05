@@ -16,7 +16,6 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.60.1",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.1.0"
   }
