@@ -209,8 +209,8 @@ function RecentList({ theme, bodyFont, headFont, entries, emptyText }) {
   );
 }
 
-export function PlayerPerformanceSurface({ theme, fonts, summary, renderSessions, renderRecovery, renderDevelopment, renderProfile }) {
-  const [tab, setTab] = useState("overview");
+export function PlayerPerformanceSurface({ theme, fonts, summary, renderSessions, renderRecovery, renderDevelopment, renderProfile, renderGoals, initialTab }) {
+  const [tab, setTab] = useState(initialTab || "overview");
   return (
     <div style={{ paddingTop: 64 }}>
       <SurfaceShell theme={theme}>
@@ -241,6 +241,7 @@ export function PlayerPerformanceSurface({ theme, fonts, summary, renderSessions
             { id: "sessions", label: "Sessions" },
             { id: "recovery", label: "Recovery" },
             { id: "development", label: "Development" },
+            { id: "goals", label: "Goals" },
             { id: "profile", label: "Profile" },
           ]}
           active={tab}
@@ -272,13 +273,14 @@ export function PlayerPerformanceSurface({ theme, fonts, summary, renderSessions
         {tab === "sessions" && renderSessions()}
         {tab === "recovery" && renderRecovery()}
         {tab === "development" && renderDevelopment()}
+        {tab === "goals" && renderGoals && renderGoals()}
         {tab === "profile" && renderProfile()}
       </SurfaceShell>
     </div>
   );
 }
 
-export function PlayerMatchSurface({ theme, fonts, summary, renderPreparation, renderHistory, renderLineups, renderNutrition }) {
+export function PlayerMatchSurface({ theme, fonts, summary, renderPreMatchPrep, renderLineups, renderPostMatch }) {
   const [tab, setTab] = useState("overview");
   return (
     <div style={{ paddingTop: 64 }}>
@@ -306,11 +308,10 @@ export function PlayerMatchSurface({ theme, fonts, summary, renderPreparation, r
           theme={theme}
           bodyFont={fonts.body}
           items={[
-            { id: "overview",     label: "Overview" },
-            { id: "preparation",  label: "Preparation" },
-            { id: "history",      label: "Match output" },
-            { id: "lineups",      label: "Lineups" },
-            { id: "nutrition",    label: "Nutrition" },
+            { id: "overview",  label: "Overview" },
+            { id: "prematch",  label: "Pre-match Prep" },
+            { id: "lineup",    label: "Lineup" },
+            { id: "postmatch", label: "Post-match" },
           ]}
           active={tab}
           setActive={setTab}
@@ -329,10 +330,9 @@ export function PlayerMatchSurface({ theme, fonts, summary, renderPreparation, r
           </>
         )}
 
-        {tab === "preparation" && renderPreparation()}
-        {tab === "history" && renderHistory()}
-        {tab === "lineups" && renderLineups && renderLineups()}
-        {tab === "nutrition" && renderNutrition && renderNutrition()}
+        {tab === "prematch" && renderPreMatchPrep && renderPreMatchPrep()}
+        {tab === "lineup" && renderLineups && renderLineups()}
+        {tab === "postmatch" && renderPostMatch && renderPostMatch()}
       </SurfaceShell>
     </div>
   );

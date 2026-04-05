@@ -3,6 +3,7 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, PlayerMatchSurface, PlayerPerformanceSurface } from "./components/PremiumExperience";
 import LocalTrustPanel from "./components/LocalTrustPanel";
+import { Target, Lightning, Crown, Diamond, Brain, Shield, Trophy, Star, Fire, Drop, Moon, Footprints, PersonSimpleRun, PersonSimpleWalk, PersonSimpleTaiChi, ArrowUp, ArrowsHorizontal, ArrowsClockwise, Barbell, Wind, GasPump, SoccerBall, Medal, Plant, CalendarBlank, Snowflake, Clock, PhoneSlash, Camera, Megaphone, ChartBar, CheckCircle, Warning, TrendDown, TrendUp, NotePencil, Globe, BookOpen, Mountains, Rocket, Sword, PuzzlePiece, PaintBrush, Backpack, ClipboardText, Handshake, BatteryHigh, Gift, Eye, Sneaker, Strategy, Smiley, BowlFood, HandPalm, PlayCircle } from "@phosphor-icons/react";
 
 // ── SCREENSHOT / SHARE UTILITY ──
 // Uses html2canvas loaded from CDN at runtime (no extra npm dep needed)
@@ -134,7 +135,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
           fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
           transition: "opacity 0.15s ease",
         }}>
-          {saving ? "Saving…" : "📸 Save Photo"}
+          {saving ? "Saving…" : <><Camera size={13} weight="thin" style={{ marginRight: 5, verticalAlign: "middle" }} />Save Photo</>}
         </button>
       </div>
       {toast && (
@@ -478,41 +479,67 @@ const COACH_PRIMARY_NAV = [
 // ══════════════════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════════════════
+// SPORT ICON SYSTEM — maps semantic name → Phosphor component
+// ══════════════════════════════════════════════════
+const SPORT_ICON_MAP = {
+  target: Target, lightning: Lightning, crown: Crown, diamond: Diamond,
+  brain: Brain, shield: Shield, trophy: Trophy, star: Star,
+  fire: Fire, drop: Drop, moon: Moon, footprints: Footprints,
+  run: PersonSimpleRun, walk: PersonSimpleWalk, yoga: PersonSimpleTaiChi,
+  "arrow-up": ArrowUp, "arrows-horizontal": ArrowsHorizontal, refresh: ArrowsClockwise,
+  barbell: Barbell, lungs: Wind, fuel: GasPump, ball: SoccerBall,
+  medal: Medal, plant: Plant, calendar: CalendarBlank, snowflake: Snowflake,
+  clock: Clock, "phone-off": PhoneSlash, camera: Camera, megaphone: Megaphone,
+  chart: ChartBar, check: CheckCircle, warning: Warning,
+  "trend-down": TrendDown, "trend-up": TrendUp, note: NotePencil,
+  globe: Globe, book: BookOpen, mountain: Mountains, rocket: Rocket,
+  sword: Sword, puzzle: PuzzlePiece, brush: PaintBrush, backpack: Backpack,
+  clipboard: ClipboardText, handshake: Handshake, battery: BatteryHigh,
+  gift: Gift, eye: Eye, sneaker: Sneaker, strategy: Strategy,
+  smiley: Smiley, bowl: BowlFood, hand: HandPalm, video: PlayCircle,
+};
+function SportIcon({ name, size = 18, weight = "thin", color, style }) {
+  const Ic = SPORT_ICON_MAP[name];
+  if (!Ic) return null;
+  return <Ic size={size} weight={weight} color={color} style={style} />;
+}
+
+// ══════════════════════════════════════════════════
 
 const QUOTES = [
-  { text: "You have to fight to reach your dream. You have to sacrifice and work hard for it.", author: "Lionel Messi", emoji: "🐐" },
-  { text: "Talent without working hard is nothing.", author: "Cristiano Ronaldo", emoji: "💎" },
-  { text: "I'm not the next anyone. I'm the first Kylian Mbappé.", author: "Kylian Mbappé", emoji: "⚡" },
-  { text: "The more difficult the victory, the greater the happiness in winning.", author: "Pelé", emoji: "👑" },
-  { text: "I learned all about life with a ball at my feet.", author: "Ronaldinho", emoji: "😁" },
-  { text: "Every disadvantage has its advantage.", author: "Johan Cruyff", emoji: "🧠" },
-  { text: "Football is not just about scoring goals. It's about the heart you put into every game.", author: "Fandi Ahmad", emoji: "🇸🇬" },
-  { text: "Success is not final, failure is not fatal. It is the courage to continue that counts.", author: "Aleksandar Đurić", emoji: "🦁" },
+  { text: "You have to fight to reach your dream. You have to sacrifice and work hard for it.", author: "Lionel Messi", icon: "trophy" },
+  { text: "Talent without working hard is nothing.", author: "Cristiano Ronaldo", icon: "diamond" },
+  { text: "I'm not the next anyone. I'm the first Kylian Mbappé.", author: "Kylian Mbappé", icon: "lightning" },
+  { text: "The more difficult the victory, the greater the happiness in winning.", author: "Pelé", icon: "crown" },
+  { text: "I learned all about life with a ball at my feet.", author: "Ronaldinho", icon: "smiley" },
+  { text: "Every disadvantage has its advantage.", author: "Johan Cruyff", icon: "brain" },
+  { text: "Football is not just about scoring goals. It's about the heart you put into every game.", author: "Fandi Ahmad", icon: "star" },
+  { text: "Success is not final, failure is not fatal. It is the courage to continue that counts.", author: "Aleksandar Đurić", icon: "shield" },
 ];
 
 const TRAINING_DATA = {
   beginner: {
     title: "Foundation Builder", subtitle: "Sec 1–2 · Building Your Base", color: C.success,
     weeks: [
-      { name: "Ball Mastery", icon: "🎯", focus: "Get comfortable with the ball at your feet. Do these barefoot at home to build feel.", drills: [
+      { name: "Ball Mastery", icon: "ball", focus: "Get comfortable with the ball at your feet. Do these barefoot at home to build feel.", drills: [
         { text: "Toe taps (2×30s)", video: "https://www.youtube.com/results?search_query=toe+taps+football+drill+tutorial" },
         { text: "Inside-outside rolls (2×20)", video: "https://www.youtube.com/results?search_query=inside+outside+rolls+football+drill" },
         { text: "Figure-8 dribbling (3×1min)", video: "https://www.youtube.com/results?search_query=figure+8+dribbling+drill+football" },
         { text: "Sole rolls forward/back (2×20)", video: "https://www.youtube.com/results?search_query=sole+rolls+football+drill+tutorial" },
       ]},
-      { name: "First Touch", icon: "🦶", focus: "A great first touch separates good players from average ones. Fandi Ahmad's first touch was legendary.", drills: [
+      { name: "First Touch", icon: "footprints", focus: "A great first touch separates good players from average ones. Fandi Ahmad's first touch was legendary.", drills: [
         { text: "Wall passes — inside foot (3×20)", video: "https://www.youtube.com/results?search_query=wall+pass+inside+foot+drill" },
         { text: "Cushion control — thigh (2×15)", video: "https://www.youtube.com/results?search_query=thigh+cushion+control+football" },
         { text: "Chest-and-volley (2×10)", video: "https://www.youtube.com/results?search_query=chest+and+volley+football+drill" },
         { text: "Turn on first touch (3×10)", video: "https://www.youtube.com/results?search_query=turn+on+first+touch+football+drill" },
       ]},
-      { name: "Passing Accuracy", icon: "📐", focus: "Pass to where your teammate WILL be, not where they are now.", drills: [
+      { name: "Passing Accuracy", icon: "target", focus: "Pass to where your teammate WILL be, not where they are now.", drills: [
         { text: "5m target passing (3×15)", video: "https://www.youtube.com/results?search_query=target+passing+drill+football" },
         { text: "One-touch passing pairs (5min)", video: "https://www.youtube.com/results?search_query=one+touch+passing+pairs+football" },
         { text: "Triangle passing (3×2min)", video: "https://www.youtube.com/results?search_query=triangle+passing+drill+football" },
         { text: "Long ball to zone (2×10)", video: "https://www.youtube.com/results?search_query=long+ball+passing+drill+football" },
       ]},
-      { name: "Shooting Basics", icon: "💥", focus: "Power comes from technique, not just strength. Lock that ankle!", drills: [
+      { name: "Shooting Basics", icon: "lightning", focus: "Power comes from technique, not just strength. Lock that ankle!", drills: [
         { text: "Laces drive — standing ball (3×10)", video: "https://www.youtube.com/results?search_query=laces+drive+shooting+technique+football" },
         { text: "Side-foot placement (3×10)", video: "https://www.youtube.com/results?search_query=side+foot+placement+shot+football" },
         { text: "One-touch finish (2×10)", video: "https://www.youtube.com/results?search_query=one+touch+finish+football+drill" },
@@ -523,25 +550,25 @@ const TRAINING_DATA = {
   intermediate: {
     title: "Game Sharpener", subtitle: "Sec 2–3 · Levelling Up", color: C.gold,
     weeks: [
-      { name: "1v1 Skills", icon: "⚔️", focus: "Messi says: 'The ball never comes at the speed you want.' Adapt and react.", drills: [
+      { name: "1v1 Skills", icon: "sword", focus: "Messi says: 'The ball never comes at the speed you want.' Adapt and react.", drills: [
         { text: "Stepover + accelerate (3×8)", video: "https://www.youtube.com/results?search_query=stepover+skill+tutorial+football" },
         { text: "Body feint both sides (3×8)", video: "https://www.youtube.com/results?search_query=body+feint+football+skill+tutorial" },
         { text: "Cruyff turn (2×10)", video: "https://www.youtube.com/results?search_query=cruyff+turn+tutorial+football" },
         { text: "Elastico (2×10)", video: "https://www.youtube.com/results?search_query=elastico+skill+tutorial+football" },
       ]},
-      { name: "Positional Play", icon: "♟️", focus: "Xavi checked his shoulder 843 times per game. Awareness is everything.", drills: [
+      { name: "Positional Play", icon: "strategy", focus: "Xavi checked his shoulder 843 times per game. Awareness is everything.", drills: [
         { text: "Rondo 4v2 (3×3min)", video: "https://www.youtube.com/results?search_query=rondo+4v2+football+drill" },
         { text: "Positional rotations (15min)", video: "https://www.youtube.com/results?search_query=positional+rotation+football+drill" },
         { text: "Half-space receiving (3×10)", video: "https://www.youtube.com/results?search_query=half+space+receiving+football+tactical" },
         { text: "Scanning before receiving (constant)", video: "https://www.youtube.com/results?search_query=scanning+before+receiving+football" },
       ]},
-      { name: "Defensive Shape", icon: "🛡️", focus: "Defending is about patience. Don't dive in — make them make the mistake.", drills: [
+      { name: "Defensive Shape", icon: "shield", focus: "Defending is about patience. Don't dive in — make them make the mistake.", drills: [
         { text: "Mirror shadowing (3×2min)", video: "https://www.youtube.com/results?search_query=mirror+shadowing+defending+drill" },
         { text: "Jockey and delay (3×1min)", video: "https://www.youtube.com/results?search_query=jockey+delay+defending+football" },
         { text: "Recovery runs (2×6)", video: "https://www.youtube.com/results?search_query=recovery+run+defending+drill+football" },
         { text: "1v1 defending channel (3×3min)", video: "https://www.youtube.com/results?search_query=1v1+defending+channel+drill+football" },
       ]},
-      { name: "Set Pieces", icon: "📌", focus: "30% of goals come from set pieces. Free goals if you practise them.", drills: [
+      { name: "Set Pieces", icon: "target", focus: "30% of goals come from set pieces. Free goals if you practise them.", drills: [
         { text: "Corner delivery to zones (2×10)", video: "https://www.youtube.com/results?search_query=corner+kick+delivery+zones+football" },
         { text: "Free kick wall + curl (3×8)", video: "https://www.youtube.com/results?search_query=free+kick+curl+technique+tutorial" },
         { text: "Throw-in routines (2×5)", video: "https://www.youtube.com/results?search_query=throw+in+routines+football" },
@@ -552,25 +579,25 @@ const TRAINING_DATA = {
   advanced: {
     title: "Elite Pathway", subtitle: "Sec 3–4 · Competing at the Top", color: C.danger,
     weeks: [
-      { name: "Press Triggers", icon: "🔥", focus: "Klopp's gegenpressing: Win the ball back within 5 seconds of losing it.", drills: [
+      { name: "Press Triggers", icon: "fire", focus: "Klopp's gegenpressing: Win the ball back within 5 seconds of losing it.", drills: [
         { text: "Team press on back-pass (5×2min)", video: "https://www.youtube.com/results?search_query=team+press+back+pass+trigger+football" },
         { text: "Counter-press 5s rule (3×3min)", video: "https://www.youtube.com/results?search_query=gegenpressing+counter+press+drill" },
         { text: "Press traps wide areas (3×3min)", video: "https://www.youtube.com/results?search_query=press+trap+wide+areas+football+tactical" },
         { text: "Transition sprints (2×6)", video: "https://www.youtube.com/results?search_query=transition+sprint+football+drill" },
       ]},
-      { name: "Build-Up Play", icon: "🏗️", focus: "Pep Guardiola: 'Take the ball, pass the ball.' Simplicity under pressure.", drills: [
+      { name: "Build-Up Play", icon: "puzzle", focus: "Pep Guardiola: 'Take the ball, pass the ball.' Simplicity under pressure.", drills: [
         { text: "GK to striker in 5 passes (3×3min)", video: "https://www.youtube.com/results?search_query=build+up+play+goalkeeper+to+striker+drill" },
         { text: "Playing through pressure (4v3, 10min)", video: "https://www.youtube.com/results?search_query=playing+through+pressure+football+drill" },
         { text: "Switch of play drills (3×8)", video: "https://www.youtube.com/results?search_query=switch+of+play+football+drill" },
         { text: "Third-man runs (3×3min)", video: "https://www.youtube.com/results?search_query=third+man+run+football+tactical" },
       ]},
-      { name: "Match Intelligence", icon: "🧩", focus: "The best players see the game 2 seconds ahead of everyone else.", drills: [
+      { name: "Match Intelligence", icon: "brain", focus: "The best players see the game 2 seconds ahead of everyone else.", drills: [
         { text: "Game film review (20min)", video: "https://www.youtube.com/results?search_query=football+match+analysis+for+players" },
         { text: "Decision-making rondos (3×4min)", video: "https://www.youtube.com/results?search_query=decision+making+rondo+football" },
         { text: "Tactical scenarios walk-through", video: "https://www.youtube.com/results?search_query=football+tactical+scenarios+training" },
         { text: "Communication drills (10min)", video: "https://www.youtube.com/results?search_query=communication+drills+football+team" },
       ]},
-      { name: "Peak Performance", icon: "🏆", focus: "Champions don't do extraordinary things — they do ordinary things extraordinarily well.", drills: [
+      { name: "Peak Performance", icon: "trophy", focus: "Champions don't do extraordinary things — they do ordinary things extraordinarily well.", drills: [
         { text: "High-intensity match simulation", video: "https://www.youtube.com/results?search_query=high+intensity+match+simulation+football" },
         { text: "Fatigue decision-making drills", video: "https://www.youtube.com/results?search_query=fatigue+decision+making+football+drill" },
         { text: "Leadership under pressure", video: "https://www.youtube.com/results?search_query=leadership+under+pressure+sports+training" },
@@ -583,7 +610,7 @@ const TRAINING_DATA = {
 // ── POSITION-SPECIFIC DRILLS ──
 const POSITION_DRILLS = {
   GK: {
-    label: "Goalkeeper", icon: "🧤", color: "#22d3a5",
+    label: "Goalkeeper", icon: "hand", color: "#22d3a5",
     focus: "Distribution, shot-stopping angles and decision-making under pressure.",
     drills: [
       { text: "Set-position + reaction dive (3×8 each side)", video: "https://www.youtube.com/results?search_query=goalkeeper+reaction+dive+drill" },
@@ -593,7 +620,7 @@ const POSITION_DRILLS = {
     ],
   },
   CB: {
-    label: "Centre Back", icon: "🏔️", color: C.electric,
+    label: "Centre Back", icon: "mountain", color: C.electric,
     focus: "Aerial dominance, blocking channels and composure in possession from the back.",
     drills: [
       { text: "Heading duels — timed jumps (3×10)", video: "https://www.youtube.com/results?search_query=centre+back+heading+drill+aerial+duel" },
@@ -603,7 +630,7 @@ const POSITION_DRILLS = {
     ],
   },
   LB: {
-    label: "Left Back", icon: "🏃", color: C.orange,
+    label: "Left Back", icon: "run", color: C.orange,
     focus: "Overlapping runs, recovery pace and delivery from wide areas.",
     drills: [
       { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
@@ -613,7 +640,7 @@ const POSITION_DRILLS = {
     ],
   },
   RB: {
-    label: "Right Back", icon: "🏃", color: C.orange,
+    label: "Right Back", icon: "run", color: C.orange,
     focus: "Overlapping runs, recovery pace and delivery from wide areas.",
     drills: [
       { text: "Overlap run + cross to near/far post (3×10 each)", video: "https://www.youtube.com/results?search_query=full+back+overlap+cross+drill" },
@@ -623,7 +650,7 @@ const POSITION_DRILLS = {
     ],
   },
   CDM: {
-    label: "Defensive Mid", icon: "🛡️", color: C.electric,
+    label: "Defensive Mid", icon: "shield", color: C.electric,
     focus: "Screening the defence, winning second balls and playing simple under pressure.",
     drills: [
       { text: "Interception reads — shadow ball through middle (3×8)", video: "https://www.youtube.com/results?search_query=defensive+midfielder+interception+drill" },
@@ -633,7 +660,7 @@ const POSITION_DRILLS = {
     ],
   },
   CM: {
-    label: "Central Mid", icon: "♟️", color: C.orange,
+    label: "Central Mid", icon: "strategy", color: C.orange,
     focus: "Box-to-box engine: pressing, receiving on the half-turn and arriving late into the box.",
     drills: [
       { text: "Half-turn receive + drive forward (3×12)", video: "https://www.youtube.com/results?search_query=central+midfielder+half+turn+receive+drill" },
@@ -643,7 +670,7 @@ const POSITION_DRILLS = {
     ],
   },
   CAM: {
-    label: "Attacking Mid", icon: "🎨", color: C.orange,
+    label: "Attacking Mid", icon: "brush", color: C.orange,
     focus: "Creating in tight spaces, vision, and timing runs in behind the defensive line.",
     drills: [
       { text: "Turn + shoot in the pocket (3×10)", video: "https://www.youtube.com/results?search_query=attacking+midfielder+turn+shoot+pocket+drill" },
@@ -653,7 +680,7 @@ const POSITION_DRILLS = {
     ],
   },
   LW: {
-    label: "Left Wing", icon: "⚡", color: C.orange,
+    label: "Left Wing", icon: "lightning", color: C.orange,
     focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
     drills: [
       { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
@@ -663,7 +690,7 @@ const POSITION_DRILLS = {
     ],
   },
   RW: {
-    label: "Right Wing", icon: "⚡", color: C.orange,
+    label: "Right Wing", icon: "lightning", color: C.orange,
     focus: "1v1 dominance, cutting inside and delivering quality from wide areas.",
     drills: [
       { text: "Winger 1v1 — body feint + burst past cone (3×10)", video: "https://www.youtube.com/results?search_query=winger+1v1+body+feint+burst+drill" },
@@ -673,7 +700,7 @@ const POSITION_DRILLS = {
     ],
   },
   ST: {
-    label: "Striker", icon: "🎯", color: C.danger,
+    label: "Striker", icon: "target", color: C.danger,
     focus: "Movement to lose your marker, clinical finishing and hold-up play.",
     drills: [
       { text: "Movement to lose defender — check + spin (3×10)", video: "https://www.youtube.com/results?search_query=striker+movement+check+spin+lose+defender" },
@@ -695,39 +722,39 @@ const POSITION_ALIAS = {
 
 // ── PRE-SESSION WARM-UP STEPS ──
 const WARM_UP_STEPS = [
-  { name: "Light jog", duration: "2 min", desc: "Easy pace around the pitch or in a 20m box. Get blood flowing.", icon: "🏃" },
-  { name: "High knees", duration: "30 sec", desc: "Drive your knees up to hip height with a quick cadence. Activates hip flexors.", icon: "⬆️" },
-  { name: "Butt kicks", duration: "30 sec", desc: "Heel flicks up toward your glutes. Warms up the hamstrings.", icon: "👟" },
-  { name: "Leg swings (front-back)", duration: "20 each leg", desc: "Hold a post or wall. Swing one leg forward and back freely — increase range each rep.", icon: "🦵" },
-  { name: "Leg swings (side-side)", duration: "20 each leg", desc: "Same position, now swing the leg across your body and out wide.", icon: "↔️" },
-  { name: "Hip circles", duration: "10 each direction", desc: "Hands on hips, draw a big circle with your hips. Open then close the hip joint.", icon: "⭕" },
-  { name: "Ankle rolls", duration: "10 each ankle", desc: "Stand on one foot, roll the raised ankle slowly in full circles.", icon: "🦶" },
-  { name: "Lateral shuffles", duration: "30 sec each way", desc: "Side-step quickly over ~5m. Stay low, light on your feet.", icon: "↔️" },
-  { name: "Accelerations (3×20m)", duration: "Build to ~80% pace", desc: "Short sprint — don't go flat out yet. Just prime the engine.", icon: "⚡" },
+  { name: "Light jog", duration: "2 min", desc: "Easy pace around the pitch or in a 20m box. Get blood flowing.", icon: "run" },
+  { name: "High knees", duration: "30 sec", desc: "Drive your knees up to hip height with a quick cadence. Activates hip flexors.", icon: "arrow-up" },
+  { name: "Butt kicks", duration: "30 sec", desc: "Heel flicks up toward your glutes. Warms up the hamstrings.", icon: "sneaker" },
+  { name: "Leg swings (front-back)", duration: "20 each leg", desc: "Hold a post or wall. Swing one leg forward and back freely — increase range each rep.", icon: "walk" },
+  { name: "Leg swings (side-side)", duration: "20 each leg", desc: "Same position, now swing the leg across your body and out wide.", icon: "arrows-horizontal" },
+  { name: "Hip circles", duration: "10 each direction", desc: "Hands on hips, draw a big circle with your hips. Open then close the hip joint.", icon: "refresh" },
+  { name: "Ankle rolls", duration: "10 each ankle", desc: "Stand on one foot, roll the raised ankle slowly in full circles.", icon: "footprints" },
+  { name: "Lateral shuffles", duration: "30 sec each way", desc: "Side-step quickly over ~5m. Stay low, light on your feet.", icon: "arrows-horizontal" },
+  { name: "Accelerations (3×20m)", duration: "Build to ~80% pace", desc: "Short sprint — don't go flat out yet. Just prime the engine.", icon: "lightning" },
 ];
 
 // ── POST-SESSION COOL-DOWN STEPS ──
 // These reuse RECOVERY_STRETCHES data but as structured steps
 const COOL_DOWN_STEPS = [
-  { name: "Walk & breathe", duration: "2 min", desc: "Slow walk to gradually lower your heart rate. Breathe in through nose, out through mouth.", icon: "🧘" },
-  { name: "Hamstring stretch", duration: "30 sec each leg", desc: "Sit, extend one leg, reach for toes without bouncing.", icon: "🦵" },
-  { name: "Quad stretch", duration: "30 sec each leg", desc: "Standing, pull heel to glute. Keep knees together.", icon: "🦿" },
-  { name: "Hip flexor lunge", duration: "30 sec each side", desc: "Kneeling lunge — push hips gently forward.", icon: "🏋️" },
-  { name: "Calf stretch", duration: "30 sec each", desc: "Lean against a wall, back leg straight, heel flat on floor.", icon: "🦶" },
-  { name: "Child's pose", duration: "60 sec", desc: "Kneel, sit back on heels, stretch arms forward. Breathe deeply.", icon: "🧘" },
-  { name: "Neck & shoulder rolls", duration: "10 each direction", desc: "Slow, controlled circles. Release tension from the session.", icon: "🔄" },
+  { name: "Walk & breathe", duration: "2 min", desc: "Slow walk to gradually lower your heart rate. Breathe in through nose, out through mouth.", icon: "yoga" },
+  { name: "Hamstring stretch", duration: "30 sec each leg", desc: "Sit, extend one leg, reach for toes without bouncing.", icon: "walk" },
+  { name: "Quad stretch", duration: "30 sec each leg", desc: "Standing, pull heel to glute. Keep knees together.", icon: "walk" },
+  { name: "Hip flexor lunge", duration: "30 sec each side", desc: "Kneeling lunge — push hips gently forward.", icon: "barbell" },
+  { name: "Calf stretch", duration: "30 sec each", desc: "Lean against a wall, back leg straight, heel flat on floor.", icon: "footprints" },
+  { name: "Child's pose", duration: "60 sec", desc: "Kneel, sit back on heels, stretch arms forward. Breathe deeply.", icon: "yoga" },
+  { name: "Neck & shoulder rolls", duration: "10 each direction", desc: "Slow, controlled circles. Release tension from the session.", icon: "refresh" },
 ];
 
 // ── PRE-MATCH ROUTINE ITEMS ──
 const PRE_MATCH_ITEMS = [
-  { id: "sleep", label: "Slept 8+ hrs (ideally 2 nights before counts most)", icon: "😴", category: "Recovery" },
-  { id: "hydration", label: "Drank 500ml water in the 2 hours before kick-off", icon: "💧", category: "Fuelling" },
-  { id: "meal", label: "Ate pre-match meal 2–3 hrs before (carbs, light on fat)", icon: "🍚", category: "Fuelling" },
-  { id: "kit", label: "Kit bag packed — boots, shin guards, jersey, water bottle", icon: "🎒", category: "Preparation" },
-  { id: "warmup", label: "Completed dynamic warm-up 15–20 min before kick-off", icon: "🏃", category: "Physical" },
-  { id: "gameplan", label: "Reviewed the formation and your role in it", icon: "📋", category: "Tactical" },
-  { id: "breathing", label: "Done 3 rounds of box breathing (4-4-4-4)", icon: "🫁", category: "Mental" },
-  { id: "intention", label: "Set your intention for the match (one focus word)", icon: "🎯", category: "Mental" },
+  { id: "sleep", label: "Slept 8+ hrs (ideally 2 nights before counts most)", icon: "moon", category: "Recovery" },
+  { id: "hydration", label: "Drank 500ml water in the 2 hours before kick-off", icon: "drop", category: "Fuelling" },
+  { id: "meal", label: "Ate pre-match meal 2–3 hrs before (carbs, light on fat)", icon: "bowl", category: "Fuelling" },
+  { id: "kit", label: "Kit bag packed — boots, shin guards, jersey, water bottle", icon: "backpack", category: "Preparation" },
+  { id: "warmup", label: "Completed dynamic warm-up 15–20 min before kick-off", icon: "run", category: "Physical" },
+  { id: "gameplan", label: "Reviewed the formation and your role in it", icon: "clipboard", category: "Tactical" },
+  { id: "breathing", label: "Done 3 rounds of box breathing (4-4-4-4)", icon: "lungs", category: "Mental" },
+  { id: "intention", label: "Set your intention for the match (one focus word)", icon: "target", category: "Mental" },
 ];
 
 // ── INJURY BODY LOCATIONS ──
@@ -761,34 +788,34 @@ const FOOD_DB = [
 ];
 
 const NUTRITION_DATA = [
-  { meal: "Pre-Training", time: "1.5–2hrs before", options: ["Chicken rice (smaller portion)","Peanut butter banana toast","Overnight oats with berries","Mee goreng with egg"], tip: "Carbs are your fuel. Don't train on empty — and don't train on full.", icon: "⛽", color: C.success },
-  { meal: "During Training", time: "Every 15–20 mins", options: ["Water (most important!)","Isotonic drink for 90min+ sessions","Small banana at half-time","Avoid sugary drinks"], tip: "Even 2% dehydration drops performance by 10–20%. Drink before you're thirsty.", icon: "💧", color: C.electric },
-  { meal: "Post-Training", time: "Within 30–45 mins", options: ["Chocolate milk (seriously, it works!)","Chicken breast with rice","Tuna sandwich","Protein smoothie with banana"], tip: "The 'golden window' — your muscles absorb nutrients best right after training.", icon: "🔄", color: C.gold },
-  { meal: "Match Day", time: "3hrs before kickoff", options: ["Pasta with light sauce","Rice with grilled chicken","Porridge with honey","Hydrate all morning"], tip: "Ronaldo eats fish, salad, and rice before every game. Keep it simple and clean.", icon: "⚽", color: C.danger },
+  { meal: "Pre-Training", time: "1.5–2hrs before", options: ["Chicken rice (smaller portion)","Peanut butter banana toast","Overnight oats with berries","Mee goreng with egg"], tip: "Carbs are your fuel. Don't train on empty — and don't train on full.", icon: "fuel", color: C.success },
+  { meal: "During Training", time: "Every 15–20 mins", options: ["Water (most important!)","Isotonic drink for 90min+ sessions","Small banana at half-time","Avoid sugary drinks"], tip: "Even 2% dehydration drops performance by 10–20%. Drink before you're thirsty.", icon: "drop", color: C.electric },
+  { meal: "Post-Training", time: "Within 30–45 mins", options: ["Chocolate milk (seriously, it works!)","Chicken breast with rice","Tuna sandwich","Protein smoothie with banana"], tip: "The 'golden window' — your muscles absorb nutrients best right after training.", icon: "refresh", color: C.gold },
+  { meal: "Match Day", time: "3hrs before kickoff", options: ["Pasta with light sauce","Rice with grilled chicken","Porridge with honey","Hydrate all morning"], tip: "Ronaldo eats fish, salad, and rice before every game. Keep it simple and clean.", icon: "ball", color: C.danger },
 ];
 
 const MINDSET_CARDS = [
-  { title: "Pre-Game Nerves", content: "Butterflies are NORMAL. Even Messi gets nervous. Try box breathing: breathe in 4s, hold 4s, out 4s, hold 4s. Do 5 rounds before kick-off.", technique: "Box Breathing", icon: "🫁" },
-  { title: "After a Mistake", content: "Flush it in 5 seconds. Clap your hands, reset your stance, focus on the next action. The best players have short memories for errors.", technique: "5-Second Reset", icon: "🔄" },
-  { title: "Confidence Dip", content: "Write 3 things you did well after every session. Your brain remembers what you tell it to. Build your own highlight reel.", technique: "Success Journal", icon: "📓" },
-  { title: "Team Conflict", content: "Talk it out, not online. Face-to-face conversations beat WhatsApp arguments. Use 'I feel...' instead of 'You always...' Great teams argue — but they resolve fast.", technique: "Direct Communication", icon: "🤝" },
-  { title: "Comparison Trap", content: "Don't compare your Chapter 1 to someone's Chapter 10. Track YOUR progress, not theirs. Mbappé was once a beginner too.", technique: "Growth Mindset", icon: "📈" },
-  { title: "Burnout Signs", content: "If you dread training, feel tired all the time, or get injured often — talk to your coach. Rest is part of training, not the opposite of it.", technique: "Active Recovery", icon: "🔋" },
+  { title: "Pre-Game Nerves", content: "Butterflies are NORMAL. Even Messi gets nervous. Try box breathing: breathe in 4s, hold 4s, out 4s, hold 4s. Do 5 rounds before kick-off.", technique: "Box Breathing", icon: "lungs" },
+  { title: "After a Mistake", content: "Flush it in 5 seconds. Clap your hands, reset your stance, focus on the next action. The best players have short memories for errors.", technique: "5-Second Reset", icon: "refresh" },
+  { title: "Confidence Dip", content: "Write 3 things you did well after every session. Your brain remembers what you tell it to. Build your own highlight reel.", technique: "Success Journal", icon: "book" },
+  { title: "Team Conflict", content: "Talk it out, not online. Face-to-face conversations beat WhatsApp arguments. Use 'I feel...' instead of 'You always...' Great teams argue — but they resolve fast.", technique: "Direct Communication", icon: "handshake" },
+  { title: "Comparison Trap", content: "Don't compare your Chapter 1 to someone's Chapter 10. Track YOUR progress, not theirs. Mbappé was once a beginner too.", technique: "Growth Mindset", icon: "trend-up" },
+  { title: "Burnout Signs", content: "If you dread training, feel tired all the time, or get injured often — talk to your coach. Rest is part of training, not the opposite of it.", technique: "Active Recovery", icon: "battery" },
 ];
 
 const GROWTH_MINDSET_FRAMEWORK = [
-  { phase: "Pre-Game", fixed: "What if I mess up in front of everyone?", growth: "Nerves mean I care — I'll channel this energy into focus.", icon: "🫁" },
-  { phase: "Pre-Game", fixed: "The other team looks way better than us.", growth: "We don't know until we play. Let's bring our best.", icon: "👀" },
-  { phase: "Pre-Game", fixed: "I always play badly in big matches.", growth: "Big matches are chances to show what I've been building.", icon: "🔥" },
-  { phase: "During Game", fixed: "I made a mistake — the whole team is watching.", growth: "Flush it in 5 seconds. The next ball is what matters.", icon: "🔄" },
-  { phase: "During Game", fixed: "He's faster than me — I can't win this duel.", growth: "I'll use positioning and timing to stay in the game.", icon: "♟️" },
-  { phase: "During Game", fixed: "Coach is watching and I'm playing terribly.", growth: "This is exactly when I show my mental strength.", icon: "💪" },
-  { phase: "Post-Game", fixed: "We lost. I was useless.", growth: "What can I take from today to be better next session?", icon: "📓" },
-  { phase: "Post-Game", fixed: "I'm just not talented enough for this level.", growth: "Today showed me exactly what I need to work on.", icon: "🌱" },
-  { phase: "Post-Game", fixed: "Feedback from coach is embarrassing.", growth: "Feedback is a gift — it shortens the path to improvement.", icon: "🎁" },
-  { phase: "General", fixed: "I'm not good at this.", growth: "I'm not good at this YET.", icon: "🪜" },
-  { phase: "General", fixed: "He's so talented, I'll never be that good.", growth: "His success shows me what's possible with effort.", icon: "🔬" },
-  { phase: "General", fixed: "This drill is too hard.", growth: "This drill is challenging — that means I'm growing.", icon: "⚡" },
+  { phase: "Pre-Game", fixed: "What if I mess up in front of everyone?", growth: "Nerves mean I care — I'll channel this energy into focus.", icon: "lungs" },
+  { phase: "Pre-Game", fixed: "The other team looks way better than us.", growth: "We don't know until we play. Let's bring our best.", icon: "eye" },
+  { phase: "Pre-Game", fixed: "I always play badly in big matches.", growth: "Big matches are chances to show what I've been building.", icon: "fire" },
+  { phase: "During Game", fixed: "I made a mistake — the whole team is watching.", growth: "Flush it in 5 seconds. The next ball is what matters.", icon: "refresh" },
+  { phase: "During Game", fixed: "He's faster than me — I can't win this duel.", growth: "I'll use positioning and timing to stay in the game.", icon: "strategy" },
+  { phase: "During Game", fixed: "Coach is watching and I'm playing terribly.", growth: "This is exactly when I show my mental strength.", icon: "barbell" },
+  { phase: "Post-Game", fixed: "We lost. I was useless.", growth: "What can I take from today to be better next session?", icon: "book" },
+  { phase: "Post-Game", fixed: "I'm just not talented enough for this level.", growth: "Today showed me exactly what I need to work on.", icon: "plant" },
+  { phase: "Post-Game", fixed: "Feedback from coach is embarrassing.", growth: "Feedback is a gift — it shortens the path to improvement.", icon: "gift" },
+  { phase: "General", fixed: "I'm not good at this.", growth: "I'm not good at this YET.", icon: "trend-up" },
+  { phase: "General", fixed: "He's so talented, I'll never be that good.", growth: "His success shows me what's possible with effort.", icon: "eye" },
+  { phase: "General", fixed: "This drill is too hard.", growth: "This drill is challenging — that means I'm growing.", icon: "lightning" },
 ];
 
 const FITNESS_TESTS = [
@@ -801,32 +828,32 @@ const FITNESS_TESTS = [
 ];
 
 const LEGENDS_GLOBAL = [
-  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Virgil van Dijk's path to becoming the world's best central defender is not a story of instant recognition or early success. It is a story of doors closing, of people saying not good enough, and of a man who refused to accept that verdict. As a teenager, he was released from his club's youth academy. Coaches looked at him and decided he wasn't ready — too raw, not quite there. He dropped into lower levels, kept working, kept growing, and made his way back up through Groningen, Celtic, and Southampton before Liverpool paid a world-record fee for a centre-back. He was 26 years old when that move happened. What followed was nothing short of extraordinary. He anchored Liverpool's defence through a Champions League-winning season, a Premier League title, and consistently formed one of the most formidable defensive partnerships the game has seen. But the chapter of his story that speaks loudest about Resilience is what happened after his ACL injury in 2020 — an injury so severe that it robbed him of almost an entire season. Many wondered if he would ever return as the same player. He came back better. Resilience isn't dramatic or loud. It's the quiet decision to turn up, do the work, and let the results follow. Van Dijk is the definition of that.", badge: "🏔️", stat: "UCL + PL winner · World-record fee for a defender", reflectionPrompt: "Van Dijk was told 'not good enough' and kept going anyway. Think of a time you faced rejection or failure — in football, school, or life. What did you do? Looking back now, what would the resilient version of you do differently?" },
-  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", recipe: "Resilience", recipeValues: ["Resilience", "Care"], lesson: "When Mohamed Salah left Egypt as a young man with a dream, nobody could have predicted what would follow. He was signed by Chelsea — one of the world's biggest clubs — but was given almost no opportunity to play. He sat on the bench, watched weeks pass, and when chances finally came, they didn't stick. Chelsea loaned him, then sold him on. To many observers, it looked like the end of a story that had barely started. Salah chose to see it as a beginning. He moved to Fiorentina, then Roma, and it was there that the world finally began to see the full scope of what this man could do. His pace, his directness, his ability to score from angles that seemed impossible — it was all being built, refined, tested. When Liverpool came calling, the rest is history. In his first season at Anfield, he broke the Premier League's single-season scoring record. He won the Champions League, the Premier League, multiple Golden Boots. He became the most feared attacker in the world. But the detail that elevates him further is how he has quietly given back to his home village in Egypt — building hospitals, improving infrastructure, transforming lives long before it was fashionable. His career teaches Resilience in its truest form: that one rejection, or five, means nothing if you refuse to stop.", badge: "👑", stat: "PL Golden Boot × 4 · Champions League winner", reflectionPrompt: "Salah turned rejection at Chelsea into a platform to change lives in Egypt. Think of one door that has recently closed for you. What is your 'Salah pivot' — the shift in mindset that turns that setback into a new direction?" },
-  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "🌟", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer", reflectionPrompt: "Yamal plays with total freedom and joy — no hesitation, no fear. When was the last time you played or trained with that same fearless energy? What holds you back from expressing yourself fully on the pitch?" },
-  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", recipeValues: ["Excellence", "Care"], lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "⚡", stat: "World Cup winner at 19 · Donates all national team earnings to charity", reflectionPrompt: "Mbappé uses his platform to give back quietly and consistently. Even as a student, you have a platform — your voice, your actions, your presence in this team. How could you use it right now to lift someone else?" },
-  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", recipeValues: ["Excellence", "Resilience"], lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "🧤", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping", reflectionPrompt: "Neuer redefined what his position could be by refusing to accept the traditional limits. Are there any expectations — about your position, your role in the team, or your ability — that you've accepted without questioning? What could YOU redefine?" },
-  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", flag: "br", recipeValues: ["Passion", "Resilience"], lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "🇧🇷", stat: "3× World Cup winner · Only player to win three World Cups", reflectionPrompt: "Pelé had almost nothing — no ball, no resources — and still showed up with everything. Think about the access and opportunities you have compared to him. Are you using them with that same unconditional passion? What would it look like if you truly played like you meant it?" },
-  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "🔥", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno", reflectionPrompt: "Ronaldo came back from knee injuries that would have ended most careers — not once, but three times. Think about the hardest setback you've faced in sport or life. What actually helped you get back up? What do you need more of to face the next challenge?" },
+  { name: "Virgil van Dijk", shortName: "van Dijk", era: "2011–present", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Virgil van Dijk's path to becoming the world's best central defender is not a story of instant recognition or early success. It is a story of doors closing, of people saying not good enough, and of a man who refused to accept that verdict. As a teenager, he was released from his club's youth academy. Coaches looked at him and decided he wasn't ready — too raw, not quite there. He dropped into lower levels, kept working, kept growing, and made his way back up through Groningen, Celtic, and Southampton before Liverpool paid a world-record fee for a centre-back. He was 26 years old when that move happened. What followed was nothing short of extraordinary. He anchored Liverpool's defence through a Champions League-winning season, a Premier League title, and consistently formed one of the most formidable defensive partnerships the game has seen. But the chapter of his story that speaks loudest about Resilience is what happened after his ACL injury in 2020 — an injury so severe that it robbed him of almost an entire season. Many wondered if he would ever return as the same player. He came back better. Resilience isn't dramatic or loud. It's the quiet decision to turn up, do the work, and let the results follow. Van Dijk is the definition of that.", badge: "mountain", stat: "UCL + PL winner · World-record fee for a defender", reflectionPrompt: "Van Dijk was told 'not good enough' and kept going anyway. Think of a time you faced rejection or failure — in football, school, or life. What did you do? Looking back now, what would the resilient version of you do differently?" },
+  { name: "Mohamed Salah", shortName: "Salah", era: "2010–present", recipe: "Resilience", recipeValues: ["Resilience", "Care"], lesson: "When Mohamed Salah left Egypt as a young man with a dream, nobody could have predicted what would follow. He was signed by Chelsea — one of the world's biggest clubs — but was given almost no opportunity to play. He sat on the bench, watched weeks pass, and when chances finally came, they didn't stick. Chelsea loaned him, then sold him on. To many observers, it looked like the end of a story that had barely started. Salah chose to see it as a beginning. He moved to Fiorentina, then Roma, and it was there that the world finally began to see the full scope of what this man could do. His pace, his directness, his ability to score from angles that seemed impossible — it was all being built, refined, tested. When Liverpool came calling, the rest is history. In his first season at Anfield, he broke the Premier League's single-season scoring record. He won the Champions League, the Premier League, multiple Golden Boots. He became the most feared attacker in the world. But the detail that elevates him further is how he has quietly given back to his home village in Egypt — building hospitals, improving infrastructure, transforming lives long before it was fashionable. His career teaches Resilience in its truest form: that one rejection, or five, means nothing if you refuse to stop.", badge: "crown", stat: "PL Golden Boot × 4 · Champions League winner", reflectionPrompt: "Salah turned rejection at Chelsea into a platform to change lives in Egypt. Think of one door that has recently closed for you. What is your 'Salah pivot' — the shift in mindset that turns that setback into a new direction?" },
+  { name: "Lamine Yamal", shortName: "Yamal", era: "2023–present", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is no gentle way to say this: Lamine Yamal is doing things in football that have never been done before. At 16 years old, he became the youngest goalscorer in the history of the UEFA European Championship — scoring a bending, brilliant goal in the semi-final against France that left the entire stadium open-mouthed. He went on to win the tournament with Spain, collecting the Young Player award as a 16-year-old competing against men who had been professionals for a decade. He had already broken records at Barcelona — youngest to appear for the club, youngest to score — erasing numbers that had stood for generations. What makes Yamal extraordinary is not just the talent, which is obvious to anyone watching. It is the composure and the joy. He plays with a freedom that is rare at any age, let alone at 16. There is no hesitation, no fear, no shrinking from the moment. When the ball comes to him in a big game, he takes on defenders and creates chances as if the pressure simply doesn't register. This is Excellence pursued with absolute Passion — football played with complete joy and complete commitment. For every young player at NBSS who wonders whether their generation can produce something special, Lamine Yamal is the answer. He is your generation. He is 16 and already changing the game. What are you building right now?", badge: "star", stat: "Euro 2024 champion at 16 · Youngest ever Euros goalscorer", reflectionPrompt: "Yamal plays with total freedom and joy — no hesitation, no fear. When was the last time you played or trained with that same fearless energy? What holds you back from expressing yourself fully on the pitch?" },
+  { name: "Kylian Mbappé", shortName: "Mbappé", era: "2015–present", recipe: "Excellence", recipeValues: ["Excellence", "Care"], lesson: "Kylian Mbappé grew up in Bondy, a suburb of Paris, where football was everything and the dreams were as large as the city felt distant. From the moment he emerged as a teenager at Monaco, it was clear this was not an ordinary talent. His pace was frightening. His finishing was clinical. His composure in the biggest moments — the kind that makes senior professionals nervous — was somehow already fully formed at 18 and 19. At 19, he was a World Cup winner with France, scoring in the final and becoming only the second teenager in history to score in a World Cup final, after Pelé. What has followed has only confirmed what those early glimpses suggested: one of the most gifted attackers the sport has ever produced. But the detail that elevates him beyond his statistics is this: Mbappé donates every euro he earns from the French national team — every match fee — to a charity he founded for underprivileged children. He has done this quietly, consistently, without fanfare. He has also spoken publicly about using his platform to stand against racism and for social justice, understanding that the biggest stage carries the biggest responsibility. This is Excellence with Care — not just pursuing greatness on the pitch, but caring about the world you are part of. Mbappé is fast, yes. But the most important speed is how quickly he chooses to give back.", badge: "lightning", stat: "World Cup winner at 19 · Donates all national team earnings to charity", reflectionPrompt: "Mbappé uses his platform to give back quietly and consistently. Even as a student, you have a platform — your voice, your actions, your presence in this team. How could you use it right now to lift someone else?" },
+  { name: "Manuel Neuer", shortName: "Neuer", era: "2004–present", recipe: "Excellence", recipeValues: ["Excellence", "Resilience"], lesson: "Manuel Neuer did not just become a great goalkeeper. He changed what the position means. Before Neuer, the goalkeeper's job was largely defined by what happened in an 18-yard box — stop the shots, command the area, stay between the sticks. Neuer tore that definition up. He became the sweeper-keeper — a goalkeeper who operates like an additional outfield player, sweeping behind the defensive line, reading the game, distributing with the precision of a midfielder. He extended his team's defensive line by 20 or 30 metres. He won duels in areas no goalkeeper had any business being in. And he did all of it with a composure that made the previously unthinkable look routine. To pull on the German national shirt and the Bayern Munich jersey for as long as he did, to lift the World Cup, to collect Bundesliga titles at a rate that defied belief — this is Excellence at its highest. But the chapter of Neuer's story that speaks most directly to Resilience is what happened across 2017 and 2023, when serious injuries threatened to end his career. Each time, he came back. Methodically, professionally, with the same quiet determination that has defined every part of his career. At 37, he was still performing at the highest level in Europe. Resilience isn't loud. Manuel Neuer's career is the proof.", badge: "hand", stat: "World Cup winner · 10× Bundesliga · Revolutionised modern goalkeeping", reflectionPrompt: "Neuer redefined what his position could be by refusing to accept the traditional limits. Are there any expectations — about your position, your role in the team, or your ability — that you've accepted without questioning? What could YOU redefine?" },
+  { name: "Pelé", shortName: "Pelé", era: "1956–1977", recipe: "Passion", flag: "br", recipeValues: ["Passion", "Resilience"], lesson: "Before we understood what football could be — before the global game, before the Champions League, before the billions — there was Pelé. And even measured against everything that has come since, the story of Edson Arantes do Nascimento remains one of the most remarkable in the history of sport. He grew up in such poverty in Brazil that his family could not afford a football. He played with a sock stuffed with newspapers, or with grapefruits, or with anything round enough to kick. He shined shoes to contribute to the household income. Football was not a hobby — it was an escape, a dream, and a way of seeing what the world might hold for a boy with nothing but talent and an absolute, unconditional love for the game. He turned professional at 15. He played in his first World Cup at 17, scoring in the final to help Brazil lift the trophy, and he wept on the pitch — a child, overcome with joy. He would go on to win two more World Cups. He became synonymous with football itself in a way that no player before or since can quite claim. Pelé's lesson is about Passion in its most essential form: a love for the game so complete, so unconditional, that no obstacle — not poverty, not circumstance, not anything — could prevent him from giving everything he had. When you step onto the NBSS pitch, you carry more than most who came before you ever did. Play like you mean it.", badge: "globe", stat: "3× World Cup winner · Only player to win three World Cups", reflectionPrompt: "Pelé had almost nothing — no ball, no resources — and still showed up with everything. Think about the access and opportunities you have compared to him. Are you using them with that same unconditional passion? What would it look like if you truly played like you meant it?" },
+  { name: "Ronaldo Nazário", shortName: "Ronaldo", era: "1993–2011", recipe: "Resilience", recipeValues: ["Resilience", "Excellence"], lesson: "Ask any footballer of the 1990s and early 2000s who the best player in the world was, and the answer would almost always be the same: Ronaldo. Not Cristiano. El Fenómeno. The original. Ronaldo Nazário arrived in European football like a force of nature — a centre forward with the first touch of a magician, the pace of a sprinter, and a finishing ability so complete that goalkeepers across Europe ran out of answers. He scored extraordinary goals with disturbing regularity. He scored in finals. He delivered under the biggest pressure the sport could generate, and made it look inevitable. At his peak, those who saw him play will tell you with total certainty: he was the most complete forward the game has ever seen. And then the injuries came. His knee, in 2000 — a rupture so severe that rehabilitation alone took the better part of two years. He came back. Then it happened again. And again. At one point, many in football wondered if they would ever see the real Ronaldo again. They did. In 2002, he led Brazil's World Cup campaign, won the Golden Boot, and scored twice in the final — returning from total devastation to the highest stage in football, delivering at the defining moment. This is Resilience in its most powerful form: being knocked down harder than anyone should have to be, and getting back up anyway. His story is proof that what defines you is not the injury. It is the comeback.", badge: "fire", stat: "2× World Cup winner · 2× Ballon d'Or · El Fenómeno", reflectionPrompt: "Ronaldo came back from knee injuries that would have ended most careers — not once, but three times. Think about the hardest setback you've faced in sport or life. What actually helped you get back up? What do you need more of to face the next challenge?" },
 ];
 
 const LEGENDS_SG = [
-  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "⭐", stat: "Singapore's greatest player ever · Scored vs Inter Milan", reflectionPrompt: "Fandi gave a whole generation of Singaporeans the belief that it was possible. Who in your life has given YOU that belief — that you could be more than you thought? And looking at your team right now, who could YOU give that same belief to?" },
-  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", recipeValues: ["Integrity", "Resilience"], lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "🚀", stat: "First SG player in Norwegian top flight", reflectionPrompt: "Ikhsan built his own identity despite carrying one of football's biggest names in Singapore. What expectations or comparisons do you carry — from family, friends, or your own past performance? How do you stay true to who you are within that pressure?" },
-  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", recipeValues: ["Resilience", "Passion"], lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "⚡", stat: "First SG captain to lift international trophy · Tiger Cup 1998", reflectionPrompt: "Nazri was told his asthma might stop him from playing sport — it didn't stop him, it became his origin story. What is the 'asthma' in your football journey — the challenge, doubt, or obstacle you've been told is too big? How are you writing your own comeback story?" },
-  { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", recipeValues: ["Resilience", "Integrity"], lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "🦁", stat: "S.League all-time top scorer", reflectionPrompt: "Đurić arrived with nothing but hunger and eventually gave everything for his adopted home. What do YOU give everything for right now? Name one area — training, school, a relationship, a goal — that truly deserves more of your complete effort. What's stopping you?" },
-  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "🎩", stat: "National team captain · AFF Cup winner", reflectionPrompt: "Shahril led with calm authority and quality instead of noise. When pressure rises in your team, how can you show that same kind of quiet leadership and earn trust through your actions?" },
-  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "🎯", stat: "Scored vs Manchester United · Nearly two decades serving the Lions", reflectionPrompt: "Indra combined relentless practice with calm finishing in the biggest moments. Which part of your game needs that same repeated work right now, and how will you train it until it becomes natural under pressure?" },];
+  { name: "Fandi Ahmad", shortName: "Fandi Ahmad", era: "1978–1997", recipe: "Excellence", recipeValues: ["Excellence", "Passion"], lesson: "There is a simple reason why, decades after he last played, Fandi Ahmad's name still stops a room. He is widely accepted as the greatest footballer Singapore has ever produced — and no one who has come since has come close to changing that verdict. Fandi didn't just dominate Southeast Asia; at 17, he was already scoring against Pelé's Santos, announcing himself on a stage most Singaporeans could barely imagine. He then made the journey to Europe, signing for Dutch club FC Groningen and famously scoring against Inter Milan — a moment that proved, beyond any doubt, that this was a player of genuine global quality. He returned to Singapore as its all-time top scorer, a record that still stands. But the numbers only tell part of the story. What Fandi gave Singapore was something far bigger than goals — he gave an entire generation the belief that a Singaporean could compete at the very highest level of world football. Not just participate. Compete. His talent was extraordinary. His courage was greater. And his love for the game, for his country, and for the players who came after him has never wavered. When young players in Singapore dream of making it, they are walking a path that Fandi Ahmad blazed before any of them were born.", badge: "star", stat: "Singapore's greatest player ever · Scored vs Inter Milan", reflectionPrompt: "Fandi gave a whole generation of Singaporeans the belief that it was possible. Who in your life has given YOU that belief — that you could be more than you thought? And looking at your team right now, who could YOU give that same belief to?" },
+  { name: "Ikhsan Fandi", shortName: "Ikhsan Fandi", era: "2018–present", recipe: "Integrity", recipeValues: ["Integrity", "Resilience"], lesson: "Growing up as the son of Singapore's greatest ever footballer could easily become a burden — a name too large to carry, an expectation impossible to meet. Ikhsan Fandi chose to see it differently. He used his father's story not as a shadow to hide from, but as a standard to chase. And he has chased it fearlessly. Ikhsan became the first Singaporean to play in the Norwegian top flight, earning professional contracts in Europe on his own merit and proving that the Fandi legacy is not nostalgia — it is a living, breathing force in Singapore football right now. On the pitch, he plays with courage and directness, never backing down from a challenge, always demanding the ball and making things happen. He carries the Lions badge with pride every time he pulls it on, and he understands the weight of what that badge means. But what makes Ikhsan truly special as a figure for young players is this: he didn't get to where he is because of his father's name. He got there because he outworked the doubts, embraced the pressure, and refused to let the size of the legacy stop him from writing his own. Integrity means doing things the right way even when the easy path is available. Your background is not your ceiling. Ikhsan Fandi is proof of that.", badge: "rocket", stat: "First SG player in Norwegian top flight", reflectionPrompt: "Ikhsan built his own identity despite carrying one of football's biggest names in Singapore. What expectations or comparisons do you carry — from family, friends, or your own past performance? How do you stay true to who you are within that pressure?" },
+  { name: "Nazri Nasir", shortName: "Nazri Nasir", era: "1993–2012", recipe: "Resilience", recipeValues: ["Resilience", "Passion"], lesson: "The story begins before the football. Born the youngest of ten children, Nazri was diagnosed with asthma at eight years old — a moment that could have ended any dream of sport before it started. It didn't. His passion and determination were so clear that his selection for Singapore's Under-16 Asian Youth team in 1986 convinced his parents that football was his path. From that point on, he never looked back. Nazri became a midfield general in every sense — a dynamo who covered every blade of grass, won every tackle he could reach, and gave absolutely everything every single time he crossed the white line. He was the kind of player who never shied away, never hid, and never complained — even when asked to play striker, he delivered without a word of protest. He could score from distance too, with some truly spectacular efforts that left goalkeepers with no chance. At club level, he was part of the historic Malaysia League and Malaysia Cup double-winning side in 1994. But it was as captain of the Singapore National Team from 1998 to 2003 that he sealed his legacy — leading the Lions to Tiger Cup glory in 1998 and becoming the first Singapore captain ever to lift an international trophy. From a child told his asthma might stop him playing, to the man who raised Singapore's first international silverware. That is Nazri Nasir.", badge: "lightning", stat: "First SG captain to lift international trophy · Tiger Cup 1998", reflectionPrompt: "Nazri was told his asthma might stop him from playing sport — it didn't stop him, it became his origin story. What is the 'asthma' in your football journey — the challenge, doubt, or obstacle you've been told is too big? How are you writing your own comeback story?" },
+  { name: "Aleksandar Đurić", shortName: "Aleksandar Đurić", era: "1996–2013", recipe: "Resilience", recipeValues: ["Resilience", "Integrity"], lesson: "There are footballers, and then there is Aleksandar Đurić — a man whose story reads like it was written for the screen. He arrived in Singapore with little, could not speak the language, and had no guarantee of anything. What he had was a relentless drive, a warrior's mentality, and a penalty box presence that defenders simply could not handle. He went on to become the S.League's all-time top scorer — a record that speaks to years of consistency, professionalism, and sheer refusal to stop. What made Đurić truly remarkable was that he was still scoring crucial goals well into his 40s, at an age when most professionals are long retired. He became a naturalised Singaporean, wore the Lions badge with immense pride, and gave everything for his adopted nation. His message to every young player is simple and powerful: it doesn't matter where you start, where you come from, or what others expect of you. What matters is the hunger you carry, the work you put in every single day, and the courage to keep going when it gets hard. Đurić lived that. Every single day.", badge: "shield", stat: "S.League all-time top scorer", reflectionPrompt: "Đurić arrived with nothing but hunger and eventually gave everything for his adopted home. What do YOU give everything for right now? Name one area — training, school, a relationship, a goal — that truly deserves more of your complete effort. What's stopping you?" },
+  { name: "Shahril Ishak", shortName: "Shahril Ishak", era: "2002–2019", recipe: "Respect", lesson: "Not every leader fills a room with noise. Some fill it with something quieter, and rarer — a calm authority that everyone around them instinctively trusts. That was Shahril Ishak. The 'Wizard' captained the Singapore national team not through speeches or chest-beating, but through the sheer quality of his football and the unshakeable composure he brought to every situation. His vision was immaculate. He could see passes that others couldn't even imagine, picking out teammates in pockets of space with a weight and accuracy that looked effortless — though nothing that precise ever is. Defenders tried to press him, rush him, knock him off his rhythm. It rarely worked. Shahril processed the game at his own pace, always one step ahead. His leadership style reflected his playing style — he didn't demand attention, he earned it. Quietly, consistently, and completely. When Singapore needed someone to step up in a big game, the ball would find Shahril. And Shahril would find the right answer. He carried the Lions badge with dignity across nearly two decades of service, winning the AFF Cup and cementing himself as one of the finest technicians Singaporean football has ever seen. Respect is earned, never demanded. A true Wizard — and a true captain.", badge: "crown", stat: "National team captain · AFF Cup winner", reflectionPrompt: "Shahril led with calm authority and quality instead of noise. When pressure rises in your team, how can you show that same kind of quiet leadership and earn trust through your actions?" },
+  { name: "Indra Sahdan", shortName: "Indra Sahdan", era: "1997–2016", recipe: "Passion", lesson: "Every great team needs a striker who makes opponents genuinely nervous. Someone who, the moment the ball plays in behind, the defence knows it's a race they might not win. Indra Sahdan was exactly that player. He was a pure predator — explosive movement in behind the defensive line, a poacher's instinct for being in the right place at exactly the right moment, and a composure in front of goal that was almost unsettling in its coldness. He didn't panic. He didn't snatch. He finished. His greatest individual moment came against Manchester United, one of the most famous football clubs on the planet, when Indra scored against them — a goal that resonated far beyond Singapore and announced to a wider audience that this nation had a striker worth watching. Over nearly two decades in the game, he terrorised defences across Southeast Asia and became one of the most reliable and feared forwards the Lions have ever had. He is proof that clinical finishing is a skill — one built on Passion, relentless practice, intelligent movement, and the mental strength to stay calm when the goal is right in front of you. He loved this game completely. It showed in every shot he took.", badge: "target", stat: "Scored vs Manchester United · Nearly two decades serving the Lions", reflectionPrompt: "Indra combined relentless practice with calm finishing in the biggest moments. Which part of your game needs that same repeated work right now, and how will you train it until it becomes natural under pressure?" },];
 
 const BADGES = [
-  { id: "first_log", name: "First Touch", desc: "Logged your first session", icon: "🏅", xp: 50 },
-  { id: "streak_5", name: "Five Alive", desc: "Logged 5 sessions", icon: "🔥", xp: 100 },
-  { id: "streak_10", name: "Tenacious", desc: "Logged 10 sessions", icon: "⚡", xp: 200 },
-  { id: "streak_25", name: "Quarter Century", desc: "Logged 25 sessions", icon: "🏆", xp: 500 },
-  { id: "perfect_5", name: "Perfect Five", desc: "Rated 5/5 on a session", icon: "⭐", xp: 75 },
-  { id: "growth_log", name: "Growth Thinker", desc: "Made a Growth Journal entry", icon: "🌱", xp: 60 },
-  { id: "week_warrior", name: "Week Warrior", desc: "Logged 3+ sessions in one week", icon: "🗓️", xp: 150 },
-  { id: "all_rounder", name: "All-Rounder", desc: "Logged training, match, fitness & recovery", icon: "🎯", xp: 300 },
+  { id: "first_log", name: "First Touch", desc: "Logged your first session", icon: "medal", xp: 50 },
+  { id: "streak_5", name: "Five Alive", desc: "Logged 5 sessions", icon: "fire", xp: 100 },
+  { id: "streak_10", name: "Tenacious", desc: "Logged 10 sessions", icon: "lightning", xp: 200 },
+  { id: "streak_25", name: "Quarter Century", desc: "Logged 25 sessions", icon: "trophy", xp: 500 },
+  { id: "perfect_5", name: "Perfect Five", desc: "Rated 5/5 on a session", icon: "star", xp: 75 },
+  { id: "growth_log", name: "Growth Thinker", desc: "Made a Growth Journal entry", icon: "plant", xp: 60 },
+  { id: "week_warrior", name: "Week Warrior", desc: "Logged 3+ sessions in one week", icon: "calendar", xp: 150 },
+  { id: "all_rounder", name: "All-Rounder", desc: "Logged training, match, fitness & recovery", icon: "target", xp: 300 },
 ];
 
 function getLevel(xp) {
@@ -858,22 +885,22 @@ function computeXpAndBadges(sessions, growthEntries) {
 }
 
 const RECOVERY_STRETCHES = [
-  { name: "Hamstring Stretch", duration: "30s each leg", how: "Sit on the ground, extend one leg, reach for your toes. Don't bounce — hold steady.", when: "Post-training", icon: "🦵", muscle: "Hamstrings" },
-  { name: "Quad Stretch (Standing)", duration: "30s each leg", how: "Stand on one foot, pull the other heel to your glute. Keep knees together, stand tall.", when: "Post-training", icon: "🦿", muscle: "Quadriceps" },
-  { name: "Hip Flexor Lunge", duration: "30s each side", how: "Kneel on one knee, push hips forward gently. You'll feel it in the front of your hip.", when: "Post-training", icon: "🏋️", muscle: "Hip Flexors" },
-  { name: "Calf Raises & Stretch", duration: "20 reps + 30s hold", how: "Stand on a step edge, raise up on toes, then lower heels below step level and hold.", when: "Daily", icon: "🦶", muscle: "Calves" },
-  { name: "Glute Bridge", duration: "3×15 reps", how: "Lie on your back, feet flat, push hips up. Squeeze at the top. Great for injury prevention.", when: "Pre-training / Daily", icon: "🍑", muscle: "Glutes" },
-  { name: "Foam Roll — IT Band", duration: "60s each side", how: "Lie on your side on the roller, roll from hip to just above knee. Slow and controlled.", when: "Post-training", icon: "🧊", muscle: "IT Band" },
-  { name: "Child's Pose", duration: "60s", how: "Kneel, sit back on heels, stretch arms forward on the ground. Breathe deeply.", when: "Post-training / Before bed", icon: "🧘", muscle: "Lower back, shoulders" },
-  { name: "Neck & Shoulder Rolls", duration: "10 each direction", how: "Slow circles with your neck, then roll shoulders forward and back.", when: "Anytime", icon: "🔄", muscle: "Neck, Traps" },
+  { name: "Hamstring Stretch", duration: "30s each leg", how: "Sit on the ground, extend one leg, reach for your toes. Don't bounce — hold steady.", when: "Post-training", icon: "walk", muscle: "Hamstrings" },
+  { name: "Quad Stretch (Standing)", duration: "30s each leg", how: "Stand on one foot, pull the other heel to your glute. Keep knees together, stand tall.", when: "Post-training", icon: "walk", muscle: "Quadriceps" },
+  { name: "Hip Flexor Lunge", duration: "30s each side", how: "Kneel on one knee, push hips forward gently. You'll feel it in the front of your hip.", when: "Post-training", icon: "barbell", muscle: "Hip Flexors" },
+  { name: "Calf Raises & Stretch", duration: "20 reps + 30s hold", how: "Stand on a step edge, raise up on toes, then lower heels below step level and hold.", when: "Daily", icon: "footprints", muscle: "Calves" },
+  { name: "Glute Bridge", duration: "3×15 reps", how: "Lie on your back, feet flat, push hips up. Squeeze at the top. Great for injury prevention.", when: "Pre-training / Daily", icon: "barbell", muscle: "Glutes" },
+  { name: "Foam Roll — IT Band", duration: "60s each side", how: "Lie on your side on the roller, roll from hip to just above knee. Slow and controlled.", when: "Post-training", icon: "snowflake", muscle: "IT Band" },
+  { name: "Child's Pose", duration: "60s", how: "Kneel, sit back on heels, stretch arms forward on the ground. Breathe deeply.", when: "Post-training / Before bed", icon: "yoga", muscle: "Lower back, shoulders" },
+  { name: "Neck & Shoulder Rolls", duration: "10 each direction", how: "Slow circles with your neck, then roll shoulders forward and back.", when: "Anytime", icon: "refresh", muscle: "Neck, Traps" },
 ];
 
 const SLEEP_TIPS = [
-  { tip: "Aim for 8–10 hours per night. Teenage athletes need MORE sleep than adults, not less.", icon: "😴" },
-  { tip: "Stop screens 30 mins before bed. Blue light tricks your brain into thinking it's daytime.", icon: "📵" },
-  { tip: "Keep a consistent sleep schedule — even on weekends. Your body clock matters.", icon: "⏰" },
-  { tip: "Cool room, dark room. 18–20°C is ideal for deep sleep.", icon: "❄️" },
-  { tip: "The sleep TWO nights before a match matters more than the night before.", icon: "📅" },
+  { tip: "Aim for 8–10 hours per night. Teenage athletes need MORE sleep than adults, not less.", icon: "moon" },
+  { tip: "Stop screens 30 mins before bed. Blue light tricks your brain into thinking it's daytime.", icon: "phone-off" },
+  { tip: "Keep a consistent sleep schedule — even on weekends. Your body clock matters.", icon: "clock" },
+  { tip: "Cool room, dark room. 18–20°C is ideal for deep sleep.", icon: "snowflake" },
+  { tip: "The sleep TWO nights before a match matters more than the night before.", icon: "calendar" },
 ];
 
 const QUIZ_QUESTIONS = [
@@ -900,10 +927,10 @@ const QUIZ_QUESTIONS = [
 ];
 
 const GOAL_CATEGORIES = [
-  { cat: "Technical", icon: "⚽", examples: ["Master the Cruyff turn", "Complete 20 consecutive juggles", "Score from a free kick in training"] },
-  { cat: "Physical", icon: "💪", examples: ["Run 2.4km under 12 minutes", "Do 40 push-ups in 1 minute", "Improve beep test by 1 level"] },
-  { cat: "Mental", icon: "🧠", examples: ["Use box breathing before every match", "Write in Growth Journal 3x this week", "Give 1 positive call-out per training"] },
-  { cat: "Teamwork", icon: "🤝", examples: ["Help a junior with a drill", "Communicate 5+ times per match", "Encourage a teammate after a mistake"] },
+  { cat: "Technical", icon: "ball", examples: ["Master the Cruyff turn", "Complete 20 consecutive juggles", "Score from a free kick in training"] },
+  { cat: "Physical", icon: "barbell", examples: ["Run 2.4km under 12 minutes", "Do 40 push-ups in 1 minute", "Improve beep test by 1 level"] },
+  { cat: "Mental", icon: "brain", examples: ["Use box breathing before every match", "Write in Growth Journal 3x this week", "Give 1 positive call-out per training"] },
+  { cat: "Teamwork", icon: "handshake", examples: ["Help a junior with a drill", "Communicate 5+ times per match", "Encourage a teammate after a mistake"] },
 ];
 
 const FORMATIONS = {
@@ -1105,7 +1132,7 @@ function GoldButton({ children, onClick, style: s = {}, secondary, destructive }
   };
   let variant = {};
   if (destructive) {
-    variant = { border: `1px solid ${C.accent}`, color: C.accent };
+    variant = { border: `1px solid ${C.danger}`, color: C.danger };
   } else if (secondary) {
     variant = { border: `1px solid ${C.surfaceBorder}`, color: C.textMid };
   } else {
@@ -1536,10 +1563,10 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const acwrData = sessions?.length ? computeACWR(sessions) : [];
   const latestACWR = acwrData.length ? acwrData[acwrData.length - 1].acwr : null;
   const acwrZone = latestACWR === null ? null
-    : latestACWR < 0.8  ? { label: "Under-loaded", color: C.electric,  emoji: "📉" }
-    : latestACWR <= 1.3 ? { label: "Optimal Zone", color: C.success,   emoji: "✅" }
-    : latestACWR <= 1.5 ? { label: "Caution Zone",  color: C.gold,     emoji: "⚠️" }
-    :                     { label: "High Risk",      color: C.danger,   emoji: "🚨" };
+    : latestACWR < 0.8  ? { label: "Under-loaded", color: C.electric,  icon: "trend-down" }
+    : latestACWR <= 1.3 ? { label: "Optimal Zone", color: C.success,   icon: "check" }
+    : latestACWR <= 1.5 ? { label: "Caution Zone",  color: C.gold,     icon: "warning" }
+    :                     { label: "High Risk",      color: C.danger,   icon: "warning" };
 
   const isCoach = profile?.role === "coach";
   const name = profile?.name?.trim();
@@ -1581,7 +1608,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
 
   // ── Identity ──
   if (name) {
-    items.push({ icon: isCoach ? "📋" : "⚽", text: isCoach ? `Coach ${name} — Team Dashboard Active` : `Welcome back, ${name}!`, color: C.gold });
+    items.push({ icon: isCoach ? "clipboard" : "ball", text: isCoach ? `Coach ${name} — Team Dashboard Active` : `Welcome back, ${name}!`, color: C.gold });
   } else {
     items.push({ icon: "GP", text: "GamePlan — Performance Platform", color: C.gold });
   }
@@ -1590,13 +1617,13 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   if (nextMatch) {
     const matchTime = nextMatch.time ? ` · ${nextMatch.time}` : "";
     if (daysToMatch === 0) {
-      items.push({ icon: "🏆", text: `MATCH DAY — ${nextMatch.title} is TODAY${matchTime}. Lock your checklist and intentions NOW.`, color: C.gold });
+      items.push({ icon: "trophy", text: `MATCH DAY — ${nextMatch.title} is TODAY${matchTime}. Lock your checklist and intentions NOW.`, color: C.gold });
     } else if (daysToMatch === 1) {
-      items.push({ icon: "🏆", text: `Match TOMORROW — ${nextMatch.title}${matchTime}. Final prep day. Sleep early, eat right.`, color: C.gold });
+      items.push({ icon: "trophy", text: `Match TOMORROW — ${nextMatch.title}${matchTime}. Final prep day. Sleep early, eat right.`, color: C.gold });
     } else if (daysToMatch !== null && daysToMatch <= 7) {
-      items.push({ icon: "🏆", text: `${nextMatch.title} in ${daysToMatch} day${daysToMatch === 1 ? "" : "s"}${matchTime}. Pre-match routine opens now.`, color: C.gold });
+      items.push({ icon: "trophy", text: `${nextMatch.title} in ${daysToMatch} day${daysToMatch === 1 ? "" : "s"}${matchTime}. Pre-match routine opens now.`, color: C.gold });
     } else if (nextMatch) {
-      items.push({ icon: "📅", text: `Next match — ${nextMatch.title} · ${nextMatch.date}${matchTime}`, color: C.gold });
+      items.push({ icon: "calendar", text: `Next match — ${nextMatch.title} · ${nextMatch.date}${matchTime}`, color: C.gold });
     }
   }
 
@@ -1604,11 +1631,11 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   if (nextTraining && (!nextMatch || nextTraining.date !== nextMatch.date)) {
     const trainTime = nextTraining.time ? ` · ${nextTraining.time}` : "";
     if (daysToTraining === 0) {
-      items.push({ icon: "🏃", text: `Training TODAY — ${nextTraining.title}${trainTime}. Log your RPE afterwards.`, color: C.success });
+      items.push({ icon: "run", text: `Training TODAY — ${nextTraining.title}${trainTime}. Log your RPE afterwards.`, color: C.success });
     } else if (daysToTraining === 1) {
-      items.push({ icon: "🏃", text: `Training TOMORROW — ${nextTraining.title}${trainTime}. Prep your kit tonight.`, color: C.success });
+      items.push({ icon: "run", text: `Training TOMORROW — ${nextTraining.title}${trainTime}. Prep your kit tonight.`, color: C.success });
     } else if (daysToTraining !== null && daysToTraining <= 5) {
-      items.push({ icon: "🏃", text: `Next training — ${nextTraining.title} in ${daysToTraining} days${trainTime}`, color: C.success });
+      items.push({ icon: "run", text: `Next training — ${nextTraining.title} in ${daysToTraining} days${trainTime}`, color: C.success });
     }
   }
 
@@ -1617,45 +1644,45 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     .filter(e => e.notes && e.notes.trim())
     .slice(0, 2)
     .forEach(e => {
-      items.push({ icon: "📢", text: `Announcement: ${e.notes.trim()} (${e.title} · ${e.date})`, color: C.electric });
+      items.push({ icon: "megaphone", text: `Announcement: ${e.notes.trim()} (${e.title} · ${e.date})`, color: C.electric });
     });
 
   // ── Session stats (players) ──
   if (!isCoach && sessions?.length > 0) {
-    items.push({ icon: "📊", text: `${sessions.length} session${sessions.length === 1 ? "" : "s"} logged total`, color: C.electric });
-    if (streak > 1) items.push({ icon: "🔥", text: `${streak}-session training streak — keep it up!`, color: C.danger });
-    if (daysSinceLast === 0) items.push({ icon: "✅", text: "You trained today — great work.", color: C.success });
-    else if (daysSinceLast === 1) items.push({ icon: "⏰", text: "Last session was yesterday — time to go again?", color: C.gold });
-    else if (daysSinceLast >= 3) items.push({ icon: "💤", text: `${daysSinceLast} days since last session — your body misses the pitch.`, color: C.orange });
+    items.push({ icon: "chart", text: `${sessions.length} session${sessions.length === 1 ? "" : "s"} logged total`, color: C.electric });
+    if (streak > 1) items.push({ icon: "fire", text: `${streak}-session training streak — keep it up!`, color: C.danger });
+    if (daysSinceLast === 0) items.push({ icon: "check", text: "You trained today — great work.", color: C.success });
+    else if (daysSinceLast === 1) items.push({ icon: "clock", text: "Last session was yesterday — time to go again?", color: C.gold });
+    else if (daysSinceLast >= 3) items.push({ icon: "moon", text: `${daysSinceLast} days since last session — your body misses the pitch.`, color: C.orange });
   }
 
   // ── Coach stats ──
   if (isCoach && sessions?.length > 0) {
-    items.push({ icon: "📅", text: `${sessions.length} squad session${sessions.length === 1 ? "" : "s"} on record`, color: C.electric });
+    items.push({ icon: "calendar", text: `${sessions.length} squad session${sessions.length === 1 ? "" : "s"} on record`, color: C.electric });
   }
 
   // ── ACWR load alert ──
   if (acwrZone && latestACWR !== null) {
-    items.push({ icon: acwrZone.emoji, text: `Training Load (ACWR): ${latestACWR.toFixed(2)} — ${acwrZone.label}`, color: acwrZone.color });
-    if (latestACWR > 1.3) items.push({ icon: "🧊", text: "High load detected — prioritise sleep, hydration and a proper cool-down today.", color: C.orange });
+    items.push({ icon: acwrZone.icon, text: `Training Load (ACWR): ${latestACWR.toFixed(2)} — ${acwrZone.label}`, color: acwrZone.color });
+    if (latestACWR > 1.3) items.push({ icon: "snowflake", text: "High load detected — prioritise sleep, hydration and a proper cool-down today.", color: C.orange });
   }
 
   // ── Contextual reminders ──
   // Match countdown nudge
   if (daysToMatch !== null && daysToMatch <= 3 && daysToMatch > 0) {
-    items.push({ icon: "📝", text: `${daysToMatch === 1 ? "1 day" : `${daysToMatch} days`} to match day — complete your pre-match checklist in the Match tab.`, color: C.gold });
+    items.push({ icon: "note", text: `${daysToMatch === 1 ? "1 day" : `${daysToMatch} days`} to match day — complete your pre-match checklist in the Match tab.`, color: C.gold });
   }
   // Training day nudge
   if (daysToTraining === 0) {
-    items.push({ icon: "📈", text: "Training today — log your session RPE and wellness check-in afterwards. Takes 60 seconds.", color: C.electric });
+    items.push({ icon: "trend-up", text: "Training today — log your session RPE and wellness check-in afterwards. Takes 60 seconds.", color: C.electric });
   }
 
   // ── Standing reminders ──
-  items.push({ icon: "💧", text: "Hydration reminder — water before, during and after every session.", color: C.electric });
-  items.push({ icon: "😴", text: "Sleep is your #1 recovery tool — aim for 8–9 hours on school nights.", color: "#a78bfa" });
-  items.push({ icon: "🧠", text: "Today's Football IQ question is below — one question a day sharpens the mind.", color: C.gold });
-  items.push({ icon: "💪", text: "RECIPE Value of the day: push your EXCELLENCE in every drill.", color: C.success });
-  items.push({ icon: "🎯", text: "Set one micro-goal before the next session — one specific thing to improve.", color: C.gold });
+  items.push({ icon: "drop", text: "Hydration reminder — water before, during and after every session.", color: C.electric });
+  items.push({ icon: "moon", text: "Sleep is your #1 recovery tool — aim for 8–9 hours on school nights.", color: "#a78bfa" });
+  items.push({ icon: "brain", text: "Today's Football IQ question is below — one question a day sharpens the mind.", color: C.gold });
+  items.push({ icon: "barbell", text: "RECIPE Value of the day: push your EXCELLENCE in every drill.", color: C.success });
+  items.push({ icon: "target", text: "Set one micro-goal before the next session — one specific thing to improve.", color: C.gold });
 
   // Separator dot
   const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none" }}>•</span>;
@@ -1692,7 +1719,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
             fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
             color: tickerText, letterSpacing: 0.3,
           }}>
-            <span style={{ fontSize: 14 }}>{item.icon}</span>
+            <span style={{ display: "inline-flex", alignItems: "center" }}><SportIcon name={item.icon} size={14} weight="regular" color={item.color || tickerText} /></span>
             <span>{item.text}</span>
             {DOT}
           </span>
@@ -1773,7 +1800,7 @@ function HeroSection({ setActive, profile, sessions }) {
         <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.textBright, margin: "0 0 8px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
           FOOTBALL
         </h1>
-        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.accent, margin: "0 0 32px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
+        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.danger, margin: "0 0 32px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
           CCA
         </h1>
         <p style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textDim, margin: "0 0 48px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
@@ -1818,9 +1845,9 @@ function HeroSection({ setActive, profile, sessions }) {
             : sessions?.length > 0
               ? [
                   { val: sessions.length, label: "Sessions" },
-                  { val: streak > 0 ? `${streak}` : "—", label: "Streak", color: streak > 0 ? C.warning : null },
+                  { val: streak > 0 ? `${streak}` : "—", label: "Streak", color: streak > 0 ? C.orange : null },
                   { val: profile.level ? profile.level.charAt(0).toUpperCase() + profile.level.slice(1) : "—", label: "Level" },
-                  { val: daysSinceLast === 0 ? "Today" : daysSinceLast === 1 ? "Yesterday" : daysSinceLast ? `${daysSinceLast}d ago` : "—", label: "Last Session", color: daysSinceLast > 3 ? C.accent : null },
+                  { val: daysSinceLast === 0 ? "Today" : daysSinceLast === 1 ? "Yesterday" : daysSinceLast ? `${daysSinceLast}d ago` : "—", label: "Last Session", color: daysSinceLast > 3 ? C.danger : null },
                 ]
               : [
                   { val: "3", label: "Training Levels" },
@@ -2104,12 +2131,12 @@ function TrainingSection() {
             display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 22 }}>{posDrillData.icon}</span>
+              <span style={{ display: "inline-flex" }}><SportIcon name={posDrillData.icon} size={22} color={posDrillData.color} /></span>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: posDrillData.color, letterSpacing: 1 }}>
                   YOUR POSITION — {posDrillData.label.toUpperCase()} DRILLS
                 </div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{posDrillData.drills.length} position-specific drills · tap 🎬 to watch</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{posDrillData.drills.length} position-specific drills · tap to watch</div>
               </div>
             </div>
             <span style={{ color: C.textDim, fontSize: 12, transform: showPosDrills ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
@@ -2117,13 +2144,13 @@ function TrainingSection() {
           {showPosDrills && (
             <div style={{ padding: "0 22px 20px" }}>
               <div style={{ background: `${posDrillData.color}08`, border: `1px solid ${posDrillData.color}20`, borderRadius: 10, padding: "12px 16px", margin: "14px 0", fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, fontStyle: "italic" }}>
-                💡 {posDrillData.focus}
+                {posDrillData.focus}
               </div>
               {posDrillData.drills.map((d, di) => (
                 <div key={di} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: di % 2 === 0 ? C.surfaceSubtle : "transparent", borderRadius: 8, marginBottom: 2 }}>
                   <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: posDrillData.color, color: C.navyDeep, fontSize: 11, fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0 }}>{di + 1}</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, flex: 1 }}>{d.text}</span>
-                  <a href={d.video} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6, background: `${C.electric}10`, border: `1px solid ${C.electric}25`, textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11, color: C.electric, fontWeight: 700, flexShrink: 0 }}>🎬 Watch</a>
+                  <a href={d.video} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6, background: `${C.electric}10`, border: `1px solid ${C.electric}25`, textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11, color: C.electric, fontWeight: 700, flexShrink: 0 }}><PlayCircle size={11} weight="fill" style={{ marginRight: 4, verticalAlign: "middle" }} />Watch</a>
                 </div>
               ))}
             </div>
@@ -2145,13 +2172,14 @@ function TrainingSection() {
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{
                   width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, background: `${data.color}15`, flexShrink: 0,
-                }}>{week.icon}</span>
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: `${data.color}15`, flexShrink: 0,
+                }}><SportIcon name={week.icon} size={22} color={data.color} /></span>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 19, color: C.textBright, letterSpacing: 1 }}>
                     WEEK {idx + 1}: {week.name.toUpperCase()}
                   </div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{week.drills.length} drills · tap 🎬 for video demos</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{week.drills.length} drills · tap for video demos</div>
                 </div>
               </div>
               <span style={{ color: C.textDim, fontSize: 12, transform: openWeek === idx ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
@@ -2164,7 +2192,7 @@ function TrainingSection() {
                   borderRadius: 10, padding: "12px 16px", marginBottom: 14,
                   fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, fontStyle: "italic",
                 }}>
-                  💡 {week.focus}
+                  {week.focus}
                 </div>
                 {week.drills.map((drill, di) => (
                   <div key={di} style={{
@@ -2182,7 +2210,7 @@ function TrainingSection() {
                       background: `${C.electric}10`, border: `1px solid ${C.electric}25`,
                       textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11,
                       color: C.electric, fontWeight: 700, flexShrink: 0,
-                    }}>🎬 Watch</a>
+                    }}><PlayCircle size={11} weight="fill" style={{ marginRight: 4, verticalAlign: "middle" }} />Watch</a>
                   </div>
                 ))}
               </div>
@@ -2197,8 +2225,9 @@ function TrainingSection() {
 // ══════════════════════════════════════════════════
 //  NUTRITION
 // ══════════════════════════════════════════════════
-function NutritionSection() {
+function NutritionSection({ compact = false }) {
   const C = useTheme();
+  const inputStyle = makeInputStyle(C);
   const [checkerOpen, setCheckerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [timing, setTiming] = useState("pre");
@@ -2210,7 +2239,7 @@ function NutritionSection() {
   const filteredFoods = searchTerm.trim().length > 0 ? FOOD_DB.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DB;
 
   return (
-    <section style={{ padding: "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
+    <section style={{ padding: compact ? "24px 24px 48px" : "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
       <SectionHeader icon="" title="NUTRITION" subtitle="Meal timing, food choices, and fuelling support for performance." accent={C.success} />
 
       {/* Food Checker */}
@@ -2289,7 +2318,7 @@ function NutritionSection() {
         {NUTRITION_DATA.map((item, i) => (
           <Card key={i} style={{ borderLeft: `3px solid ${item.color}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-              <span style={{ fontSize: 28 }}>{item.icon}</span>
+              <span style={{ display: "inline-flex" }}><SportIcon name={item.icon} size={28} color={item.color} /></span>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, margin: 0, letterSpacing: 0.5 }}>{item.meal.toUpperCase()}</h3>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: item.color }}>{item.time}</span>
@@ -2508,8 +2537,8 @@ function MindsetSection() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: activeCard === i ? 14 : 0 }}>
               <span style={{
                 width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 20, background: `${C.electric}12`,
-              }}>{card.icon}</span>
+                background: `${C.electric}12`,
+              }}><SportIcon name={card.icon} size={20} color={C.electric} /></span>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, margin: 0, letterSpacing: 0.5 }}>{card.title.toUpperCase()}</h3>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{card.technique}</span>
@@ -2564,7 +2593,7 @@ function MindsetSection() {
                     display: "flex", flexDirection: "column", justifyContent: "space-between",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 22 }}>{item.icon}</span>
+                      <span style={{ display: "inline-flex" }}><SportIcon name={item.icon} size={22} /></span>
                       <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: phaseColor, background: `${phaseColor}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.phase}</span>
                     </div>
                     <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.danger, margin: 0, lineHeight: 1.5 }}>"{item.fixed}"</p>
@@ -2579,7 +2608,7 @@ function MindsetSection() {
                     display: "flex", flexDirection: "column", justifyContent: "space-between",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 22 }}>🌱</span>
+                      <span style={{ display: "inline-flex" }}><SportIcon name="plant" size={22} color={C.success} /></span>
                       <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: C.success, background: `${C.success}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Growth</span>
                     </div>
                     <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, margin: 0, lineHeight: 1.5 }}>"{item.growth}"</p>
@@ -2743,7 +2772,7 @@ function WarmUpSection() {
               {/* Content */}
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 18 }}>{step.icon}</span>
+                  <span style={{ display: "inline-flex" }}><SportIcon name={step.icon} size={18} /></span>
                   <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: isDone ? accentColor : C.textBright, letterSpacing: 0.5 }}>{step.name.toUpperCase()}</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: accentColor, background: `${accentColor}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{step.duration}</span>
                 </div>
@@ -2850,7 +2879,7 @@ function FitnessSection() {
                 ))}
               </div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
-                💡 Log your session <strong style={{ color: C.textMid }}>RPE and duration</strong> in the Progress Tracker to see your ACWR chart automatically.
+                Log your session <strong style={{ color: C.textMid }}>RPE and duration</strong> in the Progress Tracker to see your ACWR chart automatically.
               </p>
             </div>
           )}
@@ -2900,7 +2929,7 @@ function FitnessSection() {
                 ))}
               </div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
-                💡 Most team training sessions should sit at <strong style={{ color: C.textMid }}>RPE 6–8</strong>. Recovery sessions should be RPE 3–4. Always honest with yourself — no one benefits from inflated scores.
+                Most team training sessions should sit at <strong style={{ color: C.textMid }}>RPE 6–8</strong>. Recovery sessions should be RPE 3–4. Always honest with yourself — no one benefits from inflated scores.
               </p>
             </div>
           )}
@@ -2937,7 +2966,7 @@ function FitnessSection() {
                 ))}
               </div>
 
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: "0 0 14px", paddingTop: 12, borderTop: `1px solid ${C.navyBorder}` }}>💡 {test.tip}</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: "0 0 14px", paddingTop: 12, borderTop: `1px solid ${C.navyBorder}` }}>{test.tip}</p>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => { setShowLog(showLog === test.name ? null : test.name); setShowChart(null); }} style={{
@@ -3176,7 +3205,7 @@ function TrackerSection() {
           { label: "Current year", value: year, icon: "", color: C.orange },
         ].map((s, i) => (
           <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "18px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
-            {s.icon ? <span style={{ fontSize: 22 }}>{s.icon}</span> : null}
+            {s.icon ? <span style={{ display: "inline-flex" }}><SportIcon name={s.icon} size={22} /></span> : null}
             <div style={{ fontFamily: FONT_HEAD, fontSize: 30, color: s.color, marginTop: 6 }}>{s.value}</div>
             <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
           </div>
@@ -3566,6 +3595,8 @@ function WellnessSection() {
 function SquadSection() {
   const C = useTheme();
   const isMobile = useIsMobile();
+  const labelStyle = makeLabelStyle(C);
+  const inputStyle = makeInputStyle(C);
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
   const [squad, setSquad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
@@ -3743,7 +3774,7 @@ function SquadSection() {
                 border: `1px solid ${unlocked ? C.gold + "30" : C.navyBorder}`,
                 opacity: unlocked ? 1 : 0.45, transition: "all 0.2s",
               }}>
-                <span style={{ fontSize: 28, display: "block", filter: unlocked ? "none" : "grayscale(1)" }}>{badge.icon}</span>
+                <span style={{ display: "flex", justifyContent: "center", opacity: unlocked ? 1 : 0.25 }}><SportIcon name={badge.icon} size={28} /></span>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: unlocked ? C.gold : C.textDim, fontWeight: 700, marginTop: 6 }}>{badge.name}</div>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 3 }}>{badge.desc}</div>
                 {unlocked && <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.success, fontWeight: 700, marginTop: 6 }}>+{badge.xp} XP ✓</div>}
@@ -3758,6 +3789,13 @@ function SquadSection() {
           <ShareSaveBar targetRef={exportRef} filename="gameplan-player-card.png" title={`${squad.name} - GamePlan Player Card`} />
         </div>
       )}
+
+      {/* Position Finder */}
+      <Card style={{ marginTop: 24 }}>
+        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>POSITION FINDER</h3>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
+        <PositionFinder />
+      </Card>
     </section>
   );
 }
@@ -3776,7 +3814,7 @@ function BadgeIcon({ legend, size = 28 }) {
       />
     );
   }
-  return <>{legend.badge}</>;
+  return <SportIcon name={legend.badge} size={size} />;
 }
 
 const RECIPE_COLORS = { Respect: C.electric, Resilience: C.orange, Care: C.success, Integrity: "#a855f7", Passion: C.danger, Excellence: C.orange };
@@ -3954,7 +3992,7 @@ function LegendsSection() {
 
                 {/* Stat chip */}
                 <div style={{ padding: "8px 14px", borderRadius: 8, background: `${C.gold}10`, border: `1px solid ${C.gold}25`, marginBottom: 18, display: "inline-block" }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 700 }}>🏆 {legend.stat}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}><Trophy size={12} weight="thin" />{legend.stat}</span>
                 </div>
 
                 {/* Lesson text */}
@@ -4469,6 +4507,12 @@ function PreMatchSection() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Kit Checklist */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Kit Checklist</div>
+        <KitChecklist />
       </div>
 
       <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, textAlign: "center", margin: "28px 0 0", lineHeight: 1.6 }}>
@@ -5223,13 +5267,13 @@ function PositionFinder() {
   const allAnswered = questions.every(q => answers[q.id]);
   const getPosition = () => {
     if (!allAnswered) return null;
-    if (answers.shoot === "I prefer keeping clean sheets") return { pos: "Goalkeeper", desc: "The last line of defence and the first line of attack.", icon: "🧤" };
-    if (answers.role === "Organising defence" && answers.build === "Tall and strong") return { pos: "Centre Back", desc: "Dominance in the air, leadership at the back.", icon: "🏔️" };
-    if (answers.speed === "Very fast" && answers.role !== "Organising defence") return { pos: "Wide Forward / Winger", desc: "Your pace is your weapon. Get behind defenders and create.", icon: "⚡" };
-    if (answers.role === "Scoring goals" && answers.speed !== "Slow but strong") return { pos: "Striker", desc: "Live in the box. Movement, timing, and clinical finishing.", icon: "🎯" };
-    if (answers.role === "Creating chances") return { pos: "Attacking Midfielder (CAM)", desc: "The conductor. Vision and creativity are your superpowers.", icon: "🎩" };
-    if (answers.role === "Breaking up play") return { pos: "Defensive Midfielder (CDM)", desc: "The shield. Protect the defence and start attacks.", icon: "🛡️" };
-    return { pos: "Central Midfielder (Box-to-Box)", desc: "All-rounders like Bellingham cover every blade of grass.", icon: "🔄" };
+    if (answers.shoot === "I prefer keeping clean sheets") return { pos: "Goalkeeper", desc: "The last line of defence and the first line of attack.", icon: "hand" };
+    if (answers.role === "Organising defence" && answers.build === "Tall and strong") return { pos: "Centre Back", desc: "Dominance in the air, leadership at the back.", icon: "mountain" };
+    if (answers.speed === "Very fast" && answers.role !== "Organising defence") return { pos: "Wide Forward / Winger", desc: "Your pace is your weapon. Get behind defenders and create.", icon: "lightning" };
+    if (answers.role === "Scoring goals" && answers.speed !== "Slow but strong") return { pos: "Striker", desc: "Live in the box. Movement, timing, and clinical finishing.", icon: "target" };
+    if (answers.role === "Creating chances") return { pos: "Attacking Midfielder (CAM)", desc: "The conductor. Vision and creativity are your superpowers.", icon: "brush" };
+    if (answers.role === "Breaking up play") return { pos: "Defensive Midfielder (CDM)", desc: "The shield. Protect the defence and start attacks.", icon: "shield" };
+    return { pos: "Central Midfielder (Box-to-Box)", desc: "All-rounders like Bellingham cover every blade of grass.", icon: "strategy" };
   };
   const result = getPosition();
   return (
@@ -5249,7 +5293,7 @@ function PositionFinder() {
       {result && (
         <div style={{ marginTop: 20, padding: 20, borderRadius: 14, background: `${C.gold}08`, border: `1px solid ${C.gold}30` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 32 }}>{result.icon}</span>
+            <span style={{ display: "inline-flex" }}><SportIcon name={result.icon} size={32} color={C.gold} /></span>
             <h4 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.gold, margin: 0, letterSpacing: 1 }}>{result.pos.toUpperCase()}</h4>
           </div>
           <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginTop: 10, lineHeight: 1.5 }}>{result.desc}</p>
@@ -5319,7 +5363,7 @@ function RecoveryZone() {
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, transition: "all 0.2s",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>{s.icon}</span>
+                  <span style={{ display: "inline-flex", color: C.success }}><SportIcon name={s.icon} size={20} color={C.success} /></span>
                   <div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, fontWeight: 600 }}>{s.name}</div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{s.muscle} · {s.duration}</div>
@@ -5342,7 +5386,7 @@ function RecoveryZone() {
         <div style={{ display: "grid", gap: 8 }}>
           {SLEEP_TIPS.map((tip, i) => (
             <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px", background: C.surfaceSubtle, borderRadius: 10 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{tip.icon}</span>
+              <span style={{ display: "inline-flex", flexShrink: 0 }}><SportIcon name={tip.icon} size={20} color={C.electric} /></span>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{tip.tip}</p>
             </div>
           ))}
@@ -5547,7 +5591,7 @@ function GoalWall() {
                     background: (formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyCard,
                     color: (formMode === "smart" ? smart : quick).cat === c.cat ? C.navyDeep : C.textMid,
                     border: `1px solid ${(formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyBorder}`,
-                  }}>{c.icon} {c.cat}</button>
+                  }}><SportIcon name={c.icon} size={13} style={{ marginRight: 5, verticalAlign: "middle" }} /> {c.cat}</button>
               ))}
             </div>
           </div>
@@ -5696,11 +5740,11 @@ function GoalWall() {
 function HubOverview({ setHubTab }) {
   const C = useTheme();
   const cards = [
-    { id: "schedule", title: "CCA Schedule", desc: "Training dates, match fixtures and important dates.", icon: "📅", color: C.electric },
-    { id: "recovery", title: "Recovery Zone", desc: "Stretching, foam rolling, sleep tips.", icon: "🧊", color: C.success },
-    { id: "quiz", title: "Football IQ Quiz", desc: `${QUIZ_QUESTIONS.length} questions on tactics, rules & SG football.`, icon: "🧠", color: C.gold },
-    { id: "goals", title: "Goal Wall", desc: "Set personal goals. Track them. Crush them.", icon: "🎯", color: C.danger },
-    { id: "attendance", title: "Cluster Attendance", desc: "Take attendance for all cluster schools. One tap per player.", icon: "📋", color: C.orange },
+    { id: "schedule", title: "CCA Schedule", desc: "Training dates, match fixtures and important dates.", icon: "calendar", color: C.electric },
+    { id: "recovery", title: "Recovery Zone", desc: "Stretching, foam rolling, sleep tips.", icon: "snowflake", color: C.success },
+    { id: "quiz", title: "Football IQ Quiz", desc: `${QUIZ_QUESTIONS.length} questions on tactics, rules & SG football.`, icon: "brain", color: C.gold },
+    { id: "goals", title: "Goal Wall", desc: "Set personal goals. Track them. Crush them.", icon: "target", color: C.danger },
+    { id: "attendance", title: "Cluster Attendance", desc: "Take attendance for all cluster schools. One tap per player.", icon: "clipboard", color: C.orange },
   ];
   return (
     <>
@@ -5714,7 +5758,7 @@ function HubOverview({ setHubTab }) {
             onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.3)`; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
           >
-            <span style={{ fontSize: 32, display: "block", marginBottom: 14 }}>{card.icon}</span>
+            <span style={{ display: "block", marginBottom: 14 }}><SportIcon name={card.icon} size={32} color={card.color} /></span>
             <h3 style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, margin: "0 0 8px", letterSpacing: 0.5 }}>{card.title.toUpperCase()}</h3>
             <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{card.desc}</p>
             <span style={{ display: "inline-block", marginTop: 14, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: card.color }}>Open →</span>
@@ -5722,12 +5766,12 @@ function HubOverview({ setHubTab }) {
         ))}
       </div>
       <Card style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>🗺️ POSITION FINDER</h3>
+        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>POSITION FINDER</h3>
         <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
         <PositionFinder />
       </Card>
       <Card>
-        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>🎒 KIT CHECKLIST</h3>
+        <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>KIT CHECKLIST</h3>
         <KitChecklist />
       </Card>
     </>
@@ -5910,7 +5954,7 @@ function ScheduleCard() {
 
       {/* Coach tip */}
       <div style={{ display: teacherEditUnlocked ? "block" : "none", background: `${C.gold}08`, border: `1px solid ${C.gold}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
-        💡 <strong style={{ color: C.gold }}>Coach:</strong> Add sessions to the <strong>Schedule</strong> tab in the Google Sheet. Players see updates after tapping Refresh.
+        <strong style={{ color: C.gold }}>Coach:</strong> Add sessions to the <strong>Schedule</strong> tab in the Google Sheet. Players see updates after tapping Refresh.
       </div>
 
       {/* Filters */}
@@ -6892,18 +6936,16 @@ function TeamHubSection() {
   const C = useTheme();
   const [hubTab, setHubTab] = useState("announce");
   const tabs = [
-    { id: "announce",   label: "Announcements", icon: "" },
-    { id: "overview",   label: "Overview",      icon: "" },
-    { id: "schedule",   label: "Schedule",      icon: "" },
-    { id: "recovery",   label: "Recovery",      icon: "" },
-    { id: "culture",    label: "Legends",       icon: "" },
-    { id: "quiz",       label: "Football IQ",   icon: "" },
-    { id: "goals",      label: "Goals",         icon: "" },
-    { id: "attendance", label: "Attendance",    icon: "" },
+    { id: "announce",   label: "Announcements" },
+    { id: "schedule",   label: "Schedule" },
+    { id: "culture",    label: "Legends" },
+    { id: "quiz",       label: "Football IQ" },
+    { id: "journal",    label: "Journal" },
+    { id: "attendance", label: "Attendance" },
   ];
   return (
     <section style={{ padding: "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
-      <SectionHeader icon="" title="TEAM OPERATIONS" subtitle="Shared team tools, scheduling, recovery support, and communication." accent={C.electric} />
+      <SectionHeader icon="" title="TEAM HUB" subtitle="Announcements, schedule, legends, football IQ, and team resources." accent={C.electric} />
       <div style={{ display: "flex", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
         {tabs.map(t => (
           <Pill key={t.id} active={hubTab === t.id} onClick={() => setHubTab(t.id)} color={C.electric}>
@@ -6912,12 +6954,10 @@ function TeamHubSection() {
         ))}
       </div>
       {hubTab === "announce"   && <AnnouncementBoard />}
-      {hubTab === "overview"   && <HubOverview setHubTab={setHubTab} />}
       {hubTab === "schedule"   && <ScheduleCard />}
-      {hubTab === "recovery"   && <RecoveryZone />}
       {hubTab === "culture"    && <LegendsSection />}
       {hubTab === "quiz"       && <FootballIQQuiz />}
-      {hubTab === "goals"      && <GoalWall />}
+      {hubTab === "journal"    && <MindsetSection />}
       {hubTab === "attendance" && (
         <TeacherAttendanceGate>
           <ClusterAttendance />
@@ -6927,7 +6967,105 @@ function TeamHubSection() {
   );
 }
 
-function PlayerDashboardPage({ setActive, profile, sessions }) {
+function QuickReadinessWidget() {
+  const C = useTheme();
+  const [sessions, setSessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [sleep, setSleep] = useState(3);
+  const [energy, setEnergy] = useState(3);
+  const [soreness, setSoreness] = useState(3);
+  const [saved, setSaved] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...sessions].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const todayEntry = sorted.find(s => s.date === today && s.readinessScore != null);
+  const alreadyLogged = !!todayEntry && !saved;
+
+  const readinessScore = Math.round(((sleep + energy + (6 - soreness)) / 15) * 100);
+  const scoreTone = (s) => s >= 75 ? C.success : s >= 60 ? C.orange : C.danger;
+
+  const handleSave = () => {
+    setSessions(prev => [...prev, stampRecord({
+      date: today, type: "readiness", rating: 3, notes: "", goals: "",
+      mood: "4", id: Date.now(), load: 0, readinessScore, sleep, energy, soreness,
+    })]);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const rows = [
+    { label: "Sleep", desc: "last night", value: sleep, set: setSleep, inverse: false },
+    { label: "Energy", desc: "right now", value: energy, set: setEnergy, inverse: false },
+    { label: "Soreness", desc: "lower = better", value: soreness, set: setSoreness, inverse: true },
+  ];
+
+  const btnColor = (val, inverse) => {
+    if (inverse) return val <= 2 ? C.success : val <= 3 ? C.orange : C.danger;
+    return val >= 4 ? C.success : val >= 3 ? C.orange : C.danger;
+  };
+
+  if (alreadyLogged) {
+    return (
+      <Card style={{ borderRadius: 20, border: `1px solid ${scoreTone(todayEntry.readinessScore)}30` }}>
+        <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Readiness — Today</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontFamily: FONT_HEAD, fontSize: 42, color: scoreTone(todayEntry.readinessScore), letterSpacing: 1, lineHeight: 1 }}>{todayEntry.readinessScore}%</div>
+          <div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, fontWeight: 600, marginBottom: 4 }}>{getReadinessDirective(todayEntry.readinessScore)}</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[{ k: "Sleep", v: todayEntry.sleep }, { k: "Energy", v: todayEntry.energy }, { k: "Soreness", v: todayEntry.soreness }].map(({ k, v }) => (
+                <span key={k} style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim }}>{k} {v}/5</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card style={{ borderRadius: 20 }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+        {saved ? <span style={{ color: C.success }}>Readiness logged</span> : "Log readiness — today"}
+      </div>
+      <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+        {rows.map(({ label, desc, value, set, inverse }) => (
+          <div key={label}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim }}>{desc}</span>
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[1, 2, 3, 4, 5].map(v => {
+                const active = value === v;
+                const col = btnColor(v, inverse);
+                return (
+                  <button key={v} onClick={() => set(v)} style={{
+                    flex: 1, height: 38, borderRadius: 8, cursor: "pointer", border: "none",
+                    background: active ? `${col}22` : C.surfaceSubtle,
+                    outline: active ? `1.5px solid ${col}` : `1px solid ${C.navyBorder}`,
+                    color: active ? col : C.textDim,
+                    fontFamily: FONT_SERIF, fontSize: 13, fontWeight: active ? 700 : 400,
+                    transition: "all 0.12s",
+                  }}>{v}</button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: 32, color: scoreTone(readinessScore), letterSpacing: 1, minWidth: 64 }}>{readinessScore}%</div>
+        <button onClick={handleSave} style={{
+          flex: 1, padding: "11px 0", borderRadius: 999, cursor: "pointer",
+          background: C.gold, border: "none",
+          color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+        }}>Save readiness</button>
+      </div>
+    </Card>
+  );
+}
+
+function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
   const C = useTheme();
   const isMobile = useIsMobile(768);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
@@ -7024,6 +7162,7 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
       done: readinessLoggedToday,
       note: readinessLoggedToday ? `Logged at ${latestReady}%` : "Rate sleep, energy and soreness",
       action: "performance",
+      subTab: "sessions",
     },
     {
       label: "Check availability status",
@@ -7032,19 +7171,21 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
         ? `${activeIssues.length} active issue${activeIssues.length > 1 ? "s" : ""} — flag to coach`
         : "No active issues",
       action: "performance",
+      subTab: "recovery",
     },
     {
       label: isMatchEvent ? "Set match intention" : "Set session focus",
       done: focusSet,
       note: focusSet ? currentFocus.slice(0, 48) + (currentFocus.length > 48 ? "…" : "") : isMatchEvent ? "One clear goal for the game" : "One thing to improve today",
       action: isMatchEvent ? "match" : "performance",
+      subTab: isMatchEvent ? null : "development",
     },
     ...(isMatchEvent ? [
-      { label: "Review lineup", done: false, note: "Check position, role and instructions", action: "match" },
-      { label: "Nutrition & hydration", done: false, note: "Pre-match meal done, 2L water target", action: null },
+      { label: "Review lineup", done: false, note: "Check position, role and instructions", action: "match", subTab: null },
+      { label: "Nutrition & hydration", done: false, note: "Pre-match meal done, 2L water target", action: null, subTab: null },
     ] : [
-      { label: "Log this session", done: sessionLoggedToday, note: sessionLoggedToday ? "Session entry complete" : "Complete after training", action: "performance" },
-      { label: "Review your load", done: latestLoad !== null, note: latestLoad ? `Acute ${latestLoad.acute} · Chronic ${latestLoad.chronic}` : "Log sessions with duration + RPE", action: "performance" },
+      { label: "Log this session", done: sessionLoggedToday, note: sessionLoggedToday ? "Session entry complete" : "Complete after training", action: "performance", subTab: "sessions" },
+      { label: "Review your load", done: latestLoad !== null, note: latestLoad ? `Acute ${latestLoad.acute} · Chronic ${latestLoad.chronic}` : "Log sessions with duration + RPE", action: "performance", subTab: "sessions" },
     ]),
   ];
 
@@ -7181,7 +7322,7 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
               {checklist.map((item, idx) => (
                 <button
                   key={idx}
-                  onClick={() => item.action && setActive(item.action)}
+                  onClick={() => { if (item.action) { if (item.subTab && setPerfInitTab) setPerfInitTab(item.subTab); setActive(item.action); } }}
                   style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "none", border: "none", padding: "6px 0", cursor: item.action ? "pointer" : "default", textAlign: "left", width: "100%" }}
                 >
                   {/* Checkbox */}
@@ -7204,6 +7345,11 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
               ))}
             </div>
           </Card>
+        </div>
+
+        {/* ── QUICK READINESS WIDGET ── */}
+        <div style={{ marginBottom: 16 }}>
+          <QuickReadinessWidget />
         </div>
 
         {/* ── RECOMMENDATION ── */}
@@ -7360,8 +7506,9 @@ function PlayerDashboardPage({ setActive, profile, sessions }) {
   );
 }
 
-function PlayerPerformancePage() {
+function PlayerPerformancePage({ initialTab, onTabConsumed }) {
   const C = useTheme();
+  useEffect(() => { if (initialTab && onTabConsumed) onTabConsumed(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
   const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
@@ -7446,8 +7593,10 @@ function PlayerPerformancePage() {
         alerts: buildPlayerAlerts({ C, availability, activeIssues, latestLoad, latestReady, readinessTrend, sessions, currentFocus, acwrData }),
       }}
       renderSessions={() => <TrackerSection />}
-      renderRecovery={() => (<><WellnessSection /><NutritionSection /></>)}
-      renderDevelopment={() => (<><TrainingSection /><WarmUpSection /><FitnessSection /><MindsetSection /></>)}
+      renderRecovery={() => (<><WellnessSection /><NutritionSection compact /></>)}
+      renderDevelopment={() => (<><TrainingSection /><WarmUpSection /><FitnessSection /></>)}
+      renderGoals={() => <GoalWall />}
+      initialTab={initialTab}
       renderProfile={() => (
         <>
           <SquadSection />
@@ -7548,10 +7697,9 @@ function PlayerMatchPage() {
           emphasisTone: C.orange,
         })),
       }}
-      renderPreparation={() => <PreMatchSection />}
-      renderHistory={() => <MatchHistorySection />}
+      renderPreMatchPrep={() => <><PreMatchSection /><NutritionSection compact /></>}
       renderLineups={() => <LineupBuilderSection />}
-      renderNutrition={() => <NutritionSection />}
+      renderPostMatch={() => <><MatchHistorySection /><RecoveryZone /></>}
     />
   );
 }
@@ -7746,6 +7894,7 @@ function CoachOperationsPage() {
 // ══════════════════════════════════════════════════
 export default function App() {
   const [active, setActive] = useState("dashboard");
+  const [perfInitTab, setPerfInitTab] = useState(null);
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", onboarded: false });
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [isDark, setIsDark] = useState(() => {
@@ -7897,8 +8046,8 @@ export default function App() {
       <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
 
-      {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} profile={profile} sessions={sessions} />}
-      {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage />}
+      {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} setPerfInitTab={setPerfInitTab} profile={profile} sessions={sessions} />}
+      {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage initialTab={perfInitTab} onTabConsumed={() => setPerfInitTab(null)} />}
       {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
       {!effectiveIsCoach && active === "hub" && <TeamHubSection />}
       {!effectiveIsCoach && active === "profile" && <SquadSection />}
