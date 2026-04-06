@@ -5,6 +5,98 @@ import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, Playe
 import LocalTrustPanel from "./components/LocalTrustPanel";
 import { Target, Lightning, Crown, Diamond, Brain, Shield, Trophy, Star, Fire, Drop, Moon, Footprints, PersonSimpleRun, PersonSimpleWalk, PersonSimpleTaiChi, ArrowUp, ArrowsHorizontal, ArrowsClockwise, Barbell, Wind, GasPump, SoccerBall, Medal, Plant, CalendarBlank, Snowflake, Clock, PhoneSlash, Camera, Megaphone, ChartBar, CheckCircle, Warning, TrendDown, TrendUp, NotePencil, Globe, BookOpen, Mountains, Rocket, Sword, PuzzlePiece, PaintBrush, Backpack, ClipboardText, Handshake, BatteryHigh, Gift, Eye, Sneaker, Strategy, Smiley, BowlFood, HandPalm, PlayCircle } from "@phosphor-icons/react";
 
+const NETLIFY_FUNCTIONS_BASE = "/.netlify/functions";
+const ANNOUNCEMENT_PUBLISH_SECRET_KEY = "nbss-announcement-publish-secret";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function fetchPushPublicKey() {
+  const res = await fetch(`${NETLIFY_FUNCTIONS_BASE}/push-public-key`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Push notifications are not configured yet.");
+  const data = await res.json();
+  if (!data.publicKey) throw new Error(data.error || "Missing push public key.");
+  return data.publicKey;
+}
+
+async function postFunctionJSON(path, body, options = {}) {
+  const extraHeaders = options.headers || {};
+  const res = await fetch(`${NETLIFY_FUNCTIONS_BASE}/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...extraHeaders },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed.");
+  return data;
+}
+
+async function enableAnnouncementPush() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    throw new Error("Push notifications are not supported on this device.");
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error("Notification permission was not granted.");
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    const publicKey = await fetchPushPublicKey();
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+  }
+
+  await postFunctionJSON("push-subscribe", { subscription });
+  return subscription;
+}
+
+async function disableAnnouncementPush() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (!subscription) return;
+
+  await postFunctionJSON("push-unsubscribe", { subscription });
+  await subscription.unsubscribe();
+}
+
+async function fetchNetlifyAnnouncements() {
+  const res = await fetch(`${NETLIFY_FUNCTIONS_BASE}/announcements`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data.announcements) ? data.announcements : [];
+}
+
+async function createAnnouncementEntry(payload, secret) {
+  return postFunctionJSON("announcement-create", payload, {
+    headers: { "x-announcement-secret": secret },
+  });
+}
+
+async function updateAnnouncementEntry(payload, secret) {
+  return postFunctionJSON("announcement-update", payload, {
+    headers: { "x-announcement-secret": secret },
+  });
+}
+
+async function deleteAnnouncementEntry(id, secret) {
+  return postFunctionJSON("announcement-delete", { id }, {
+    headers: { "x-announcement-secret": secret },
+  });
+}
+
 // ── SCREENSHOT / SHARE UTILITY ──
 // Uses html2canvas loaded from CDN at runtime (no extra npm dep needed)
 async function loadHtml2Canvas() {
@@ -320,6 +412,7 @@ const DRAFT_KEYS = {
   matchForm: "gameplan-draft-match-entry",
   matchReview: "gameplan-draft-match-review",
   lineupBuilder: "gameplan-draft-lineup-builder",
+  announcementComposer: "gameplan-draft-announcement-composer",
 };
 
 // SECURITY NOTE: loaded from env var — not hardcoded in source.
@@ -1119,16 +1212,17 @@ function DotMatrixPanel({ label, value, displayValue, sub, zones, max = 100, seg
   );
 }
 
-function GoldButton({ children, onClick, style: s = {}, secondary, destructive }) {
+function GoldButton({ children, onClick, style: s = {}, secondary, destructive, disabled = false }) {
   const C = useTheme();
   // Nothing design: Primary = solid white pill, Secondary = transparent outlined pill, Destructive = accent-bordered
   const base = {
-    padding: "12px 24px", borderRadius: 999, cursor: "pointer",
+    padding: "12px 24px", borderRadius: 999, cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: FONT_SERIF, fontSize: 13, fontWeight: 400,
     textTransform: "uppercase", letterSpacing: "0.06em",
     minHeight: 44, border: "none", background: "none",
     transition: "opacity 0.15s ease",
     display: "inline-flex", alignItems: "center", justifyContent: "center",
+    opacity: disabled ? 0.55 : 1,
   };
   let variant = {};
   if (destructive) {
@@ -1139,7 +1233,7 @@ function GoldButton({ children, onClick, style: s = {}, secondary, destructive }
     variant = { background: C.textBright, color: C.navy, border: "none" };
   }
   return (
-    <button onClick={onClick} style={{ ...base, ...variant, ...s }}>{children}</button>
+    <button onClick={onClick} disabled={disabled} style={{ ...base, ...variant, ...s }}>{children}</button>
   );
 }
 
@@ -6675,7 +6769,6 @@ function TeacherAttendanceGate({ children }) {
 const SHEET_ID = "1yhLcwaYA7CuWgJ5VmQq8ia4KHB8Iwc3BGNEqVDevELI";
 // Target specific tabs by name — works without knowing gid numbers
 const SCHEDULE_CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Schedule`;
-const ANNOUNCEMENTS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Announcements`;
 
 // April 2026 schedule seeded from the shared calendar screenshot.
 // Keep this in sync with the Google Sheet until the sheet becomes the sole source again.
@@ -6771,6 +6864,9 @@ function normalizeAnnouncementEntry(entry, index = 0) {
     body,
     category,
     pinned: parseSheetBoolean(entry.pinned),
+    source: entry.source || "netlify",
+    createdAt: entry.createdAt || "",
+    updatedAt: entry.updatedAt || "",
   };
 }
 
@@ -6791,10 +6887,8 @@ function sortAnnouncementEntries(rows, today = new Date().toISOString().slice(0,
 }
 
 async function fetchAnnouncementEntries() {
-  const res = await fetch(ANNOUNCEMENTS_CSV_URL, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  return sortAnnouncementEntries(parseCSV(text));
+  const data = await fetchNetlifyAnnouncements();
+  return sortAnnouncementEntries(data);
 }
 
 function parseCSV(text) {
@@ -6849,12 +6943,25 @@ function parseCSV(text) {
   }).filter(r => r.date || r.title || r.body || r.message || r.notes); // skip truly empty rows
 }
 
-function AnnouncementBoard() {
+function AnnouncementBoard({ isCoach = false }) {
   const C = useTheme();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
+  const [pushState, setPushState] = useState("checking");
+  const [pushError, setPushError] = useState(null);
+  const [publishSecret, setPublishSecret] = usePersistedState(ANNOUNCEMENT_PUBLISH_SECRET_KEY, "");
+  const [publishDraft, setPublishDraft, clearPublishDraft] = useDraftState(DRAFT_KEYS.announcementComposer, {
+    title: "",
+    body: "",
+    date: new Date().toISOString().slice(0, 10),
+    category: "General",
+    pinned: false,
+  });
+  const [publishState, setPublishState] = useState("idle");
+  const [publishMessage, setPublishMessage] = useState(null);
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
 
   const categoryColor = (category) => ({
     Match: C.gold,
@@ -6871,17 +6978,152 @@ function AnnouncementBoard() {
       setAnnouncements(data);
       setLastFetched(new Date());
     } catch (e) {
-      setError("Could not load announcements. Make sure the announcements sheet is public and you're online.");
+      setError("Could not load announcements right now. Check your connection and try again.");
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchAnnouncements(); }, []);
+  const refreshPushState = useCallback(async () => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported");
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      setPushState("blocked");
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      setPushState(subscription ? "enabled" : "disabled");
+    } catch {
+      setPushState(Notification.permission === "granted" ? "disabled" : "idle");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnnouncements();
+    refreshPushState();
+  }, [refreshPushState]);
+
+  const updatePublishDraft = (patch) => {
+    setPublishDraft((prev) => ({ ...prev, ...patch }));
+  };
+
+  const resetPublishDraft = useCallback(() => {
+    clearPublishDraft({
+      title: "",
+      body: "",
+      date: new Date().toISOString().slice(0, 10),
+      category: "General",
+      pinned: false,
+    });
+    setEditingAnnouncementId(null);
+  }, [clearPublishDraft]);
+
+  const handleEnablePush = async () => {
+    setPushError(null);
+    setPushState("working");
+    try {
+      await enableAnnouncementPush();
+      setPushState("enabled");
+    } catch (e) {
+      setPushError(e.message || "Could not enable notifications.");
+      await refreshPushState();
+    }
+  };
+
+  const handleDisablePush = async () => {
+    setPushError(null);
+    setPushState("working");
+    try {
+      await disableAnnouncementPush();
+      setPushState("disabled");
+    } catch (e) {
+      setPushError(e.message || "Could not disable notifications.");
+      await refreshPushState();
+    }
+  };
+
+  const handlePublishAnnouncement = async () => {
+    setPublishMessage(null);
+    setPublishState("working");
+
+    try {
+      const payload = {
+        title: publishDraft.title.trim(),
+        body: publishDraft.body.trim(),
+        date: publishDraft.date,
+        category: publishDraft.category,
+        pinned: publishDraft.pinned,
+      };
+
+      const result = editingAnnouncementId
+        ? await updateAnnouncementEntry({ ...payload, id: editingAnnouncementId }, publishSecret.trim())
+        : await createAnnouncementEntry(payload, publishSecret.trim());
+      setPublishMessage({
+        tone: "success",
+        text: editingAnnouncementId
+          ? "Announcement updated."
+          : `Announcement published. Push sent to ${result.sent ?? 0} device${result.sent === 1 ? "" : "s"}.`,
+      });
+      resetPublishDraft();
+      await fetchAnnouncements();
+      setPublishState("idle");
+    } catch (e) {
+      setPublishMessage({
+        tone: "error",
+        text: e.message || "Could not publish the announcement.",
+      });
+      setPublishState("idle");
+    }
+  };
+
+  const handleEditAnnouncement = (announcement) => {
+    setPublishMessage(null);
+    setEditingAnnouncementId(announcement.id);
+    setPublishDraft({
+      title: announcement.title || "",
+      body: announcement.body || "",
+      date: announcement.date || new Date().toISOString().slice(0, 10),
+      category: announcement.category || "General",
+      pinned: Boolean(announcement.pinned),
+    });
+  };
+
+  const handleDeleteAnnouncement = async (announcement) => {
+    if (!publishSecret.trim()) {
+      setPublishMessage({ tone: "error", text: "Enter the staff publish passcode first." });
+      return;
+    }
+
+    if (!window.confirm(`Delete "${announcement.title || "this announcement"}"?`)) return;
+
+    setPublishMessage(null);
+    setPublishState("working");
+
+    try {
+      await deleteAnnouncementEntry(announcement.id, publishSecret.trim());
+      if (editingAnnouncementId === announcement.id) resetPublishDraft();
+      setPublishMessage({ tone: "success", text: "Announcement deleted." });
+      await fetchAnnouncements();
+      setPublishState("idle");
+    } catch (e) {
+      setPublishMessage({ tone: "error", text: e.message || "Could not delete the announcement." });
+      setPublishState("idle");
+    }
+  };
+
+  const publishDisabled = publishState === "working"
+    || !publishSecret.trim()
+    || (!publishDraft.title.trim() && !publishDraft.body.trim());
 
   return (
     <div>
       {/* Toolbar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>ANNOUNCEMENTS</div>
           {lastFetched && (
@@ -6890,16 +7132,191 @@ function AnnouncementBoard() {
             </div>
           )}
         </div>
-        <button onClick={fetchAnnouncements} disabled={loading} style={{
-          padding: "7px 14px", borderRadius: 4, cursor: loading ? "wait" : "pointer",
-          background: "transparent", border: `1px solid ${C.navyBorder}`,
-          color: C.textMid, fontFamily: FONT_SERIF, fontSize: 10, fontWeight: 400,
-          letterSpacing: "0.08em", textTransform: "uppercase",
-          transition: "border-color 0.15s ease",
-        }}>
-          {loading ? "Loading..." : "Refresh"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {pushState !== "unsupported" && (
+            <button
+              onClick={pushState === "enabled" ? handleDisablePush : handleEnablePush}
+              disabled={pushState === "working" || pushState === "checking" || pushState === "blocked"}
+              style={{
+                padding: "7px 14px", borderRadius: 4, cursor: (pushState === "blocked" || pushState === "working" || pushState === "checking") ? "not-allowed" : "pointer",
+                background: pushState === "enabled" ? `${C.success}18` : "transparent",
+                border: `1px solid ${pushState === "enabled" ? C.success : C.navyBorder}`,
+                color: pushState === "enabled" ? C.success : C.textMid, fontFamily: FONT_SERIF, fontSize: 10, fontWeight: 400,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                transition: "border-color 0.15s ease",
+              }}
+            >
+              {pushState === "working"
+                ? "Working..."
+                : pushState === "enabled"
+                  ? "Alerts On"
+                  : pushState === "blocked"
+                    ? "Alerts Blocked"
+                    : "Enable Alerts"}
+            </button>
+          )}
+          <button onClick={fetchAnnouncements} disabled={loading} style={{
+            padding: "7px 14px", borderRadius: 4, cursor: loading ? "wait" : "pointer",
+            background: "transparent", border: `1px solid ${C.navyBorder}`,
+            color: C.textMid, fontFamily: FONT_SERIF, fontSize: 10, fontWeight: 400,
+            letterSpacing: "0.08em", textTransform: "uppercase",
+            transition: "border-color 0.15s ease",
+          }}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
       </div>
+
+      {(pushState === "enabled" || pushState === "blocked" || pushError) && (
+        <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: pushState === "enabled" ? C.success : C.textMid, lineHeight: 1.5 }}>
+            {pushError
+              ? pushError
+              : pushState === "enabled"
+                ? "Announcement alerts are enabled on this device."
+                : "Notifications are blocked in this browser. Re-enable them in browser settings to receive announcements."}
+          </div>
+        </div>
+      )}
+
+      {isCoach && (
+        <div style={{ marginBottom: 18, padding: "20px 20px 18px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.04em" }}>
+                {editingAnnouncementId ? "EDIT ANNOUNCEMENT" : "POST ANNOUNCEMENT"}
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
+                {editingAnnouncementId
+                  ? "Update the announcement here. Editing changes the in-app notice without sending a new push."
+                  : "Publish here to show the update in-app and push it to students who enabled alerts."}
+              </div>
+            </div>
+            {publishSecret && (
+              <button
+                onClick={() => setPublishSecret("")}
+                style={{
+                  padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                  background: "transparent", border: `1px solid ${C.navyBorder}`,
+                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: 10,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                }}
+              >
+                Change Passcode
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <label style={makeLabelStyle(C)}>Staff publish passcode</label>
+              <input
+                type="password"
+                value={publishSecret}
+                onChange={(e) => setPublishSecret(e.target.value)}
+                placeholder="Enter once on this device"
+                style={makeInputStyle(C)}
+              />
+            </div>
+
+            <div>
+              <label style={makeLabelStyle(C)}>Title</label>
+              <input
+                value={publishDraft.title}
+                onChange={(e) => updatePublishDraft({ title: e.target.value })}
+                placeholder="e.g. Training starts at 4pm today"
+                style={makeInputStyle(C)}
+              />
+            </div>
+
+            <div>
+              <label style={makeLabelStyle(C)}>Message</label>
+              <textarea
+                value={publishDraft.body}
+                onChange={(e) => updatePublishDraft({ body: e.target.value })}
+                placeholder="Type the full announcement students should read."
+                style={{
+                  ...makeInputStyle(C),
+                  minHeight: 108,
+                  resize: "vertical",
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  border: `1px solid ${C.surfaceBorder}`,
+                  borderRadius: 12,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+              <div>
+                <label style={makeLabelStyle(C)}>Date</label>
+                <input
+                  type="date"
+                  value={publishDraft.date}
+                  onChange={(e) => updatePublishDraft({ date: e.target.value })}
+                  style={makeInputStyle(C)}
+                />
+              </div>
+
+              <div>
+                <label style={makeLabelStyle(C)}>Category</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 4 }}>
+                  {["General", "Training", "Match", "Friendly"].map((category) => (
+                    <Pill
+                      key={category}
+                      active={publishDraft.category === category}
+                      onClick={() => updatePublishDraft({ category })}
+                      color={categoryColor(category)}
+                    >
+                      {category}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={publishDraft.pinned}
+                onChange={(e) => updatePublishDraft({ pinned: e.target.checked })}
+                style={{ width: 16, height: 16, accentColor: C.gold }}
+              />
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>Pin this announcement to the top</span>
+            </label>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <GoldButton onClick={handlePublishAnnouncement} style={{ minWidth: 180, opacity: publishDisabled ? 0.6 : 1 }} disabled={publishDisabled}>
+                {publishState === "working" ? "Working..." : editingAnnouncementId ? "Save Changes" : "Publish Announcement"}
+              </GoldButton>
+              <GoldButton
+                onClick={resetPublishDraft}
+                secondary
+                style={{ minWidth: 120 }}
+              >
+                {editingAnnouncementId ? "Cancel Edit" : "Clear"}
+              </GoldButton>
+            </div>
+
+            {publishMessage && (
+              <div style={{
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: publishMessage.tone === "success" ? `${C.success}10` : `${C.danger}10`,
+                border: `1px solid ${publishMessage.tone === "success" ? `${C.success}25` : `${C.danger}25`}`,
+                color: publishMessage.tone === "success" ? C.success : C.danger,
+                fontFamily: FONT_BODY,
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}>
+                {publishMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* States */}
       {loading && (
@@ -6917,7 +7334,7 @@ function AnnouncementBoard() {
       {!loading && !error && !announcements.length && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements posted right now.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Add a row to the Announcements tab to publish a new notice.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>{isCoach ? "Use the posting form above to publish the first update." : "No notices have been published yet."}</p>
         </div>
       )}
 
@@ -6926,6 +7343,7 @@ function AnnouncementBoard() {
           {announcements.map((announcement) => {
             const accent = categoryColor(announcement.category);
             const formattedDate = formatSheetDate(announcement.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+            const isEditable = isCoach && announcement.source === "netlify";
 
             return (
               <div key={announcement.id} style={{
@@ -6946,6 +7364,11 @@ function AnnouncementBoard() {
                       {announcement.category}
                     </span>
                   )}
+                  {isCoach && (
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: announcement.source === "netlify" ? C.success : C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      {announcement.source === "netlify" ? "App" : "Sheet"}
+                    </span>
+                  )}
                   {formattedDate && (
                     <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, marginLeft: "auto", letterSpacing: "0.06em" }}>
                       {formattedDate}
@@ -6962,6 +7385,33 @@ function AnnouncementBoard() {
                     {announcement.body}
                   </p>
                 )}
+
+                {isEditable && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.navyBorder}` }}>
+                    <button
+                      onClick={() => handleEditAnnouncement(announcement)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                        background: "transparent", border: `1px solid ${C.navyBorder}`,
+                        color: C.textMid, fontFamily: FONT_SERIF, fontSize: 10,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAnnouncement(announcement)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                        background: "transparent", border: `1px solid ${C.danger}`,
+                        color: C.danger, fontFamily: FONT_SERIF, fontSize: 10,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -6974,7 +7424,7 @@ function AnnouncementBoard() {
 // ══════════════════════════════════════════════════
 //  TEAM HUB
 // ══════════════════════════════════════════════════
-function TeamHubSection() {
+function TeamHubSection({ isCoach = false }) {
   const C = useTheme();
   const [hubTab, setHubTab] = useState("announce");
   const tabs = [
@@ -6995,7 +7445,7 @@ function TeamHubSection() {
           </Pill>
         ))}
       </div>
-      {hubTab === "announce"   && <AnnouncementBoard />}
+      {hubTab === "announce"   && <AnnouncementBoard isCoach={isCoach} />}
       {hubTab === "schedule"   && <ScheduleCard />}
       {hubTab === "culture"    && <LegendsSection />}
       {hubTab === "quiz"       && <FootballIQQuiz />}
@@ -7970,7 +8420,7 @@ function CoachOperationsPage() {
       renderLineups={() => <LineupBuilderSection />}
       renderAnnouncements={() => (
         <>
-          <AnnouncementBoard />
+          <AnnouncementBoard isCoach />
           <LocalTrustPanel
             theme={C}
             fonts={{ head: FONT_HEAD, body: FONT_BODY }}
@@ -8144,13 +8594,13 @@ export default function App() {
       {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} setPerfInitTab={setPerfInitTab} profile={profile} sessions={sessions} />}
       {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage initialTab={perfInitTab} onTabConsumed={() => setPerfInitTab(null)} />}
       {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
-      {!effectiveIsCoach && active === "hub" && <TeamHubSection />}
+      {!effectiveIsCoach && active === "hub" && <TeamHubSection isCoach={false} />}
       {!effectiveIsCoach && active === "profile" && <SquadSection />}
 
       {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} profile={profile} setProfile={setProfile} />}
       {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
       {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
-      {effectiveIsCoach && active === "hub" && <TeamHubSection />}
+      {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach />}
 
       <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>

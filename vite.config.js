@@ -6,13 +6,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
       registerType: 'prompt',
       injectRegister: 'auto',
       manifest: false, // we have our own public/manifest.json
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        cleanupOutdatedCaches: true,
-        skipWaiting: false,
+      injectManifest: {
+        swSrc: 'public/sw.js',
       },
     }),
   ],
