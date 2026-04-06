@@ -6650,6 +6650,7 @@ function TeacherAttendanceGate({ children }) {
 const SHEET_ID = "1yhLcwaYA7CuWgJ5VmQq8ia4KHB8Iwc3BGNEqVDevELI";
 // Target specific tabs by name — works without knowing gid numbers
 const SCHEDULE_CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Schedule`;
+const ANNOUNCEMENTS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Announcements`;
 
 // April 2026 schedule seeded from the shared calendar screenshot.
 // Keep this in sync with the Google Sheet until the sheet becomes the sole source again.
@@ -6724,6 +6725,53 @@ function getNextScheduledEvent(events, today = new Date().toISOString().slice(0,
   return events.find((event) => event.date >= today) || null;
 }
 
+function parseSheetBoolean(value) {
+  return ["true", "yes", "1"].includes(String(value || "").trim().toLowerCase());
+}
+
+function formatSheetDate(date, options) {
+  if (!date) return "";
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-SG", options);
+}
+
+function normalizeAnnouncementEntry(entry, index = 0) {
+  const title = entry.title || entry.announcement || entry.name || "";
+  const body = entry.body || entry.message || entry.notes || entry.description || "";
+  const category = entry.category || entry.type || "General";
+
+  return {
+    id: entry.id || `${entry.date || "undated"}::${title || body || index}`,
+    date: entry.date || "",
+    title,
+    body,
+    category,
+    pinned: parseSheetBoolean(entry.pinned),
+  };
+}
+
+function sortAnnouncementEntries(rows, today = new Date().toISOString().slice(0, 10)) {
+  return rows
+    .map(normalizeAnnouncementEntry)
+    .filter((entry) => entry.title || entry.body)
+    .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+      const aUpcoming = a.date && a.date >= today;
+      const bUpcoming = b.date && b.date >= today;
+      if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+
+      if (aUpcoming && bUpcoming) return (a.date || "").localeCompare(b.date || "");
+      return (b.date || "").localeCompare(a.date || "");
+    });
+}
+
+async function fetchAnnouncementEntries() {
+  const res = await fetch(ANNOUNCEMENTS_CSV_URL, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return sortAnnouncementEntries(parseCSV(text));
+}
+
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -6773,42 +6821,37 @@ function parseCSV(text) {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
     return obj;
-  }).filter(r => r.date || r.title); // skip truly empty rows
+  }).filter(r => r.date || r.title || r.body || r.message || r.notes); // skip truly empty rows
 }
 
 function AnnouncementBoard() {
   const C = useTheme();
-  const [nextEvent, setNextEvent] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
 
-  const eventColor = (type) => ({
-    Training: C.success,
+  const categoryColor = (category) => ({
     Match: C.gold,
+    Training: C.success,
     Friendly: C.orange,
-    Other: C.electric,
-  }[type] || C.electric);
+    General: C.electric,
+  }[category] || C.electric);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchScheduleEntries();
-      setNextEvent(getNextScheduledEvent(data));
+      const data = await fetchAnnouncementEntries();
+      setAnnouncements(data);
       setLastFetched(new Date());
     } catch (e) {
-      setError("Could not load the next event. Make sure the schedule sheet is public and you're online.");
+      setError("Could not load announcements. Make sure the announcements sheet is public and you're online.");
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchAnnouncements(); }, []);
-
-  const accent = nextEvent ? eventColor(nextEvent.type) : C.electric;
-  const formattedDate = nextEvent?.date
-    ? new Date(nextEvent.date).toLocaleDateString("en-SG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : "";
 
   return (
     <div>
@@ -6836,7 +6879,7 @@ function AnnouncementBoard() {
       {/* States */}
       {loading && (
         <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>
-          Fetching next event…
+          Fetching announcements…
         </div>
       )}
 
@@ -6846,73 +6889,57 @@ function AnnouncementBoard() {
         </div>
       )}
 
-      {!loading && !error && !nextEvent && (
+      {!loading && !error && !announcements.length && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No upcoming events right now.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for the next training or match.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements posted right now.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Add a row to the Announcements tab to publish a new notice.</p>
         </div>
       )}
 
-      {!loading && !error && nextEvent && (
-        <div style={{
-          background: C.navyCard,
-          border: `1px solid ${C.navyBorder}`,
-          borderLeft: `3px solid ${accent}`,
-          borderRadius: 12,
-          padding: "22px 24px",
-        }}>
-          {/* Eyebrow row — Space Mono ALL CAPS, no colored badge backgrounds */}
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Next event
-            </span>
-            {nextEvent.type && (
-              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                {nextEvent.type}
-              </span>
-            )}
-            {nextEvent.division && (
-              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                {nextEvent.division}
-              </span>
-            )}
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, marginLeft: "auto", letterSpacing: "0.06em" }}>
-              {formattedDate}
-            </span>
-          </div>
+      {!loading && !error && announcements.length > 0 && (
+        <div style={{ display: "grid", gap: 14 }}>
+          {announcements.map((announcement) => {
+            const accent = categoryColor(announcement.category);
+            const formattedDate = formatSheetDate(announcement.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-          {/* Title — Doto display, one hero moment */}
-          <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 4vw, 36px)", color: C.textBright, letterSpacing: "0.02em", lineHeight: 1.05, marginBottom: 16 }}>
-            {nextEvent.title}
-          </div>
+            return (
+              <div key={announcement.id} style={{
+                background: C.navyCard,
+                border: `1px solid ${C.navyBorder}`,
+                borderLeft: `3px solid ${accent}`,
+                borderRadius: 12,
+                padding: "22px 24px",
+              }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+                  {announcement.pinned && (
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      Pinned
+                    </span>
+                  )}
+                  {announcement.category && (
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      {announcement.category}
+                    </span>
+                  )}
+                  {formattedDate && (
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, marginLeft: "auto", letterSpacing: "0.06em" }}>
+                      {formattedDate}
+                    </span>
+                  )}
+                </div>
 
-          {/* Detail row — flat data pairs, no chip backgrounds */}
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: nextEvent.notes ? 14 : 0, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 12 }}>
-            {nextEvent.time && (
-              <div>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Time</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>{nextEvent.time}</div>
-              </div>
-            )}
-            {nextEvent.teacher && (
-              <div>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Coach</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>{nextEvent.teacher}</div>
-              </div>
-            )}
-            {nextEvent.venue && (
-              <div>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Venue</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>{nextEvent.venue}</div>
-              </div>
-            )}
-          </div>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 4vw, 36px)", color: C.textBright, letterSpacing: "0.02em", lineHeight: 1.05, marginBottom: announcement.body ? 16 : 0 }}>
+                  {announcement.title || "Team update"}
+                </div>
 
-          {nextEvent.notes && (
-            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7, margin: 0, marginTop: nextEvent.time || nextEvent.teacher || nextEvent.venue ? 14 : 0 }}>
-              {nextEvent.notes}
-            </p>
-          )}
+                {announcement.body && (
+                  <p style={{ margin: 0, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 12, fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7 }}>
+                    {announcement.body}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -8104,7 +8131,7 @@ export default function App() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
           <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>· Performance and Development Platform</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Performance and Development Platform</span>
         </div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
       </footer>
