@@ -1558,6 +1558,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
 function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const C = useTheme();
   const [allEvents, setAllEvents] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // Compute latest ACWR from sessions that have load data
   const acwrData = sessions?.length ? computeACWR(sessions) : [];
@@ -1576,6 +1577,9 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     fetchScheduleEntries()
       .then((events) => { if (active) setAllEvents(events); })
       .catch(() => { if (active) setAllEvents(SEEDED_SCHEDULE_EVENTS); });
+    fetchAnnouncementEntries()
+      .then((entries) => { if (active) setAnnouncements(entries); })
+      .catch(() => { if (active) setAnnouncements([]); });
     return () => { active = false; };
   }, []);
 
@@ -1585,6 +1589,12 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const nextMatch    = upcoming.find(e => e.type === "Match" || e.type === "Friendly") || null;
   const nextTraining = upcoming.find(e => e.type === "Training") || null;
   const nextEvent    = upcoming[0] || null;
+  const announcementColor = (category) => ({
+    Match: C.gold,
+    Training: C.success,
+    Friendly: C.orange,
+    General: C.electric,
+  }[category] || C.electric);
 
   // Days until next match
   const daysToMatch = nextMatch
@@ -1630,13 +1640,28 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     }
   }
 
-  // ── Announcements: any future event with notes ──
-  upcoming
-    .filter(e => e.notes && e.notes.trim())
-    .slice(0, 2)
-    .forEach(e => {
-      items.push({ icon: "megaphone", text: `Announcement: ${e.notes.trim()} (${e.title} · ${e.date})`, color: C.electric });
+  // ── Announcements ──
+  if (announcements.length > 0) {
+    announcements.slice(0, 2).forEach((announcement) => {
+      const headline = announcement.title || "Announcement";
+      const details = announcement.body
+        ? announcement.title ? `: ${announcement.body}` : ` — ${announcement.body}`
+        : "";
+      const dateLabel = announcement.date ? ` · ${announcement.date}` : "";
+      items.push({
+        icon: "megaphone",
+        text: `${headline}${details}${dateLabel}`,
+        color: announcementColor(announcement.category),
+      });
     });
+  } else {
+    upcoming
+      .filter(e => e.notes && e.notes.trim())
+      .slice(0, 2)
+      .forEach(e => {
+        items.push({ icon: "megaphone", text: `Announcement: ${e.notes.trim()} (${e.title} · ${e.date})`, color: C.electric });
+      });
+  }
 
   // ── Session stats (players) ──
   if (!isCoach && sessions?.length > 0) {
