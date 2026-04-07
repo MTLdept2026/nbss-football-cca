@@ -10,6 +10,9 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: 'auto',
       manifest: false, // we have our own public/manifest.json
+      devOptions: {
+        enabled: true,
+      },
       injectManifest: {
         swSrc: 'public/sw.js',
       },

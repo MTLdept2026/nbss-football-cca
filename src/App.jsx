@@ -9,8 +9,9 @@ const NETLIFY_FUNCTIONS_BASE = "/.netlify/functions";
 const ANNOUNCEMENT_PUBLISH_SECRET_KEY = "nbss-announcement-publish-secret";
 
 function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const clean = String(base64String || "").trim().replace(/^"(.*)"$/, "$1");
+  const padding = "=".repeat((4 - (clean.length % 4)) % 4);
+  const base64 = (clean + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
@@ -19,8 +20,9 @@ async function fetchPushPublicKey() {
   const res = await fetch(`${NETLIFY_FUNCTIONS_BASE}/push-public-key`, { cache: "no-store" });
   if (!res.ok) throw new Error("Push notifications are not configured yet.");
   const data = await res.json();
-  if (!data.publicKey) throw new Error(data.error || "Missing push public key.");
-  return data.publicKey;
+  const publicKey = String(data.publicKey || "").trim().replace(/^"(.*)"$/, "$1");
+  if (!publicKey) throw new Error(data.error || "Missing push public key.");
+  return publicKey;
 }
 
 async function postFunctionJSON(path, body, options = {}) {
@@ -36,8 +38,32 @@ async function postFunctionJSON(path, body, options = {}) {
   return data;
 }
 
+async function getAnnouncementPushRegistration() {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("Push notifications are not supported on this device.");
+  }
+
+  const existingRegistration = await navigator.serviceWorker.getRegistration();
+  if (existingRegistration?.pushManager) return existingRegistration;
+
+  const readyRegistration = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error("Notifications are still setting up. Reload once and try again."));
+      }, 5000);
+    }),
+  ]);
+
+  if (!readyRegistration?.pushManager) {
+    throw new Error("Push notifications are not available in this browser.");
+  }
+
+  return readyRegistration;
+}
+
 async function enableAnnouncementPush() {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
     throw new Error("Push notifications are not supported on this device.");
   }
 
@@ -46,7 +72,7 @@ async function enableAnnouncementPush() {
     throw new Error("Notification permission was not granted.");
   }
 
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await getAnnouncementPushRegistration();
   let subscription = await registration.pushManager.getSubscription();
 
   if (!subscription) {
@@ -64,7 +90,7 @@ async function enableAnnouncementPush() {
 async function disableAnnouncementPush() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await getAnnouncementPushRegistration();
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
 
@@ -424,6 +450,33 @@ const STORAGE_META_SUFFIX = "__meta";
 // Increment this to force all existing users through the onboarding flow again.
 const PROFILE_VERSION = 2;
 
+const EMPTY_SQUAD_PROFILE = {
+  name: "",
+  position: "",
+  number: "",
+  photo: "",
+  seasonStats: {
+    seasonLabel: "",
+    appearances: "",
+    starts: "",
+    goals: "",
+    assists: "",
+    cleanSheets: "",
+  },
+};
+
+function normalizeSquadProfile(value = {}) {
+  const seasonStats = value?.seasonStats && typeof value.seasonStats === "object" ? value.seasonStats : {};
+  return {
+    ...EMPTY_SQUAD_PROFILE,
+    ...value,
+    seasonStats: {
+      ...EMPTY_SQUAD_PROFILE.seasonStats,
+      ...seasonStats,
+    },
+  };
+}
+
 function buildMetaForValue(value) {
   return {
     updatedAt: new Date().toISOString(),
@@ -609,6 +662,168 @@ const QUOTES = [
   { text: "Football is not just about scoring goals. It's about the heart you put into every game.", author: "Fandi Ahmad", icon: "star" },
   { text: "Success is not final, failure is not fatal. It is the courage to continue that counts.", author: "Aleksandar Đurić", icon: "shield" },
 ];
+
+const RECIPE_TICKER_ORDER = ["Respect", "Resilience", "Care", "Integrity", "Passion", "Excellence"];
+
+function getLocalDayIndex(date = new Date()) {
+  const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const yearStart = new Date(date.getFullYear(), 0, 1);
+  return Math.floor((localMidnight - yearStart) / 86400000);
+}
+
+function getDailyRecipeTickerContent(C, date = new Date()) {
+  const dayIndex = getLocalDayIndex(date);
+  const recipeValue = RECIPE_TICKER_ORDER[dayIndex % RECIPE_TICKER_ORDER.length];
+
+  const recipePlaybook = {
+    Respect: {
+      icon: "handshake",
+      color: C.electric,
+      focusLines: [
+        "How you speak to teammates matters as much as the pass itself.",
+        "Compete hard, then reset fast. No blaming, no cheap reactions.",
+        "Respect shows up in your body language before it shows up in your words.",
+        "Discipline under frustration is part of the standard, not a bonus.",
+      ],
+      perspectives: [
+        "Student-athlete lens: if you want trust on the pitch, build it in the small moments too, from class to cooldown.",
+        "Team lens: respect is not softness. It is giving honest effort without dragging the group into drama.",
+        "Pressure lens: your reaction to referees, setbacks, and provocation tells people who you are before your football does.",
+        "Leadership lens: the players others listen to are usually the players who stay composed when everyone else starts leaking emotion.",
+      ],
+      actions: [
+        "Be the first player to lift a teammate after a mistake.",
+        "Respond to the next bad call with composure, not theatre.",
+        "Use clear, calm information when the game gets messy.",
+        "Show the same standard to substitutes, starters, staff, and opponents.",
+      ],
+    },
+    Resilience: {
+      icon: "mountain",
+      color: C.orange,
+      focusLines: [
+        "The next action still belongs to you, even after a bad one.",
+        "Tough sessions are where weak habits get exposed and strong ones get built.",
+        "Composure after setbacks is part of the skillset, not a bonus.",
+        "Your response after a poor moment matters more than the poor moment itself.",
+      ],
+      perspectives: [
+        "Student-athlete lens: resilience is carrying standards through heavy weeks, not just when energy is high.",
+        "Recovery lens: setbacks are easier to handle when your sleep, food, and discipline are not collapsing around them.",
+        "Development lens: frustration is often a sign that the game is showing you the next thing you need to master.",
+        "Competition lens: mentally strong players recover faster between moments, not just between matches.",
+      ],
+      actions: [
+        "If your first touch fails, demand the ball again immediately.",
+        "Finish every rep properly, especially when your legs start complaining.",
+        "Treat one mistake as information, not identity.",
+        "Reset your body language before the next phase starts.",
+      ],
+    },
+    Care: {
+      icon: "gift",
+      color: C.success,
+      focusLines: [
+        "Care is preparation people can feel, even when you never mention it.",
+        "A team improves faster when players look after details for each other.",
+        "Recovery is not softness. It is respect for tomorrow's performance.",
+        "Reliable players care about standards that help more than just themselves.",
+      ],
+      perspectives: [
+        "Student-athlete lens: care includes how you recover, how you communicate, and whether others can depend on you.",
+        "Team lens: squads improve when players notice who is struggling and act before a coach has to intervene.",
+        "Culture lens: caring for shared spaces, shared equipment, and shared standards is part of being serious.",
+        "Performance lens: self-care is not indulgence. It is maintenance for quality output.",
+      ],
+      actions: [
+        "Check on one teammate today without being prompted.",
+        "Refuel and hydrate like the next session already matters.",
+        "Leave the pitch better than you found it.",
+        "Take recovery seriously enough that tomorrow still has quality.",
+      ],
+    },
+    Integrity: {
+      icon: "shield",
+      color: "#a855f7",
+      focusLines: [
+        "Standards count most when nobody is around to enforce them.",
+        "Integrity is doing the full rep when shortcuts are available.",
+        "Your habits in the quiet moments decide whether your confidence is real.",
+        "Honest work builds a kind of confidence that fake work never can.",
+      ],
+      perspectives: [
+        "Student-athlete lens: integrity is the bridge between what you say you want and what your calendar actually shows.",
+        "Data lens: if you log flattering numbers instead of real ones, you kill the value of the whole system.",
+        "Preparation lens: the unseen habits are usually what decide whether match-day confidence is earned or borrowed.",
+        "Character lens: discipline without supervision is a stronger signal than effort with an audience.",
+      ],
+      actions: [
+        "Log the session honestly, not the flattering version.",
+        "Do the extra recovery piece you usually skip.",
+        "Keep your discipline when nobody would notice if you switched off.",
+        "Finish the full drill exactly as prescribed before you edit it for comfort.",
+      ],
+    },
+    Passion: {
+      icon: "fire",
+      color: C.danger,
+      focusLines: [
+        "Intensity without joy burns out. Joy without intensity goes nowhere.",
+        "Passion is visible in how quickly you attack the next rep.",
+        "Bring energy that lifts the session, not noise that distracts from it.",
+        "Real passion survives boring work, repetition, and uncomfortable details.",
+      ],
+      perspectives: [
+        "Student-athlete lens: passion is not hype for one big game. It is staying connected to the work on ordinary school days.",
+        "Training lens: loving football means respecting the parts that are repetitive, technical, and easy to neglect.",
+        "Team lens: contagious energy is useful only when it helps the group sharpen, settle, or compete better.",
+        "Identity lens: if football matters to you, let it show in preparation, punctuality, and repeat effort.",
+      ],
+      actions: [
+        "Attack the first drill like it sets the tone for the whole day.",
+        "Sprint into restarts instead of drifting into them.",
+        "Let your effort be obvious before your voice is.",
+        "Carry good energy into the unattractive parts of training too.",
+      ],
+    },
+    Excellence: {
+      icon: "diamond",
+      color: C.gold,
+      focusLines: [
+        "Excellence is clean execution repeated until it becomes normal.",
+        "Raise the standard of your basics before chasing the spectacular.",
+        "Sharp details under pressure are what separate serious players from casual ones.",
+        "Excellence usually looks simple because the hard part happened in repetition.",
+      ],
+      perspectives: [
+        "Student-athlete lens: excellence is not a match-day costume. It is a daily standard for how you train, recover, and prepare.",
+        "Technique lens: flashy moments get attention, but repeatable quality wins trust.",
+        "Decision-making lens: elite standards often look like choosing the clean option again and again under pressure.",
+        "Growth lens: excellence is less about perfection and more about refusing to stay casual.",
+      ],
+      actions: [
+        "Demand quality on every first touch, even in simple drills.",
+        "Finish each rep with the same precision as the first one.",
+        "Choose the cleaner decision, not the flashier one.",
+        "Raise one technical standard today and hold it for the whole session.",
+      ],
+    },
+  };
+
+  const recipePack = recipePlaybook[recipeValue];
+  const focusLine = recipePack.focusLines[Math.floor(dayIndex / RECIPE_TICKER_ORDER.length) % recipePack.focusLines.length];
+  const perspective = recipePack.perspectives[Math.floor(dayIndex / (RECIPE_TICKER_ORDER.length * recipePack.focusLines.length)) % recipePack.perspectives.length];
+  const action = recipePack.actions[Math.floor(dayIndex / (RECIPE_TICKER_ORDER.length * recipePack.focusLines.length * recipePack.perspectives.length)) % recipePack.actions.length];
+
+  return {
+    recipeValue,
+    recipeIcon: recipePack.icon,
+    recipeColor: recipePack.color,
+    focusLine,
+    perspective,
+    action,
+  };
+}
 
 const TRAINING_DATA = {
   beginner: {
@@ -1653,6 +1868,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const C = useTheme();
   const [allEvents, setAllEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const dailyTickerContent = getDailyRecipeTickerContent(C);
 
   // Compute latest ACWR from sessions that have load data
   const acwrData = sessions?.length ? computeACWR(sessions) : [];
@@ -1787,12 +2003,22 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     items.push({ icon: "trend-up", text: "Training today — log your session RPE and wellness check-in afterwards. Takes 60 seconds.", color: C.electric });
   }
 
-  // ── Standing reminders ──
-  items.push({ icon: "drop", text: "Hydration reminder — water before, during and after every session.", color: C.electric });
-  items.push({ icon: "moon", text: "Sleep is your #1 recovery tool — aim for 8–9 hours on school nights.", color: "#a78bfa" });
-  items.push({ icon: "brain", text: "Today's Football IQ question is below — one question a day sharpens the mind.", color: C.gold });
-  items.push({ icon: "barbell", text: "RECIPE Value of the day: push your EXCELLENCE in every drill.", color: C.success });
-  items.push({ icon: "target", text: "Set one micro-goal before the next session — one specific thing to improve.", color: C.gold });
+  // ── Daily rotating emphasis ──
+  items.push({
+    icon: dailyTickerContent.recipeIcon,
+    text: `Today's RECIPE focus: ${dailyTickerContent.recipeValue.toUpperCase()}. ${dailyTickerContent.focusLine}`,
+    color: dailyTickerContent.recipeColor,
+  });
+  items.push({
+    icon: "brain",
+    text: dailyTickerContent.perspective,
+    color: dailyTickerContent.recipeColor,
+  });
+  items.push({
+    icon: "target",
+    text: `Today's RECIPE action: ${dailyTickerContent.action}`,
+    color: dailyTickerContent.recipeColor,
+  });
 
   // Separator dot
   const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none" }}>•</span>;
@@ -2051,7 +2277,8 @@ function HeroSection({ setActive, profile, sessions }) {
 function PerformanceHome({ setActive, profile, sessions }) {
   const C = useTheme();
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [nextEvent, setNextEvent] = useState(null);
   const sorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -3708,18 +3935,29 @@ function SquadSection() {
   const inputStyle = makeInputStyle(C);
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [squad, setSquad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [storedSquad, setStoredSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [editing, setEditing] = useState(false);
-  const [tempSquad, setTempSquad] = useState({ name: "", position: "", number: "", photo: "" });
+  const [tempSquad, setTempSquad] = useState(() => normalizeSquadProfile());
   const photoInputRef = useRef(null);
   const exportRef = useRef(null);
 
   const { xp, earned } = computeXpAndBadges(sessions, growthEntries);
   const lvl = getLevel(xp);
   const hasProfile = squad.name?.trim().length > 0;
+  const seasonStats = normalizeSquadProfile(squad).seasonStats;
+  const seasonLabel = seasonStats.seasonLabel?.trim() || "Current Season";
+  const seasonStatCards = [
+    { key: "appearances", label: "Games", short: "GP" },
+    { key: "starts", label: "Starts", short: "GS" },
+    { key: "goals", label: "Goals", short: "G" },
+    { key: "assists", label: "Assists", short: "A" },
+    { key: "cleanSheets", label: "Clean Sheets", short: "CS" },
+  ];
+  const hasSeasonStats = seasonStatCards.some(({ key }) => String(seasonStats[key] ?? "").trim() !== "");
 
-  const saveProfile = () => { setSquad(tempSquad); setEditing(false); };
-  const startEdit = () => { setTempSquad({ ...squad }); setEditing(true); };
+  const saveProfile = () => { setStoredSquad(normalizeSquadProfile(tempSquad)); setEditing(false); };
+  const startEdit = () => { setTempSquad(normalizeSquadProfile(squad)); setEditing(true); };
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -3775,6 +4013,78 @@ function SquadSection() {
               </select>
             </div>
             <div><label style={labelStyle}>Number</label><input type="number" min="1" max="99" value={tempSquad.number} onChange={e => setTempSquad({ ...tempSquad, number: e.target.value })} placeholder="#" style={inputStyle} /></div>
+          </div>
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.navyBorder}` }}>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1, marginBottom: 6 }}>CURRENT SEASON STATS</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 14 }}>
+              Add the numbers you want shown on your player card this season.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "span 3" }}>
+                <label style={labelStyle}>Season Label</label>
+                <input
+                  value={tempSquad.seasonStats.seasonLabel}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, seasonLabel: e.target.value } }))}
+                  placeholder="e.g. 2026 B Div"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Games Played</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={tempSquad.seasonStats.appearances}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, appearances: e.target.value } }))}
+                  placeholder="0"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Starts</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={tempSquad.seasonStats.starts}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, starts: e.target.value } }))}
+                  placeholder="0"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Goals</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={tempSquad.seasonStats.goals}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, goals: e.target.value } }))}
+                  placeholder="0"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Assists</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={tempSquad.seasonStats.assists}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, assists: e.target.value } }))}
+                  placeholder="0"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Clean Sheets</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={tempSquad.seasonStats.cleanSheets}
+                  onChange={(e) => setTempSquad((prev) => ({ ...prev, seasonStats: { ...prev.seasonStats, cleanSheets: e.target.value } }))}
+                  placeholder="0"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
           </div>
           <GoldButton onClick={saveProfile} style={{ marginTop: 16 }}>Save Player Card</GoldButton>
         </Card>
@@ -3851,6 +4161,27 @@ function SquadSection() {
                   transition: "width 0.8s ease", boxShadow: `0 0 8px ${C.gold}40`,
                 }} />
               </div>
+            </div>
+
+            <div style={{ marginTop: 20, padding: "16px 18px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>CURRENT SEASON</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>{seasonLabel}</div>
+              </div>
+              {hasSeasonStats ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", gap: 10 }}>
+                  {seasonStatCards.map((stat) => (
+                    <div key={stat.key} style={{ padding: "12px 10px", borderRadius: 10, background: C.navyCard, textAlign: "center", border: `1px solid ${C.navyBorder}` }}>
+                      <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.gold }}>{String(seasonStats[stat.key] ?? "").trim() || "—"}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>{stat.short}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+                  Add current season numbers to keep this profile relevant throughout the year.
+                </div>
+              )}
             </div>
 
             {/* Stats row */}
@@ -6984,7 +7315,7 @@ function AnnouncementBoard({ isCoach = false }) {
   };
 
   const refreshPushState = useCallback(async () => {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPushState("unsupported");
       return;
     }
@@ -6995,7 +7326,7 @@ function AnnouncementBoard({ isCoach = false }) {
     }
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getAnnouncementPushRegistration();
       const subscription = await registration.pushManager.getSubscription();
       setPushState(subscription ? "enabled" : "disabled");
     } catch {
@@ -7561,7 +7892,8 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
   const C = useTheme();
   const isMobile = useIsMobile(768);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [nextEvent, setNextEvent] = useState(null);
   const sorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -8003,7 +8335,8 @@ function PlayerPerformancePage({ initialTab, onTabConsumed }) {
   useEffect(() => { if (initialTab && onTabConsumed) onTabConsumed(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [growthEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [squad] = usePersistedState(STORAGE_KEYS.squad, { name: "", position: "", number: "", photo: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [profile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", firstGoal: "" });
 
