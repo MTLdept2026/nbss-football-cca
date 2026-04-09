@@ -511,6 +511,32 @@ function formatDateTime(value) {
   });
 }
 
+function formatLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDateKey(value) {
+  const match = String(value || "").trim().match(/^\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
+}
+
+function parseDateKey(value) {
+  const normalized = normalizeDateKey(value);
+  if (!normalized) return null;
+  const date = new Date(`${normalized}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getDaysUntilDate(value, from = new Date()) {
+  const target = parseDateKey(value);
+  if (!target) return null;
+  const localStart = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  return Math.round((target - localStart) / 86400000);
+}
+
 function stampRecord(record, previous = null) {
   const now = new Date().toISOString();
   return {
@@ -1894,8 +1920,8 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   }, []);
 
   // Derive next match and next training separately from the full event list
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = allEvents.filter(e => e.date >= today);
+  const today = formatLocalDateKey();
+  const upcoming = allEvents.filter((e) => normalizeDateKey(e.date) >= today);
   const nextMatch    = upcoming.find(e => e.type === "Match" || e.type === "Friendly") || null;
   const nextTraining = upcoming.find(e => e.type === "Training") || null;
   const nextEvent    = upcoming[0] || null;
@@ -1907,12 +1933,8 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   }[category] || C.electric);
 
   // Days until next match
-  const daysToMatch = nextMatch
-    ? Math.ceil((new Date(nextMatch.date + "T00:00:00") - new Date()) / 86400000)
-    : null;
-  const daysToTraining = nextTraining
-    ? Math.ceil((new Date(nextTraining.date + "T00:00:00") - new Date()) / 86400000)
-    : null;
+  const daysToMatch = nextMatch ? getDaysUntilDate(nextMatch.date) : null;
+  const daysToTraining = nextTraining ? getDaysUntilDate(nextTraining.date) : null;
 
   // Build dynamic ticker items
   const items = [];
@@ -1931,9 +1953,9 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
       items.push({ icon: "trophy", text: `MATCH DAY — ${nextMatch.title} is TODAY${matchTime}. Lock your checklist and intentions NOW.`, color: C.gold });
     } else if (daysToMatch === 1) {
       items.push({ icon: "trophy", text: `Match TOMORROW — ${nextMatch.title}${matchTime}. Final prep day. Sleep early, eat right.`, color: C.gold });
-    } else if (daysToMatch !== null && daysToMatch <= 7) {
+    } else if (daysToMatch !== null && daysToMatch >= 0 && daysToMatch <= 7) {
       items.push({ icon: "trophy", text: `${nextMatch.title} in ${daysToMatch} day${daysToMatch === 1 ? "" : "s"}${matchTime}. Pre-match routine opens now.`, color: C.gold });
-    } else if (nextMatch) {
+    } else if (daysToMatch !== null && daysToMatch > 7) {
       items.push({ icon: "calendar", text: `Next match — ${nextMatch.title} · ${nextMatch.date}${matchTime}`, color: C.gold });
     }
   }
@@ -1945,7 +1967,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
       items.push({ icon: "run", text: `Training TODAY — ${nextTraining.title}${trainTime}. Log your RPE afterwards.`, color: C.success });
     } else if (daysToTraining === 1) {
       items.push({ icon: "run", text: `Training TOMORROW — ${nextTraining.title}${trainTime}. Prep your kit tonight.`, color: C.success });
-    } else if (daysToTraining !== null && daysToTraining <= 5) {
+    } else if (daysToTraining !== null && daysToTraining >= 0 && daysToTraining <= 5) {
       items.push({ icon: "run", text: `Next training — ${nextTraining.title} in ${daysToTraining} days${trainTime}`, color: C.success });
     }
   }
@@ -2837,14 +2859,14 @@ function MindsetSection() {
   const [flippedCards, setFlippedCards] = useState({});
   const [mindsetFilter, setMindsetFilter] = useState("All");
   const [journalEntries, setJournalEntries] = usePersistedState(STORAGE_KEYS.growthJournal, []);
-  const [journalForm, setJournalForm] = useState({ date: new Date().toISOString().slice(0, 10), fixed: "", growth: "", reflection: "" });
+  const [journalForm, setJournalForm] = useState({ date: formatLocalDateKey(), fixed: "", growth: "", reflection: "" });
   const [showJournal, setShowJournal] = useState(false);
   const journalRef = useRef(null);
 
   const addJournalEntry = () => {
     if (!journalForm.reflection.trim()) return;
     setJournalEntries(prev => [...prev, { ...journalForm, id: Date.now() }]);
-    setJournalForm({ date: new Date().toISOString().slice(0, 10), fixed: "", growth: "", reflection: "" });
+    setJournalForm({ date: formatLocalDateKey(), fixed: "", growth: "", reflection: "" });
     setShowJournal(false);
   };
 
@@ -3139,7 +3161,7 @@ function FitnessSection() {
   const [results, setResults] = usePersistedState(STORAGE_KEYS.fitnessResults, {});
   const [showLog, setShowLog] = useState(null);
   const [showChart, setShowChart] = useState(null);
-  const [logForm, setLogForm] = useState({ date: new Date().toISOString().slice(0, 10), value: "" });
+  const [logForm, setLogForm] = useState({ date: formatLocalDateKey(), value: "" });
   const exportRef = useRef(null);
 
   const levelColors = { beginner: C.textDim, intermediate: C.electric, advanced: C.gold, elite: C.success };
@@ -3150,7 +3172,7 @@ function FitnessSection() {
       const existing = prev[testName] || { entries: [], target: "" };
       return { ...prev, [testName]: { ...existing, entries: [...existing.entries, { ...logForm, id: Date.now() }] } };
     });
-    setLogForm({ date: new Date().toISOString().slice(0, 10), value: "" });
+    setLogForm({ date: formatLocalDateKey(), value: "" });
     setShowLog(null);
   };
 
@@ -3506,7 +3528,7 @@ function TrackerSection() {
   };
 
   const quickLog = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatLocalDateKey();
     setSessions(prev => [...prev, stampRecord({ date: today, type: quickType, rating: quickRating, notes: "", goals: "", mood: "4", id: Date.now(), year, load: 0, readinessScore: null })]);
   };
 
@@ -6248,7 +6270,7 @@ function ScheduleCard() {
 
   useEffect(() => { fetchSchedule(); }, []);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = formatLocalDateKey();
 
   const typeColor = (type) => ({
     Training: C.success, Match: C.gold, Friendly: C.orange, Other: C.electric,
@@ -6505,7 +6527,7 @@ function ClusterAttendance() {
   const [roster, setRoster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [attendanceLog, setAttendanceLog] = usePersistedState(STORAGE_KEYS.attendance, {});
   const [view, setView] = useState("take"); // "take" | "roster" | "summary"
-  const [sessionDate, setSessionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [sessionDate, setSessionDate] = useState(() => formatLocalDateKey());
   const [search, setSearch] = useState("");
   const [divFilter, setDivFilter] = useState(""); // "" | "B Div" | "C Div"
   const sessionKey = sessionDate;
@@ -7135,16 +7157,16 @@ function inferScheduleDivision(title = "") {
 }
 
 function normalizeScheduleEntry(entry) {
-  const title = entry.title || entry.event || entry.name || "";
+  const title = String(entry.title || entry.event || entry.name || "").trim();
   return {
-    date: entry.date || "",
+    date: normalizeDateKey(entry.date),
     title,
-    type: entry.type || inferScheduleType(title),
-    division: entry.division || entry.div || inferScheduleDivision(title),
-    time: entry.time || "",
-    teacher: entry.teacher || entry.coach || "",
-    venue: entry.venue || "",
-    notes: entry.notes || "",
+    type: String(entry.type || inferScheduleType(title)).trim(),
+    division: String(entry.division || entry.div || inferScheduleDivision(title)).trim(),
+    time: String(entry.time || "").trim(),
+    teacher: String(entry.teacher || entry.coach || "").trim(),
+    venue: String(entry.venue || "").trim(),
+    notes: String(entry.notes || "").trim(),
   };
 }
 
@@ -7170,7 +7192,7 @@ async function fetchScheduleEntries() {
   return mergeScheduleEntries(parseCSV(text));
 }
 
-function getNextScheduledEvent(events, today = new Date().toISOString().slice(0, 10)) {
+function getNextScheduledEvent(events, today = formatLocalDateKey()) {
   return events.find((event) => event.date >= today) || null;
 }
 
@@ -7201,7 +7223,7 @@ function normalizeAnnouncementEntry(entry, index = 0) {
   };
 }
 
-function sortAnnouncementEntries(rows, today = new Date().toISOString().slice(0, 10)) {
+function sortAnnouncementEntries(rows, today = formatLocalDateKey()) {
   return rows
     .map(normalizeAnnouncementEntry)
     .filter((entry) => entry.title || entry.body)
@@ -7286,7 +7308,7 @@ function AnnouncementBoard({ isCoach = false }) {
   const [publishDraft, setPublishDraft, clearPublishDraft] = useDraftState(DRAFT_KEYS.announcementComposer, {
     title: "",
     body: "",
-    date: new Date().toISOString().slice(0, 10),
+    date: formatLocalDateKey(),
     category: "General",
     pinned: false,
   });
@@ -7347,7 +7369,7 @@ function AnnouncementBoard({ isCoach = false }) {
     clearPublishDraft({
       title: "",
       body: "",
-      date: new Date().toISOString().slice(0, 10),
+      date: formatLocalDateKey(),
       category: "General",
       pinned: false,
     });
@@ -7418,7 +7440,7 @@ function AnnouncementBoard({ isCoach = false }) {
     setPublishDraft({
       title: announcement.title || "",
       body: announcement.body || "",
-      date: announcement.date || new Date().toISOString().slice(0, 10),
+      date: announcement.date || formatLocalDateKey(),
       category: announcement.category || "General",
       pinned: Boolean(announcement.pinned),
     });
@@ -7798,7 +7820,7 @@ function QuickReadinessWidget() {
   const [soreness, setSoreness] = useState(3);
   const [saved, setSaved] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatLocalDateKey();
   const sorted = [...sessions].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
   const todayEntry = sorted.find(s => s.date === today && s.readinessScore != null);
   const alreadyLogged = !!todayEntry && !saved;
@@ -7976,7 +7998,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
   const isMatchEvent = nextEvent?.type === "Match" || nextEvent?.type === "Friendly";
 
   // Smart checklist — auto-checked from existing data
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatLocalDateKey();
   const readinessLoggedToday = sorted.some(s => s.date === today && s.readinessScore != null);
   const sessionLoggedToday = sorted.some(s => s.date === today);
   const focusSet = !!(last?.goals?.trim() || profile?.firstGoal?.trim());
