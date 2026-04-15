@@ -6,6 +6,11 @@ export function getAnnouncementsStore(event) {
   return getStore("announcements");
 }
 
+export function getScheduleStore(event) {
+  connectLambda(event);
+  return getStore("schedule");
+}
+
 export function getSubscriptionsStore(event) {
   connectLambda(event);
   return getStore("push-subscriptions");
@@ -17,4 +22,8 @@ export function subscriptionKey(endpoint = "") {
 
 export function announcementKey(id) {
   return `announcement/${id}.json`;
+}
+
+export function scheduleKey(id) {
+  return `schedule/${id}.json`;
 }

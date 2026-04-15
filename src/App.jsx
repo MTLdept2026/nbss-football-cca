@@ -7,6 +7,7 @@ import { Target, Lightning, Crown, Diamond, Brain, Shield, Trophy, Star, Fire, D
 
 const NETLIFY_FUNCTIONS_BASE = "/.netlify/functions";
 const ANNOUNCEMENT_PUBLISH_SECRET_KEY = "nbss-announcement-publish-secret";
+const SCHEDULE_PUBLISH_SECRET_KEY = "nbss-schedule-publish-secret";
 
 function urlBase64ToUint8Array(base64String) {
   const clean = String(base64String || "").trim().replace(/^"(.*)"$/, "$1");
@@ -105,6 +106,13 @@ async function fetchNetlifyAnnouncements() {
   return Array.isArray(data.announcements) ? data.announcements : [];
 }
 
+async function fetchNetlifyScheduleEntries() {
+  const res = await fetch(`${NETLIFY_FUNCTIONS_BASE}/schedule`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data.schedule) ? data.schedule : [];
+}
+
 async function createAnnouncementEntry(payload, secret) {
   return postFunctionJSON("announcement-create", payload, {
     headers: { "x-announcement-secret": secret },
@@ -120,6 +128,24 @@ async function updateAnnouncementEntry(payload, secret) {
 async function deleteAnnouncementEntry(id, secret) {
   return postFunctionJSON("announcement-delete", { id }, {
     headers: { "x-announcement-secret": secret },
+  });
+}
+
+async function createScheduleEntry(payload, secret) {
+  return postFunctionJSON("schedule-create", payload, {
+    headers: { "x-schedule-secret": secret },
+  });
+}
+
+async function updateScheduleEntry(payload, secret) {
+  return postFunctionJSON("schedule-update", payload, {
+    headers: { "x-schedule-secret": secret },
+  });
+}
+
+async function deleteScheduleEntry(id, secret) {
+  return postFunctionJSON("schedule-delete", { id }, {
+    headers: { "x-schedule-secret": secret },
   });
 }
 
@@ -439,6 +465,7 @@ const DRAFT_KEYS = {
   matchReview: "gameplan-draft-match-review",
   lineupBuilder: "gameplan-draft-lineup-builder",
   announcementComposer: "gameplan-draft-announcement-composer",
+  scheduleComposer: "gameplan-draft-schedule-composer",
 };
 
 // SECURITY NOTE: loaded from env var — not hardcoded in source.
@@ -6246,7 +6273,7 @@ function ScheduleCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
-  const [filter, setFilter] = useState("all"); // "all" | "Training" | "Match" | "B Div" | "C Div"
+  const [filter, setFilter] = useState("all");
   const [showEditUnlock, setShowEditUnlock] = useState(false);
   const [editPassword, setEditPassword] = useState("");
   const [editError, setEditError] = useState("");
@@ -6254,6 +6281,21 @@ function ScheduleCard() {
     try { return sessionStorage.getItem(ATTENDANCE_TEACHER_SESSION_KEY) === "true"; }
     catch { return false; }
   });
+  const [publishSecret, setPublishSecret] = usePersistedState(SCHEDULE_PUBLISH_SECRET_KEY, "");
+  const emptyScheduleDraft = {
+    date: formatLocalDateKey(),
+    title: "",
+    type: "Training",
+    division: "",
+    time: "",
+    teacher: "",
+    venue: "",
+    notes: "",
+  };
+  const [scheduleDraft, setScheduleDraft, clearScheduleDraft] = useDraftState(DRAFT_KEYS.scheduleComposer, emptyScheduleDraft);
+  const [editingScheduleId, setEditingScheduleId] = useState(null);
+  const [publishState, setPublishState] = useState("idle");
+  const [publishMessage, setPublishMessage] = useState(null);
 
   const fetchSchedule = async () => {
     setLoading(true);
@@ -6263,7 +6305,7 @@ function ScheduleCard() {
       setSessions(data);
       setLastFetched(new Date());
     } catch (e) {
-      setError("Could not load schedule. Make sure the sheet is public and you're online.");
+      setError("Could not load schedule right now.");
     }
     setLoading(false);
   };
@@ -6285,14 +6327,13 @@ function ScheduleCard() {
 
   const filtered = sessions.filter(s => {
     if (filter === "all") return true;
-    if (filter === "Training" || filter === "Match") return s.type === filter;
+    if (filter === "Training" || filter === "Match" || filter === "Friendly") return s.type === filter;
     if (filter === "B Div" || filter === "C Div") return s.division === filter;
     return true;
   });
 
-  // Split into upcoming and past
   const upcoming = filtered.filter(s => isUpcoming(s.date));
-  const past     = filtered.filter(s => !isUpcoming(s.date)).slice(-5).reverse(); // last 5 past
+  const past = filtered.filter(s => !isUpcoming(s.date)).slice(-5).reverse();
 
   const unlockScheduleEdit = (e) => {
     e.preventDefault();
@@ -6315,9 +6356,104 @@ function ScheduleCard() {
     setEditError("");
   };
 
+  const updateScheduleDraft = (patch) => {
+    setScheduleDraft((prev) => ({ ...prev, ...patch }));
+  };
+
+  const resetScheduleDraft = useCallback((clearMessage = false) => {
+    clearScheduleDraft({
+      ...emptyScheduleDraft,
+      date: formatLocalDateKey(),
+    });
+    setEditingScheduleId(null);
+    if (clearMessage) setPublishMessage(null);
+  }, [clearScheduleDraft]);
+
+  const handleSaveSchedule = async () => {
+    if (!publishSecret.trim()) {
+      setPublishMessage({ tone: "error", text: "Enter the staff publish passcode first." });
+      return;
+    }
+
+    setPublishMessage(null);
+    setPublishState("working");
+
+    try {
+      const payload = {
+        date: scheduleDraft.date,
+        title: scheduleDraft.title.trim(),
+        type: scheduleDraft.type,
+        division: scheduleDraft.division,
+        time: scheduleDraft.time.trim(),
+        teacher: scheduleDraft.teacher.trim(),
+        venue: scheduleDraft.venue.trim(),
+        notes: scheduleDraft.notes.trim(),
+      };
+
+      if (editingScheduleId) {
+        await updateScheduleEntry({ ...payload, id: editingScheduleId }, publishSecret.trim());
+      } else {
+        await createScheduleEntry(payload, publishSecret.trim());
+      }
+
+      resetScheduleDraft();
+      await fetchSchedule();
+      setPublishMessage({ tone: "success", text: editingScheduleId ? "Schedule item updated." : "Schedule item added." });
+    } catch (e) {
+      setPublishMessage({ tone: "error", text: e.message || "Could not save the schedule item." });
+    } finally {
+      setPublishState("idle");
+    }
+  };
+
+  const handleEditSchedule = (session) => {
+    setPublishMessage(null);
+    setEditingScheduleId(session.id);
+    setScheduleDraft({
+      date: session.date || formatLocalDateKey(),
+      title: session.title || "",
+      type: session.type || "Training",
+      division: session.division || "",
+      time: session.time || "",
+      teacher: session.teacher || "",
+      venue: session.venue || "",
+      notes: session.notes || "",
+    });
+  };
+
+  const handleDeleteSchedule = async (session) => {
+    if (!publishSecret.trim()) {
+      setPublishMessage({ tone: "error", text: "Enter the staff publish passcode first." });
+      return;
+    }
+
+    if (!window.confirm(`Delete "${session.title || "this schedule item"}"?`)) return;
+
+    setPublishMessage(null);
+    setPublishState("working");
+
+    try {
+      await deleteScheduleEntry(session.id, publishSecret.trim());
+      if (editingScheduleId === session.id) resetScheduleDraft();
+      setPublishMessage({ tone: "success", text: "Schedule item deleted." });
+      await fetchSchedule();
+    } catch (e) {
+      setPublishMessage({ tone: "error", text: e.message || "Could not delete the schedule item." });
+    } finally {
+      setPublishState("idle");
+    }
+  };
+
+  const publishDisabled = publishState === "working"
+    || !publishSecret.trim()
+    || !scheduleDraft.date
+    || !scheduleDraft.title.trim();
+
   const SessionCard = ({ s, dim = false }) => {
     const tc = typeColor(s.type);
     const todayFlag = isToday(s.date);
+    const sourceLabel = s.source === "netlify" ? "App" : "Seeded";
+    const sourceColor = s.source === "netlify" ? C.success : C.textDim;
     return (
       <div style={{
         background: todayFlag ? `${C.gold}10` : C.navyCard,
@@ -6343,6 +6479,7 @@ function ScheduleCard() {
               {todayFlag && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase" }}>Today</span>}
               {s.type && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: tc, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.type}</span>}
               {s.division && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: divColor(s.division), letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.division}</span>}
+              {teacherEditUnlocked && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: sourceColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>{sourceLabel}</span>}
             </div>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 0.5, marginBottom: 4, lineHeight: 1.3 }}>
               {s.title || "—"}
@@ -6357,6 +6494,30 @@ function ScheduleCard() {
                 {s.notes}
               </div>
             )}
+            {teacherEditUnlocked && s.source === "netlify" && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                <button
+                  onClick={() => handleEditSchedule(s)}
+                  style={{
+                    padding: "7px 12px", borderRadius: 999, cursor: "pointer",
+                    background: `${C.electric}12`, border: `1px solid ${C.electric}28`,
+                    color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteSchedule(s)}
+                  style={{
+                    padding: "7px 12px", borderRadius: 999, cursor: "pointer",
+                    background: `${C.danger}12`, border: `1px solid ${C.danger}28`,
+                    color: C.danger, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -6366,7 +6527,7 @@ function ScheduleCard() {
   return (
     <div>
       {/* Toolbar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>SCHEDULE</div>
           {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
@@ -6380,10 +6541,6 @@ function ScheduleCard() {
               Teacher Edit
             </button>
           )}
-          <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`} target="_blank" rel="noopener noreferrer"
-            style={{ display: teacherEditUnlocked ? "inline-block" : "none", padding: "7px 14px", borderRadius: 999, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-            Edit
-          </a>
           {teacherEditUnlocked && (
             <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
               Lock Edit
@@ -6414,14 +6571,179 @@ function ScheduleCard() {
         </form>
       )}
 
-      {/* Coach tip */}
-      <div style={{ display: teacherEditUnlocked ? "block" : "none", background: `${C.gold}08`, border: `1px solid ${C.gold}20`, borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
-        <strong style={{ color: C.gold }}>Coach:</strong> Add sessions to the <strong>Schedule</strong> tab in the Google Sheet. Players see updates after tapping Refresh.
-      </div>
+      {teacherEditUnlocked && (
+        <div style={{ marginBottom: 20, padding: "20px 20px 18px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.04em" }}>
+                {editingScheduleId ? "EDIT SCHEDULE ITEM" : "ADD SCHEDULE ITEM"}
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
+                Publish fixtures and training updates directly in the app. App items can be edited here. Seeded legacy items stay read-only until migrated.
+              </div>
+            </div>
+            {publishSecret && (
+              <button
+                onClick={() => setPublishSecret("")}
+                style={{
+                  padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                  background: "transparent", border: `1px solid ${C.navyBorder}`,
+                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: 10,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                }}
+              >
+                Change Passcode
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <label style={makeLabelStyle(C)}>Staff publish passcode</label>
+              <input
+                type="password"
+                value={publishSecret}
+                onChange={(e) => setPublishSecret(e.target.value)}
+                placeholder="Enter once on this device"
+                style={makeInputStyle(C)}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+              <div>
+                <label style={makeLabelStyle(C)}>Date</label>
+                <input
+                  type="date"
+                  value={scheduleDraft.date}
+                  onChange={(e) => updateScheduleDraft({ date: e.target.value })}
+                  style={makeInputStyle(C)}
+                />
+              </div>
+              <div>
+                <label style={makeLabelStyle(C)}>Time</label>
+                <input
+                  value={scheduleDraft.time}
+                  onChange={(e) => updateScheduleDraft({ time: e.target.value })}
+                  placeholder="e.g. 3pm to 5:30pm or Kick off 3pm"
+                  style={makeInputStyle(C)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={makeLabelStyle(C)}>Title</label>
+              <input
+                value={scheduleDraft.title}
+                onChange={(e) => updateScheduleDraft({ title: e.target.value })}
+                placeholder="e.g. NSG B Div League 4 Semi Final vs Westwood Sec"
+                style={makeInputStyle(C)}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+              <div>
+                <label style={makeLabelStyle(C)}>Type</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 4 }}>
+                  {["Training", "Match", "Friendly", "Other"].map((type) => (
+                    <Pill
+                      key={type}
+                      active={scheduleDraft.type === type}
+                      onClick={() => updateScheduleDraft({ type })}
+                      color={typeColor(type)}
+                    >
+                      {type}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={makeLabelStyle(C)}>Division</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 4 }}>
+                  {["", "B Div", "C Div"].map((division) => (
+                    <Pill
+                      key={division || "All Divisions"}
+                      active={scheduleDraft.division === division}
+                      onClick={() => updateScheduleDraft({ division })}
+                      color={division ? divColor(division) : C.textBright}
+                    >
+                      {division || "General"}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+              <div>
+                <label style={makeLabelStyle(C)}>Staff</label>
+                <input
+                  value={scheduleDraft.teacher}
+                  onChange={(e) => updateScheduleDraft({ teacher: e.target.value })}
+                  placeholder="Optional"
+                  style={makeInputStyle(C)}
+                />
+              </div>
+              <div>
+                <label style={makeLabelStyle(C)}>Venue</label>
+                <input
+                  value={scheduleDraft.venue}
+                  onChange={(e) => updateScheduleDraft({ venue: e.target.value })}
+                  placeholder="Optional"
+                  style={makeInputStyle(C)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={makeLabelStyle(C)}>Notes</label>
+              <textarea
+                value={scheduleDraft.notes}
+                onChange={(e) => updateScheduleDraft({ notes: e.target.value })}
+                placeholder="Optional details for players or staff."
+                style={{
+                  ...makeInputStyle(C),
+                  minHeight: 96,
+                  resize: "vertical",
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  border: `1px solid ${C.surfaceBorder}`,
+                  borderRadius: 12,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <GoldButton onClick={handleSaveSchedule} style={{ minWidth: 180, opacity: publishDisabled ? 0.6 : 1 }} disabled={publishDisabled}>
+                {publishState === "working" ? "Working..." : editingScheduleId ? "Save Changes" : "Add Schedule Item"}
+              </GoldButton>
+              <GoldButton onClick={() => resetScheduleDraft(true)} secondary style={{ minWidth: 120 }}>
+                {editingScheduleId ? "Cancel Edit" : "Clear"}
+              </GoldButton>
+            </div>
+
+            {publishMessage && (
+              <div style={{
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: publishMessage.tone === "success" ? `${C.success}10` : `${C.danger}10`,
+                border: `1px solid ${publishMessage.tone === "success" ? `${C.success}25` : `${C.danger}25`}`,
+                color: publishMessage.tone === "success" ? C.success : C.danger,
+                fontFamily: FONT_BODY,
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}>
+                {publishMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {["all", "Training", "Match", "B Div", "C Div"].map(f => (
+        {["all", "Training", "Match", "Friendly", "B Div", "C Div"].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
             background: filter === f ? C.electric : C.navyCard,
@@ -6432,14 +6754,14 @@ function ScheduleCard() {
       </div>
 
       {/* States */}
-      {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>Fetching schedule…</div>}
-{!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>{error}</div>}
+      {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>Fetching schedule...</div>}
+      {!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>{error}</div>}
 
       {!loading && !error && sessions.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
           <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
           <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions in the schedule yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>Check back later for training and match updates.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>{teacherEditUnlocked ? "Use the composer above to add the first schedule item." : "Check back later for training and match updates."}</p>
         </div>
       )}
 
@@ -6450,7 +6772,7 @@ function ScheduleCard() {
             <>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Upcoming</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
-                {upcoming.map((s, i) => <SessionCard key={i} s={s} />)}
+                {upcoming.map((s) => <SessionCard key={s.id} s={s} />)}
               </div>
             </>
           )}
@@ -6459,7 +6781,7 @@ function ScheduleCard() {
             <>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent (last 5)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {past.map((s, i) => <SessionCard key={i} s={s} dim />)}
+                {past.map((s) => <SessionCard key={s.id} s={s} dim />)}
               </div>
             </>
           )}
@@ -7119,12 +7441,8 @@ function TeacherAttendanceGate({ children }) {
 // ══════════════════════════════════════════════════
 //  ANNOUNCEMENT BOARD
 // ══════════════════════════════════════════════════
-const SHEET_ID = "1yhLcwaYA7CuWgJ5VmQq8ia4KHB8Iwc3BGNEqVDevELI";
-// Target specific tabs by name — works without knowing gid numbers
-const SCHEDULE_CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Schedule`;
-
-// April 2026 schedule seeded from the shared calendar screenshot.
-// Keep this in sync with the Google Sheet until the sheet becomes the sole source again.
+// Legacy April 2026 schedule seeded from the shared calendar screenshot.
+// Netlify-backed entries now override matching seeded items and should be used for all new updates.
 const SEEDED_SCHEDULE_EVENTS = [
   { date: "2026-04-02", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Herwanto", venue: "", notes: "" },
   { date: "2026-04-06", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Lua", venue: "", notes: "" },
@@ -7134,6 +7452,7 @@ const SEEDED_SCHEDULE_EVENTS = [
   { date: "2026-04-13", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Ms Kellie", venue: "", notes: "" },
   { date: "2026-04-14", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
   { date: "2026-04-16", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Yusman", venue: "", notes: "" },
+  { date: "2026-04-17", title: "NSG B Div League 4 Semi Final vs Westwood Sec", type: "Match", division: "B Div", time: "Kick off 3pm", teacher: "", venue: "Jurong East Stadium", notes: "" },
   { date: "2026-04-20", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Harizan", venue: "", notes: "" },
   { date: "2026-04-21", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Herwanto", venue: "", notes: "" },
   { date: "2026-04-23", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Chandra", venue: "", notes: "" },
@@ -7156,40 +7475,60 @@ function inferScheduleDivision(title = "") {
   return "";
 }
 
-function normalizeScheduleEntry(entry) {
+function buildScheduleMergeKey(entry) {
+  const title = String(entry.title || entry.event || entry.name || "").trim().toLowerCase();
+  const type = String(entry.type || inferScheduleType(title)).trim().toLowerCase();
+  const division = String(entry.division || entry.div || inferScheduleDivision(title)).trim().toLowerCase();
+  return [normalizeDateKey(entry.date), title, type, division].join("::");
+}
+
+function normalizeScheduleEntry(entry, index = 0) {
   const title = String(entry.title || entry.event || entry.name || "").trim();
+  const type = String(entry.type || inferScheduleType(title)).trim();
+  const division = String(entry.division || entry.div || inferScheduleDivision(title)).trim();
+  const mergeKey = buildScheduleMergeKey({ ...entry, title, type, division });
   return {
+    id: String(entry.id || mergeKey || `schedule-${index}`),
     date: normalizeDateKey(entry.date),
     title,
-    type: String(entry.type || inferScheduleType(title)).trim(),
-    division: String(entry.division || entry.div || inferScheduleDivision(title)).trim(),
+    type,
+    division,
     time: String(entry.time || "").trim(),
     teacher: String(entry.teacher || entry.coach || "").trim(),
     venue: String(entry.venue || "").trim(),
     notes: String(entry.notes || "").trim(),
+    source: String(entry.source || "seeded").trim() || "seeded",
+    createdAt: String(entry.createdAt || "").trim(),
+    updatedAt: String(entry.updatedAt || "").trim(),
   };
 }
 
 function scheduleEntryKey(entry) {
-  return `${entry.date}::${entry.division || ""}::${entry.type || ""}`;
+  return buildScheduleMergeKey(entry);
 }
 
 function mergeScheduleEntries(rows) {
   const merged = new Map();
-  rows.map(normalizeScheduleEntry).forEach((entry) => {
-    if (entry.date) merged.set(scheduleEntryKey(entry), entry);
+  SEEDED_SCHEDULE_EVENTS.map((entry, index) => normalizeScheduleEntry(entry, index)).forEach((entry) => {
+    if (entry.date && entry.title) merged.set(scheduleEntryKey(entry), entry);
   });
-  SEEDED_SCHEDULE_EVENTS.forEach((entry) => {
-    merged.set(scheduleEntryKey(entry), entry);
+  rows.map((entry, index) => normalizeScheduleEntry(entry, SEEDED_SCHEDULE_EVENTS.length + index)).forEach((entry) => {
+    if (entry.date && entry.title) merged.set(scheduleEntryKey(entry), entry);
   });
-  return [...merged.values()].sort((a, b) => (a.date > b.date ? 1 : -1));
+  return [...merged.values()].sort((a, b) => {
+    const dateCompare = String(a.date || "").localeCompare(String(b.date || ""));
+    if (dateCompare !== 0) return dateCompare;
+    return String(a.title || "").localeCompare(String(b.title || ""));
+  });
 }
 
 async function fetchScheduleEntries() {
-  const res = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  return mergeScheduleEntries(parseCSV(text));
+  try {
+    const data = await fetchNetlifyScheduleEntries();
+    return mergeScheduleEntries(data);
+  } catch {
+    return mergeScheduleEntries([]);
+  }
 }
 
 function getNextScheduledEvent(events, today = formatLocalDateKey()) {
@@ -7242,58 +7581,6 @@ function sortAnnouncementEntries(rows, today = formatLocalDateKey()) {
 async function fetchAnnouncementEntries() {
   const data = await fetchNetlifyAnnouncements();
   return sortAnnouncementEntries(data);
-}
-
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const next = text[i + 1];
-
-    if (ch === '"') {
-      if (inQuotes && next === '"') {
-        field += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (ch === "," && !inQuotes) {
-      row.push(field.trim());
-      field = "";
-      continue;
-    }
-
-    if ((ch === "\n" || ch === "\r") && !inQuotes) {
-      if (ch === "\r" && next === "\n") i++;
-      row.push(field.trim());
-      if (row.some(value => value !== "")) rows.push(row);
-      row = [];
-      field = "";
-      continue;
-    }
-
-    field += ch;
-  }
-
-  if (field.length || row.length) {
-    row.push(field.trim());
-    if (row.some(value => value !== "")) rows.push(row);
-  }
-
-  if (rows.length < 2) return [];
-  const headers = rows[0];
-  return rows.slice(1).map(vals => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-    return obj;
-  }).filter(r => r.date || r.title || r.body || r.message || r.notes); // skip truly empty rows
 }
 
 function AnnouncementBoard({ isCoach = false }) {
