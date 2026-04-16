@@ -16,6 +16,16 @@ export function getSubscriptionsStore(event) {
   return getStore("push-subscriptions");
 }
 
+export function getPlayerInputsStore(event) {
+  connectLambda(event);
+  return getStore("player-inputs");
+}
+
+export function getSessionPlansStore(event) {
+  connectLambda(event);
+  return getStore("session-plans");
+}
+
 export function subscriptionKey(endpoint = "") {
   return `subscription/${crypto.createHash("sha256").update(endpoint).digest("hex")}.json`;
 }
@@ -26,4 +36,12 @@ export function announcementKey(id) {
 
 export function scheduleKey(id) {
   return `schedule/${id}.json`;
+}
+
+export function playerInputKey(id) {
+  return `player-input/${id}.json`;
+}
+
+export function sessionPlanKey(id) {
+  return `session-plan/${id}.json`;
 }

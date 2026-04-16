@@ -3,6 +3,8 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, PlayerMatchSurface, PlayerPerformanceSurface } from "./components/PremiumExperience";
 import LocalTrustPanel from "./components/LocalTrustPanel";
+import { fetchPlayerInputs, submitPlayerInput } from "./lib/backend";
+import { buildCoachPlayerDataset, buildPlayerInputPayload, generatePlayerId } from "./lib/playerSync";
 import { Target, Lightning, Crown, Diamond, Brain, Shield, Trophy, Star, Fire, Drop, Moon, Footprints, PersonSimpleRun, PersonSimpleWalk, PersonSimpleTaiChi, ArrowUp, ArrowsHorizontal, ArrowsClockwise, Barbell, Wind, GasPump, SoccerBall, Medal, Plant, CalendarBlank, Snowflake, Clock, PhoneSlash, Camera, Megaphone, ChartBar, CheckCircle, Warning, TrendDown, TrendUp, NotePencil, Globe, BookOpen, Mountains, Rocket, Sword, PuzzlePiece, PaintBrush, Backpack, ClipboardText, Handshake, BatteryHigh, Gift, Eye, Sneaker, Strategy, Smiley, BowlFood, HandPalm, PlayCircle } from "@phosphor-icons/react";
 
 const NETLIFY_FUNCTIONS_BASE = "/.netlify/functions";
@@ -468,14 +470,14 @@ const DRAFT_KEYS = {
   scheduleComposer: "gameplan-draft-schedule-composer",
 };
 
-// SECURITY NOTE: loaded from env var — not hardcoded in source.
-// Set VITE_TEACHER_PASSWORD in .env (local) or Netlify Environment Variables (production).
-const ATTENDANCE_TEACHER_PASSWORD = import.meta.env.VITE_TEACHER_PASSWORD ?? "";
-const ATTENDANCE_TEACHER_SESSION_KEY = "nbss-attendance-teacher-access";
+// SECURITY NOTE: loaded from env vars — not hardcoded in source.
+// Prefer VITE_COACH_PASSWORD. VITE_TEACHER_PASSWORD remains supported for backwards compatibility.
+const COACH_ACCESS_PASSWORD = import.meta.env.VITE_COACH_PASSWORD ?? import.meta.env.VITE_TEACHER_PASSWORD ?? "";
+const COACH_ACCESS_SESSION_KEY = "nbss-coach-access";
 const STORAGE_META_SUFFIX = "__meta";
 
 // Increment this to force all existing users through the onboarding flow again.
-const PROFILE_VERSION = 2;
+const PROFILE_VERSION = 3;
 
 const EMPTY_SQUAD_PROFILE = {
   name: "",
@@ -571,6 +573,48 @@ function stampRecord(record, previous = null) {
     createdAt: previous?.createdAt || record.createdAt || now,
     updatedAt: now,
   };
+}
+
+function hasCoachAccessSession() {
+  try {
+    return sessionStorage.getItem(COACH_ACCESS_SESSION_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function broadcastCoachAccessChange() {
+  try {
+    window.dispatchEvent(new Event("nbss-coach-access-changed"));
+  } catch {}
+}
+
+function grantCoachAccessSession() {
+  try {
+    sessionStorage.setItem(COACH_ACCESS_SESSION_KEY, "true");
+  } catch {}
+  broadcastCoachAccessChange();
+}
+
+function clearCoachAccessSession() {
+  try {
+    sessionStorage.removeItem(COACH_ACCESS_SESSION_KEY);
+  } catch {}
+  broadcastCoachAccessChange();
+}
+
+function isCoachPasswordValid(password = "") {
+  return Boolean(COACH_ACCESS_PASSWORD) && password === COACH_ACCESS_PASSWORD;
+}
+
+function isStaffRole(role = "") {
+  return role === "coach" || role === "teacher";
+}
+
+function getRoleLabel(role = "") {
+  if (role === "coach") return "Coach";
+  if (role === "teacher") return "Teacher";
+  return "Player";
 }
 
 function usePersistedState(key, defaultVal) {
@@ -1520,33 +1564,98 @@ function Card({ children, style: s = {}, glow }) {
 // ══════════════════════════════════════════════════
 //  ONBOARDING MODAL
 // ══════════════════════════════════════════════════
-function OnboardingModal({ onComplete }) {
+function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoachAccess = null, coachPasswordConfigured = true }) {
   const C = useTheme();
   const labelStyle = makeLabelStyle(C);
   const inputStyle = makeInputStyle(C);
   // step 1 = role, step 2 = name/(position for players), step 3 = level (players only), step 4 = goal
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState("player"); // "player" | "coach"
+  const [role, setRole] = useState("player"); // "player" | "teacher" | "coach"
   const [name, setName] = useState("");
   const [position, setPosition] = useState("Midfielder");
   const [level, setLevel] = useState("beginner");
   const [goal, setGoal] = useState("");
+  const [coachPassword, setCoachPassword] = useState("");
+  const [coachError, setCoachError] = useState("");
   const positions = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+  const isStaff = isStaffRole(role);
+  const roleMeta = {
+    player: {
+      fallbackName: "Player",
+      fallbackPosition: position,
+      promptName: "e.g. Aryan",
+      goalTitle: "SET YOUR FIRST GOAL",
+      goalPrompt: "What do you want to achieve this term?",
+      goalPlaceholder: "e.g. Run 2.4km under 12 minutes",
+      goalExamples: ["Master the Cruyff turn", "Run 2.4km under 12 min", "Complete 20 juggles", "Score in a match", "Improve beep test by 1 level"],
+    },
+    teacher: {
+      fallbackName: "Teacher",
+      fallbackPosition: "Teacher-in-Charge",
+      promptName: "e.g. Mr Herwanto",
+      goalTitle: "SET A TEAM FOCUS",
+      goalPrompt: "What's your primary focus for the team this term?",
+      goalPlaceholder: "e.g. Improve attendance and session quality",
+      goalExamples: ["Improve attendance", "Raise training standards", "Track player welfare better", "Strengthen team discipline", "Support B Div development"],
+    },
+    coach: {
+      fallbackName: "Coach",
+      fallbackPosition: "Coach",
+      promptName: "e.g. Coach Rahim",
+      goalTitle: "SET A TEAM FOCUS",
+      goalPrompt: "What's your primary focus for the team this term?",
+      goalPlaceholder: "e.g. Qualify for the next round",
+      goalExamples: ["Win cluster championship", "Improve team fitness", "Develop B Div squad", "Build team discipline", "Rotate squad evenly"],
+    },
+  }[role];
 
-  // Coaches skip step 3 (level selection). Total visible steps: players = 4, coaches = 3.
-  const totalSteps = role === "coach" ? 3 : 4;
+  // Staff roles skip step 3 (level selection). Total visible steps: players = 4, staff = 3.
+  const totalSteps = isStaff ? 3 : 4;
   // Map actual step number to displayed progress dot index
-  const displayStep = role === "coach" && step === 4 ? 3 : step;
+  const displayStep = isStaff && step === 4 ? 3 : step;
+  const coachSelectionLocked = isStaff && !coachAccessGranted;
 
   const handleComplete = () => {
+    if (isStaff && !coachAccessGranted) {
+      setStep(1);
+      setCoachError("Staff access must be unlocked first.");
+      return;
+    }
     onComplete({
-      name: name.trim() || (role === "coach" ? "Coach" : "Player"),
-      position: role === "coach" ? "Coach/Teacher" : position,
-      level: role === "coach" ? null : level,
+      name: name.trim() || roleMeta.fallbackName,
+      position: isStaff ? roleMeta.fallbackPosition : position,
+      level: isStaff ? null : level,
       firstGoal: goal,
       role,
       onboarded: true,
     });
+  };
+
+  const handleRoleChange = (nextRole) => {
+    setRole(nextRole);
+    if (!isStaffRole(nextRole)) {
+      setCoachPassword("");
+      setCoachError("");
+    }
+  };
+
+  const handleCoachUnlock = (event) => {
+    event?.preventDefault();
+    if (!isStaff) return;
+    if (!coachPasswordConfigured) {
+      setCoachError("Staff mode is disabled until a coach password is configured.");
+      return;
+    }
+    if (!onUnlockCoachAccess) {
+      setCoachError("Staff unlock is unavailable.");
+      return;
+    }
+    if (onUnlockCoachAccess(coachPassword)) {
+      setCoachPassword("");
+      setCoachError("");
+      return;
+    }
+    setCoachError("Incorrect password. Coach access only.");
   };
 
   return (
@@ -1573,12 +1682,13 @@ function OnboardingModal({ onComplete }) {
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>SELECT YOUR ROLE</div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We will configure the platform around the decisions you need to make most often.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 24 }}>
                 {[
-                  { key: "player", mono: "PLR", label: "Player", desc: "Performance, readiness, load, and match output." },
-                  { key: "coach",  mono: "MCH", label: "Coach",  desc: "Squad availability, attendance, lineups, and operations." },
+                  { key: "player", mono: "P", label: "Player", desc: "Performance, readiness, load, and match output." },
+                  { key: "teacher", mono: "T", label: "Teacher", desc: "Attendance, welfare, operations, and school-side oversight." },
+                  { key: "coach", mono: "C", label: "Coach", desc: "Squad availability, planning, lineups, and operations." },
                 ].map(r => (
-                  <div key={r.key} onClick={() => setRole(r.key)} style={{
+                  <div key={r.key} onClick={() => handleRoleChange(r.key)} style={{
                     padding: "18px 16px", borderRadius: 8, cursor: "pointer", textAlign: "center",
                     background: role === r.key ? C.textBright : C.navyCard,
                     border: `1px solid ${role === r.key ? C.textBright : C.navyBorder}`,
@@ -1591,7 +1701,48 @@ function OnboardingModal({ onComplete }) {
                   </div>
                 ))}
               </div>
-              <GoldButton onClick={() => setStep(2)} style={{ width: "100%" }}>Continue</GoldButton>
+              {isStaff && (
+                <div style={{ marginBottom: 20, padding: "14px 16px", borderRadius: 10, background: C.navyDeep, border: `1px solid ${coachAccessGranted ? `${C.success}55` : C.navyBorder}` }}>
+                  <label style={labelStyle}>Staff Password</label>
+                  <input
+                    type="password"
+                    value={coachPassword}
+                    onChange={(e) => {
+                      setCoachPassword(e.target.value);
+                      if (coachError) setCoachError("");
+                    }}
+                    placeholder={coachPasswordConfigured ? "Enter coach password" : "Password not configured"}
+                    style={inputStyle}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCoachUnlock(e);
+                    }}
+                  />
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: coachAccessGranted ? C.success : C.textDim, marginTop: 10, lineHeight: 1.5 }}>
+                    {coachAccessGranted
+                      ? "Teacher and coach access is unlocked for this tab."
+                      : coachPasswordConfigured
+                        ? "Teacher and coach modes require the shared staff password."
+                        : "Set `VITE_COACH_PASSWORD` or `VITE_TEACHER_PASSWORD` before enabling staff mode."}
+                  </div>
+                  {coachError && (
+                    <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 12, color: C.danger }}>
+                      {coachError}
+                    </div>
+                  )}
+                  {!coachAccessGranted && (
+                    <GoldButton onClick={handleCoachUnlock} style={{ width: "100%", marginTop: 14 }}>
+                      Unlock Staff Access
+                    </GoldButton>
+                  )}
+                </div>
+              )}
+              <GoldButton onClick={() => {
+                if (coachSelectionLocked) {
+                  setCoachError("Unlock coach access before continuing.");
+                  return;
+                }
+                setStep(2);
+              }} style={{ width: "100%" }}>Continue</GoldButton>
             </>
           )}
 
@@ -1601,8 +1752,8 @@ function OnboardingModal({ onComplete }) {
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>IDENTITY</div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>This sets the profile header and command-centre context.</p>
               <div style={{ marginBottom: role === "player" ? 16 : 0 }}>
-                <label style={labelStyle}>{role === "coach" ? "Your name" : "Your name"}</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder={role === "coach" ? "e.g. Mr Herwanto" : "e.g. Aryan"} style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(role === "coach" ? 4 : 3)} />
+                <label style={labelStyle}>Your name</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder={roleMeta.promptName} style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(isStaff ? 4 : 3)} />
               </div>
               {role === "player" && (
                 <div style={{ marginTop: 16 }}>
@@ -1614,7 +1765,7 @@ function OnboardingModal({ onComplete }) {
               )}
               <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
                 <GoldButton onClick={() => setStep(1)} secondary style={{ flex: 1 }}>Back</GoldButton>
-                <GoldButton onClick={() => setStep(role === "coach" ? 4 : 3)} style={{ flex: 2 }}>Continue</GoldButton>
+                <GoldButton onClick={() => setStep(isStaff ? 4 : 3)} style={{ flex: 2 }}>Continue</GoldButton>
               </div>
             </>
           )}
@@ -1642,23 +1793,20 @@ function OnboardingModal({ onComplete }) {
           {step === 4 && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>
-                {role === "coach" ? "SET A TEAM FOCUS" : "SET YOUR FIRST GOAL"}
+                {roleMeta.goalTitle}
               </div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 16 }}>
-                {role === "coach" ? "What's your primary focus for the team this term?" : "What do you want to achieve this term?"}
+                {roleMeta.goalPrompt}
               </p>
-              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder={role === "coach" ? "e.g. Qualify for the next round" : "e.g. Run 2.4km under 12 minutes"} style={{ ...inputStyle, marginBottom: 12 }} />
+              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder={roleMeta.goalPlaceholder} style={{ ...inputStyle, marginBottom: 12 }} />
               {/* Nothing design: Pill chips — active = solid inverted, inactive = outlined neutral */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                {(role === "coach"
-                  ? ["Win cluster championship", "Improve team fitness", "Develop B Div squad", "Build team discipline", "Rotate squad evenly"]
-                  : ["Master the Cruyff turn", "Run 2.4km under 12 min", "Complete 20 juggles", "Score in a match", "Improve beep test by 1 level"]
-                ).map(ex => (
+                {roleMeta.goalExamples.map(ex => (
                   <button key={ex} onClick={() => setGoal(ex)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", background: goal === ex ? C.textBright : "transparent", border: `1px solid ${goal === ex ? C.textBright : C.navyBorder}`, fontFamily: FONT_SERIF, fontSize: 10, color: goal === ex ? C.navy : C.textDim, letterSpacing: "0.06em", textTransform: "uppercase", transition: "all 0.15s" }}>{ex}</button>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <GoldButton onClick={() => setStep(role === "coach" ? 2 : 3)} secondary style={{ flex: 1 }}>Back</GoldButton>
+                <GoldButton onClick={() => setStep(isStaff ? 2 : 3)} secondary style={{ flex: 1 }}>Back</GoldButton>
                 <GoldButton onClick={handleComplete} style={{ flex: 2 }}>Enter Platform</GoldButton>
               </div>
             </>
@@ -1725,20 +1873,20 @@ function MatchGroup() {
 
 function ProgressGroup({ profile, setActive }) {
   const C = useTheme();
-  const isCoach = profile?.role === "coach";
-  const [sub, setSub] = useState(isCoach ? "squad" : "tracker");
+  const isStaff = isStaffRole(profile?.role);
+  const [sub, setSub] = useState(isStaff ? "squad" : "tracker");
   return (
     <div style={{ paddingTop: 64 }}>
       <SubNav color={C.electric} active={sub} setActive={setSub} items={[
-        ...(!isCoach ? [{ id: "tracker", label: "Sessions" }] : []),
-        ...(!isCoach ? [{ id: "wellness", label: "Availability" }] : []),
-        { id: "squad", label: isCoach ? "Squad Operations" : "Profile" },
+        ...(!isStaff ? [{ id: "tracker", label: "Sessions" }] : []),
+        ...(!isStaff ? [{ id: "wellness", label: "Availability" }] : []),
+        { id: "squad", label: isStaff ? "Squad Operations" : "Profile" },
       ]} />
-      {sub === "tracker" && !isCoach && <TrackerSection />}
-      {sub === "wellness" && !isCoach && <WellnessSection />}
+      {sub === "tracker" && !isStaff && <TrackerSection />}
+      {sub === "wellness" && !isStaff && <WellnessSection />}
       {sub === "squad" && (
         <div>
-          {isCoach && (
+          {isStaff && (
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 0" }}>
               {/* Nothing design: flat card, neutral border, no colored tint */}
               <div style={{ padding: "16px 18px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, marginBottom: 4 }}>
@@ -1932,7 +2080,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
     : latestACWR <= 1.5 ? { label: "Caution Zone",  color: C.gold,     icon: "warning" }
     :                     { label: "High Risk",      color: C.danger,   icon: "warning" };
 
-  const isCoach = profile?.role === "coach";
+  const isCoach = isStaffRole(profile?.role);
   const name = profile?.name?.trim();
 
   useEffect(() => {
@@ -2176,7 +2324,7 @@ function HeroSection({ setActive, profile, sessions }) {
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.success, display: "inline-block" }} />
           <span style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             {isPersonalised
-              ? `${profile.role === "coach" ? "Coach" : "Player"} — ${profile.name}`
+              ? `${getRoleLabel(profile.role)} — ${profile.name}`
               : "Naval Base Secondary School · Football CCA"}
           </span>
         </div>
@@ -2192,7 +2340,7 @@ function HeroSection({ setActive, profile, sessions }) {
 
         {/* CTA buttons — Nothing pill spec */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 56 }}>
-          {(profile.role === "coach"
+          {(isStaffRole(profile.role)
             ? [
                 { s: "operations", label: "Lineups & Ops", primary: true },
                 { s: "squad",      label: "Squad" },
@@ -2220,7 +2368,7 @@ function HeroSection({ setActive, profile, sessions }) {
 
         {/* Stats strip — Nothing stat row style, no color on values by default */}
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginBottom: 48, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 24 }}>
-          {(profile.role === "coach"
+          {(isStaffRole(profile.role)
             ? [
                 { val: sessions?.length ?? 0, label: "Sessions Logged" },
                 { val: streak > 0 ? `${streak}` : "—", label: "Streak" },
@@ -3535,28 +3683,60 @@ function computeACWR(sessions) {
 function TrackerSection() {
   const C = useTheme();
   const [sessions, setSessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [profile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", firstGoal: "", playerId: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [showForm, setShowForm] = useState(false);
   const emptyForm = { date: "", type: "training", rating: 3, notes: "", goals: "", mood: "4", duration: "", rpe: 5, sleep: 3, energy: 3, soreness: 3 };
   const [form, setForm, clearFormDraft] = useDraftState(DRAFT_KEYS.trackerForm, emptyForm);
   const [year, setYear] = useState("Sec 1");
   const [quickType, setQuickType] = useState("training");
   const [quickRating, setQuickRating] = useState(3);
+  const [syncFeedback, setSyncFeedback] = useState(null);
   const exportRef = useRef(null);
+  const syncFeedbackTimeoutRef = useRef(null);
 
   const moods = ["1", "2", "3", "4", "5"];
+
+  useEffect(() => () => {
+    if (syncFeedbackTimeoutRef.current) window.clearTimeout(syncFeedbackTimeoutRef.current);
+  }, []);
+
+  const showSyncFeedback = (type, message) => {
+    if (syncFeedbackTimeoutRef.current) window.clearTimeout(syncFeedbackTimeoutRef.current);
+    setSyncFeedback({ type, message });
+    syncFeedbackTimeoutRef.current = window.setTimeout(() => setSyncFeedback(null), 2800);
+  };
+
+  const syncSharedPlayerInput = async (nextSessions) => {
+    const payload = buildPlayerInputPayload({ profile, squad, sessions: nextSessions, wellnessLogs });
+    if (!payload) return;
+
+    try {
+      await submitPlayerInput(payload);
+      showSyncFeedback("success", "Shared with coaches.");
+    } catch (error) {
+      showSyncFeedback("error", error.message || "Could not sync coach check-in.");
+    }
+  };
 
   const addEntry = () => {
     if (!form.date) return;
     const load = (parseInt(form.rpe) || 0) * (parseInt(form.duration) || 0);
     const readinessScore = Math.round(((+form.sleep + +form.energy + (6 - +form.soreness)) / 15) * 100);
-    setSessions(prev => [...prev, stampRecord({ ...form, id: Date.now(), year, load, readinessScore })]);
+    const nextSessions = [...sessions, stampRecord({ ...form, id: Date.now(), year, load, readinessScore })];
+    setSessions(nextSessions);
     clearFormDraft(emptyForm);
     setShowForm(false);
+    void syncSharedPlayerInput(nextSessions);
   };
 
   const quickLog = () => {
     const today = formatLocalDateKey();
-    setSessions(prev => [...prev, stampRecord({ date: today, type: quickType, rating: quickRating, notes: "", goals: "", mood: "4", id: Date.now(), year, load: 0, readinessScore: null })]);
+    const nextSessions = [...sessions, stampRecord({ date: today, type: quickType, rating: quickRating, notes: "", goals: "", mood: "4", id: Date.now(), year, load: 0, readinessScore: null })];
+    setSessions(nextSessions);
+    void syncSharedPlayerInput(nextSessions);
   };
 
   const deleteEntry = (id) => {
@@ -3580,6 +3760,11 @@ function TrackerSection() {
         <span>Last updated {formatDateTime(sessionsMeta?.updatedAt)}</span>
         <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
       </div>
+      {syncFeedback && (
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+          {syncFeedback.message}
+        </div>
+      )}
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 24 }}>
@@ -3833,21 +4018,58 @@ function TrackerSection() {
 function WellnessSection() {
   const C = useTheme();
   const [logs, setLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [profile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", firstGoal: "", playerId: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [showForm, setShowForm] = useState(false);
   const emptyForm = { date: "", type: "injury", location: "", severity: 2, notes: "", rtp: "", resolved: false };
   const [form, setForm, clearFormDraft] = useDraftState(DRAFT_KEYS.wellnessForm, emptyForm);
+  const [syncFeedback, setSyncFeedback] = useState(null);
+  const syncFeedbackTimeoutRef = useRef(null);
+
+  useEffect(() => () => {
+    if (syncFeedbackTimeoutRef.current) window.clearTimeout(syncFeedbackTimeoutRef.current);
+  }, []);
+
+  const showSyncFeedback = (type, message) => {
+    if (syncFeedbackTimeoutRef.current) window.clearTimeout(syncFeedbackTimeoutRef.current);
+    setSyncFeedback({ type, message });
+    syncFeedbackTimeoutRef.current = window.setTimeout(() => setSyncFeedback(null), 2800);
+  };
+
+  const syncSharedPlayerInput = async (nextLogs) => {
+    const payload = buildPlayerInputPayload({ profile, squad, sessions, wellnessLogs: nextLogs });
+    if (!payload) return;
+
+    try {
+      await submitPlayerInput(payload);
+      showSyncFeedback("success", "Availability shared with coaches.");
+    } catch (error) {
+      showSyncFeedback("error", error.message || "Could not sync availability.");
+    }
+  };
 
   const addLog = () => {
     if (!form.date || !form.location) return;
-    setLogs(prev => [...prev, stampRecord({ ...form, id: Date.now() })]);
+    const nextLogs = [...logs, stampRecord({ ...form, id: Date.now() })];
+    setLogs(nextLogs);
     clearFormDraft(emptyForm);
     setShowForm(false);
+    void syncSharedPlayerInput(nextLogs);
   };
 
-  const toggleResolved = (id) => setLogs(prev => prev.map(l => l.id === id ? stampRecord({ ...l, resolved: !l.resolved }, l) : l));
+  const toggleResolved = (id) => {
+    const nextLogs = logs.map((log) => log.id === id ? stampRecord({ ...log, resolved: !log.resolved }, log) : log);
+    setLogs(nextLogs);
+    void syncSharedPlayerInput(nextLogs);
+  };
+
   const deleteLog = (id) => {
     if (!window.confirm("Delete this availability record?")) return;
-    setLogs(prev => prev.filter(l => l.id !== id));
+    const nextLogs = logs.filter((log) => log.id !== id);
+    setLogs(nextLogs);
+    void syncSharedPlayerInput(nextLogs);
   };
 
   const active = logs.filter(l => !l.resolved);
@@ -3865,6 +4087,11 @@ function WellnessSection() {
         <span>Last updated {formatDateTime(logsMeta?.updatedAt)}</span>
         <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
       </div>
+      {syncFeedback && (
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+          {syncFeedback.message}
+        </div>
+      )}
 
       {/* Info banner */}
       <div style={{ background: `${C.orange}08`, border: `1px solid ${C.orange}25`, borderRadius: 12, padding: "14px 18px", marginBottom: 24, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
@@ -6277,10 +6504,7 @@ function ScheduleCard() {
   const [showEditUnlock, setShowEditUnlock] = useState(false);
   const [editPassword, setEditPassword] = useState("");
   const [editError, setEditError] = useState("");
-  const [teacherEditUnlocked, setTeacherEditUnlocked] = useState(() => {
-    try { return sessionStorage.getItem(ATTENDANCE_TEACHER_SESSION_KEY) === "true"; }
-    catch { return false; }
-  });
+  const [teacherEditUnlocked, setTeacherEditUnlocked] = useState(() => hasCoachAccessSession());
   const [publishSecret, setPublishSecret] = usePersistedState(SCHEDULE_PUBLISH_SECRET_KEY, "");
   const emptyScheduleDraft = {
     date: formatLocalDateKey(),
@@ -6311,6 +6535,11 @@ function ScheduleCard() {
   };
 
   useEffect(() => { fetchSchedule(); }, []);
+  useEffect(() => {
+    const syncCoachAccess = () => setTeacherEditUnlocked(hasCoachAccessSession());
+    window.addEventListener("nbss-coach-access-changed", syncCoachAccess);
+    return () => window.removeEventListener("nbss-coach-access-changed", syncCoachAccess);
+  }, []);
 
   const today = formatLocalDateKey();
 
@@ -6337,19 +6566,19 @@ function ScheduleCard() {
 
   const unlockScheduleEdit = (e) => {
     e.preventDefault();
-    if (editPassword === ATTENDANCE_TEACHER_PASSWORD) {
-      try { sessionStorage.setItem(ATTENDANCE_TEACHER_SESSION_KEY, "true"); } catch {}
+    if (isCoachPasswordValid(editPassword)) {
+      grantCoachAccessSession();
       setTeacherEditUnlocked(true);
       setShowEditUnlock(false);
       setEditPassword("");
       setEditError("");
       return;
     }
-    setEditError("Incorrect password. Teacher access only.");
+    setEditError(COACH_ACCESS_PASSWORD ? "Incorrect password. Coach access only." : "Coach password is not configured.");
   };
 
   const relockScheduleEdit = () => {
-    try { sessionStorage.removeItem(ATTENDANCE_TEACHER_SESSION_KEY); } catch {}
+    clearCoachAccessSession();
     setTeacherEditUnlocked(false);
     setShowEditUnlock(false);
     setEditPassword("");
@@ -7328,25 +7557,28 @@ function TeacherAttendanceGate({ children }) {
   const C = useTheme();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [granted, setGranted] = useState(() => {
-    try { return sessionStorage.getItem(ATTENDANCE_TEACHER_SESSION_KEY) === "true"; }
-    catch { return false; }
-  });
+  const [granted, setGranted] = useState(() => hasCoachAccessSession());
+
+  useEffect(() => {
+    const syncCoachAccess = () => setGranted(hasCoachAccessSession());
+    window.addEventListener("nbss-coach-access-changed", syncCoachAccess);
+    return () => window.removeEventListener("nbss-coach-access-changed", syncCoachAccess);
+  }, []);
 
   const unlockAttendance = (e) => {
     e.preventDefault();
-    if (password === ATTENDANCE_TEACHER_PASSWORD) {
-      try { sessionStorage.setItem(ATTENDANCE_TEACHER_SESSION_KEY, "true"); } catch {}
+    if (isCoachPasswordValid(password)) {
+      grantCoachAccessSession();
       setGranted(true);
       setPassword("");
       setError("");
       return;
     }
-    setError("Incorrect password. Teacher access only.");
+    setError(COACH_ACCESS_PASSWORD ? "Incorrect password. Coach access only." : "Coach password is not configured.");
   };
 
   const relockAttendance = () => {
-    try { sessionStorage.removeItem(ATTENDANCE_TEACHER_SESSION_KEY); } catch {}
+    clearCoachAccessSession();
     setGranted(false);
     setPassword("");
     setError("");
@@ -7361,9 +7593,9 @@ function TeacherAttendanceGate({ children }) {
           background: "rgba(34,211,165,0.08)", border: `1px solid ${C.success}33`,
         }}>
           <div>
-            <div style={{ fontFamily: FONT_HEAD, color: C.textBright, fontSize: 16 }}>Teacher Access Enabled</div>
+            <div style={{ fontFamily: FONT_HEAD, color: C.textBright, fontSize: 16 }}>Coach Access Enabled</div>
             <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13 }}>
-              Attendance is unlocked for this browser tab.
+              Coach and teacher tools are unlocked for this browser tab.
             </div>
           </div>
           <button onClick={relockAttendance} style={{
@@ -7371,7 +7603,7 @@ function TeacherAttendanceGate({ children }) {
             background: "rgba(240,180,41,0.12)", color: C.goldLight,
             fontFamily: FONT_BODY, fontWeight: 800, cursor: "pointer",
           }}>
-            Lock Attendance
+            Lock Coach Tools
           </button>
         </div>
         {children}
@@ -7392,17 +7624,17 @@ function TeacherAttendanceGate({ children }) {
         fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
         textTransform: "uppercase",
       }}>
-        Teacher Only
+        Coach Only
       </div>
       <h3 style={{ margin: "0 0 8px", fontFamily: FONT_HEAD, color: C.textBright, fontSize: 28 }}>
-        Attendance Tab Locked
+        Coach Tools Locked
       </h3>
       <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
-        Enter the teacher password to view and manage cluster attendance. Access stays unlocked only for this tab.
+        Enter the coach password to unlock attendance and the other protected coach or teacher tools for this tab.
       </p>
       <form onSubmit={unlockAttendance} style={{ display: "grid", gap: 14, maxWidth: 420 }}>
         <div>
-          <label style={makeLabelStyle(C)}>Teacher Password</label>
+          <label style={makeLabelStyle(C)}>Coach Password</label>
           <input
             type="password"
             value={password}
@@ -7431,9 +7663,67 @@ function TeacherAttendanceGate({ children }) {
           background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep,
           fontFamily: FONT_BODY, fontSize: 14, fontWeight: 900, cursor: "pointer",
         }}>
-          Unlock Attendance
+          Unlock Coach Tools
         </button>
       </form>
+    </div>
+  );
+}
+
+function CoachAccessScreen({ onUnlock, onResetProfile }) {
+  const C = useTheme();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (onUnlock(password)) {
+      setPassword("");
+      setError("");
+      return;
+    }
+    setError(COACH_ACCESS_PASSWORD ? "Incorrect password. Staff access only." : "Coach password is not configured.");
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 480, background: `linear-gradient(135deg, ${C.navyCard}, ${C.navyDeep})`, border: `1px solid ${C.navyBorder}`, borderRadius: 24, padding: 28, boxShadow: "0 24px 50px rgba(0,0,0,0.28)" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", borderRadius: 999, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Staff Access
+        </div>
+        <h2 style={{ margin: "0 0 8px", fontFamily: FONT_HEAD, color: C.textBright, fontSize: 30, letterSpacing: 1 }}>Staff Mode Locked</h2>
+        <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
+          This profile is marked as coach or teacher. Enter the shared coach password to access squad, operations, attendance, and other protected tools.
+        </p>
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
+          <div>
+            <label style={makeLabelStyle(C)}>Coach Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                if (error) setError("");
+              }}
+              placeholder="Enter coach password"
+              style={{ ...makeInputStyle(C), WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
+            />
+          </div>
+          {error && (
+            <div style={{ padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13, color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
+              {error}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+            <button type="submit" style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
+              Unlock Staff Mode
+            </button>
+            <button type="button" onClick={onResetProfile} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${C.navyBorder}`, background: C.surfaceSubtle, color: C.textBright, fontFamily: FONT_BODY, fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+              Reset As Player
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -8102,10 +8392,15 @@ function TeamHubSection({ isCoach = false }) {
 function QuickReadinessWidget() {
   const C = useTheme();
   const [sessions, setSessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [profile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", firstGoal: "", playerId: "" });
+  const [storedSquad] = usePersistedState(STORAGE_KEYS.squad, EMPTY_SQUAD_PROFILE);
+  const squad = normalizeSquadProfile(storedSquad);
   const [sleep, setSleep] = useState(3);
   const [energy, setEnergy] = useState(3);
   const [soreness, setSoreness] = useState(3);
   const [saved, setSaved] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
   const today = formatLocalDateKey();
   const sorted = [...sessions].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -8116,12 +8411,19 @@ function QuickReadinessWidget() {
   const scoreTone = (s) => s >= 75 ? C.success : s >= 60 ? C.orange : C.danger;
 
   const handleSave = () => {
-    setSessions(prev => [...prev, stampRecord({
+    const nextSessions = [...sessions, stampRecord({
       date: today, type: "readiness", rating: 3, notes: "", goals: "",
       mood: "4", id: Date.now(), load: 0, readinessScore, sleep, energy, soreness,
-    })]);
+    })];
+    setSessions(nextSessions);
     setSaved(true);
+    setSyncError("");
     setTimeout(() => setSaved(false), 2500);
+    const payload = buildPlayerInputPayload({ profile, squad, sessions: nextSessions, wellnessLogs });
+    if (!payload) return;
+    submitPlayerInput(payload).catch((error) => {
+      setSyncError(error.message || "Could not sync readiness.");
+    });
   };
 
   const rows = [
@@ -8193,6 +8495,11 @@ function QuickReadinessWidget() {
           color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
         }}>Save readiness</button>
       </div>
+      {syncError && (
+        <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 12, color: C.danger }}>
+          {syncError}
+        </div>
+      )}
     </Card>
   );
 }
@@ -8845,6 +9152,8 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [matches] = usePersistedState(STORAGE_KEYS.matchHistory, []);
   const [nextEvent, setNextEvent] = useState(null);
+  const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
+  const [playerInputsError, setPlayerInputsError] = useState("");
   const photoInputRef = useRef(null);
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
   const availabilityCount = Math.max((roster || []).length - activeIssues.length, 0);
@@ -8852,8 +9161,8 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
   const latestLoad = acwrData.length ? acwrData[acwrData.length - 1] : null;
   const recentSessions = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const lastUpdated = recentSessions[0]?.date || null;
-  const coachName = profile?.name?.trim() || "Coach";
-  const coachRole = profile?.position?.trim() || "Coach/Teacher";
+  const coachName = profile?.name?.trim() || getRoleLabel(profile?.role);
+  const coachRole = profile?.position?.trim() || (profile?.role === "teacher" ? "Teacher-in-Charge" : "Coach");
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -8871,8 +9180,54 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    fetchPlayerInputs()
+      .then((data) => {
+        if (!active) return;
+        setPlayerInputsData({
+          playerInputs: Array.isArray(data.playerInputs) ? data.playerInputs : [],
+          summary: data.summary || null,
+        });
+        setPlayerInputsError("");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setPlayerInputsError(error.message || "Could not load shared player check-ins.");
+      });
+    return () => { active = false; };
+  }, []);
+
   const squadDirective = activeIssues.length ? getAvailabilityDirective(activeIssues) : "Squad availability is clear enough to plan the next block aggressively.";
   const loadDirective = getLoadDirective(latestLoad?.acwr ?? null);
+  const sharedSummary = playerInputsData.summary;
+  const sharedDataset = buildCoachPlayerDataset(playerInputsData.playerInputs);
+  const sharedEnabled = Boolean(sharedSummary?.totalSubmissions || sharedDataset.latestRecords.length);
+  const sharedAvailability = sharedSummary?.availability || { available: 0, modified: 0, unavailable: 0 };
+  const sharedDirective = sharedAvailability.unavailable > 0
+    ? `${sharedAvailability.unavailable} player${sharedAvailability.unavailable === 1 ? "" : "s"} unavailable. Reduce intensity or protect exposures.`
+    : sharedAvailability.modified > 0
+      ? `${sharedAvailability.modified} player${sharedAvailability.modified === 1 ? "" : "s"} need modified work. Split groups and cap load spikes.`
+      : sharedSummary?.averageReadiness != null && sharedSummary.averageReadiness < 75
+        ? `Average readiness is ${sharedSummary.averageReadiness}%. Keep the next block controlled and technical.`
+        : "Latest player check-ins support a normal training load with clean monitoring.";
+  const sharedWatchlist = (sharedSummary?.flaggedPlayers || []).map((record) => {
+    const availabilityLabel = record.availability === "unavailable" ? "Unavailable" : record.availability === "modified" ? "Modified" : "Available";
+    const emphasisTone = record.availability === "unavailable" ? C.danger : record.availability === "modified" ? C.orange : C.gold;
+    return {
+      id: record.id,
+      title: record.playerName || record.playerId || "Player",
+      date: record.date || "-",
+      metrics: [
+        availabilityLabel,
+        record.readiness != null ? `Readiness ${record.readiness}%` : "No readiness yet",
+        record.sessionLoad != null ? `Load ${record.sessionLoad}` : record.sessionType ? `Latest ${record.sessionType}` : "No session load yet",
+      ],
+      note: record.note || (record.focusAreas?.length ? `Focus: ${record.focusAreas.join(", ")}` : "No latest note."),
+      emphasis: record.activeIssueCount ? `${record.activeIssueCount} active issue${record.activeIssueCount === 1 ? "" : "s"}` : "",
+      emphasisTone,
+    };
+  });
 
   const clubBadge = (
     <div>
@@ -8888,27 +9243,38 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
       clubBadge={clubBadge}
       summary={{
         title: "SQUAD BOARD",
-        subtitle: "Operations, athlete availability, and workload direction are prioritised before everything else.",
-        lastUpdated: lastUpdated || "-",
+        subtitle: sharedEnabled ? "Live player check-ins now drive squad readiness, availability, and training decisions." : "Operations, athlete availability, and workload direction are prioritised before everything else.",
+        lastUpdated: sharedDataset.lastUpdated ? formatDateTime(sharedDataset.lastUpdated) : (lastUpdated || "-"),
         identity: {
           name: coachName,
           role: coachRole,
           photo: profile?.photo || "",
         },
-        metrics: [
-          { label: "Roster", value: (roster || []).length, note: "Players in system", tone: C.gold },
-          { label: "Available", value: availabilityCount, note: "Without active issues", tone: C.success },
-          { label: "Active issues", value: activeIssues.length, note: "Need intervention", tone: activeIssues.length ? C.orange : C.success },
-          { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: "Latest 7-day average", tone: C.electric },
-          { label: "Match records", value: matches.length, note: "Stored outputs", tone: C.orange },
-          { label: "Current ACWR", value: latestLoad ? latestLoad.acwr.toFixed(2) : "-", note: "Latest load ratio", tone: latestLoad?.acwr > 1.3 ? C.orange : C.success },
-        ],
+        metrics: sharedEnabled
+          ? [
+              { label: "Checked in", value: sharedSummary?.uniquePlayers ?? 0, note: "Players with latest live status", tone: C.gold },
+              { label: "Average readiness", value: sharedSummary?.averageReadiness != null ? `${sharedSummary.averageReadiness}%` : "-", note: "Latest shared readiness snapshot", tone: C.success },
+              { label: "Available", value: sharedAvailability.available, note: "Clear for normal work", tone: C.success },
+              { label: "Modified", value: sharedAvailability.modified, note: "Need adjusted load", tone: C.orange },
+              { label: "Unavailable", value: sharedAvailability.unavailable, note: "Out of full training", tone: C.danger },
+              { label: "Total submissions", value: sharedSummary?.totalSubmissions ?? 0, note: "Historical check-ins stored", tone: C.electric },
+            ]
+          : [
+              { label: "Roster", value: (roster || []).length, note: "Players in system", tone: C.gold },
+              { label: "Available", value: availabilityCount, note: "Without active issues", tone: C.success },
+              { label: "Active issues", value: activeIssues.length, note: "Need intervention", tone: activeIssues.length ? C.orange : C.success },
+              { label: "Acute load", value: latestLoad ? latestLoad.acute : "-", note: "Latest 7-day average", tone: C.electric },
+              { label: "Match records", value: matches.length, note: "Stored outputs", tone: C.orange },
+              { label: "Current ACWR", value: latestLoad ? latestLoad.acwr.toFixed(2) : "-", note: "Latest load ratio", tone: latestLoad?.acwr > 1.3 ? C.orange : C.success },
+            ],
         guidance: [
           { label: "Next session", value: nextEvent ? nextEvent.title : "No schedule", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Schedule feed unavailable", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
-          { label: "Recommendation", value: squadDirective, note: "This recommendation updates from current availability constraints." },
-          { label: "Load coaching", value: loadDirective, note: latestLoad ? `Current ACWR ${latestLoad.acwr.toFixed(2)}.` : "Use consistent load capture to unlock this view." },
+          { label: "Recommendation", value: sharedEnabled ? sharedDirective : squadDirective, note: sharedEnabled ? "Generated from live player check-ins." : "This recommendation updates from current availability constraints." },
+          { label: sharedEnabled ? "Readiness coaching" : "Load coaching", value: sharedEnabled ? getReadinessDirective(sharedSummary?.averageReadiness ?? null) : loadDirective, note: sharedEnabled ? "Use live readiness before setting the next session intensity." : (latestLoad ? `Current ACWR ${latestLoad.acwr.toFixed(2)}.` : "Use consistent load capture to unlock this view.") },
+          ...(playerInputsError ? [{ label: "Sync status", value: "Using device-only fallback.", note: playerInputsError }] : []),
         ],
-        watchlist: activeIssues.map((log) => ({
+        watchlistTitle: sharedEnabled ? "Players needing attention" : "Availability watchlist",
+        watchlist: sharedEnabled ? sharedWatchlist : activeIssues.map((log) => ({
           id: log.id,
           title: log.location,
           date: log.date || "-",
@@ -8918,6 +9284,18 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
           emphasisTone: Number(log.severity) >= 3 ? C.danger : C.orange,
         })),
         loadTrend: acwrData.slice(-6).map((entry) => ({ date: entry.date.slice(5), acute: entry.acute, chronic: entry.chronic })),
+        trendPanel: sharedEnabled
+          ? {
+              title: "Squad readiness trend",
+              meta: "Daily average from player check-ins",
+              data: sharedDataset.readinessTrend,
+              lines: [{ key: "readiness", label: "Average readiness", color: C.success }],
+              yUnit: "%",
+              yDomain: [0, 100],
+              referenceLines: [{ value: 75, color: C.success, label: "Target (75%)" }],
+              emptyText: "Player check-ins will populate this squad readiness trend.",
+            }
+          : null,
       }}
       renderActions={() => (
         <>
@@ -8962,30 +9340,78 @@ function CoachSquadPage() {
   const C = useTheme();
   const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
+  const [playerInputsError, setPlayerInputsError] = useState("");
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
+  const sharedDataset = buildCoachPlayerDataset(playerInputsData.playerInputs);
+  const sharedSummary = playerInputsData.summary;
+  const sharedEnabled = Boolean(sharedSummary?.totalSubmissions || sharedDataset.latestRecords.length);
+  const sharedAvailability = sharedSummary?.availability || { available: 0, modified: 0, unavailable: 0 };
+
+  useEffect(() => {
+    let active = true;
+    fetchPlayerInputs()
+      .then((data) => {
+        if (!active) return;
+        setPlayerInputsData({
+          playerInputs: Array.isArray(data.playerInputs) ? data.playerInputs : [],
+          summary: data.summary || null,
+        });
+        setPlayerInputsError("");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setPlayerInputsError(error.message || "Could not load shared squad check-ins.");
+      });
+    return () => { active = false; };
+  }, []);
+
   return (
     <CoachSquadSurface
       theme={C}
       fonts={{ head: FONT_HEAD, body: FONT_BODY }}
       summary={{
         title: "SQUAD",
-        subtitle: "Availability, roster status, and attendance access are organised into one surface.",
-        lastUpdated: activeIssues[0]?.date || "-",
-        metrics: [
-          { label: "Roster size", value: (roster || []).length, note: "Players currently stored", tone: C.gold },
-          { label: "Active issues", value: activeIssues.length, note: "Availability constraints", tone: activeIssues.length ? C.orange : C.success },
-          { label: "Available", value: Math.max((roster || []).length - activeIssues.length, 0), note: "Estimated available athletes", tone: C.success },
-        ],
+        subtitle: sharedEnabled ? "Every player check-in rolls up here for staff-side squad planning." : "Availability, roster status, and attendance access are organised into one surface.",
+        lastUpdated: sharedDataset.lastUpdated ? formatDateTime(sharedDataset.lastUpdated) : (activeIssues[0]?.date || "-"),
+        metrics: sharedEnabled
+          ? [
+              { label: "Checked in", value: sharedSummary?.uniquePlayers ?? 0, note: "Players with live status", tone: C.gold },
+              { label: "Available", value: sharedAvailability.available, note: "Clear for full work", tone: C.success },
+              { label: "Modified", value: sharedAvailability.modified, note: "Need adjusted loads", tone: C.orange },
+              { label: "Unavailable", value: sharedAvailability.unavailable, note: "Out of full training", tone: C.danger },
+            ]
+          : [
+              { label: "Roster size", value: (roster || []).length, note: "Players currently stored", tone: C.gold },
+              { label: "Active issues", value: activeIssues.length, note: "Availability constraints", tone: activeIssues.length ? C.orange : C.success },
+              { label: "Available", value: Math.max((roster || []).length - activeIssues.length, 0), note: "Estimated available athletes", tone: C.success },
+            ],
         guidance: [
-          { label: "Recommendation", value: getAvailabilityDirective(activeIssues), note: "Use the attendance view to lock the operational picture.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          { label: "Recommendation", value: sharedEnabled ? (sharedAvailability.unavailable > 0 ? "Use the unavailable list to shape the next session before finalising intensity." : sharedAvailability.modified > 0 ? "Split the modified players into managed work before the main block starts." : "Shared squad status is clear enough for a normal session structure.") : getAvailabilityDirective(activeIssues), note: "Use the attendance view to lock the operational picture.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          ...(playerInputsError ? [{ label: "Sync status", value: "Using device-only fallback.", note: playerInputsError }] : []),
         ],
-        watchlist: activeIssues.map((log) => ({
-          id: log.id,
-          title: log.location,
-          date: log.date || "-",
-          metrics: [log.rtp ? `Estimated return ${log.rtp}` : "Return date not set"],
-          note: log.notes || "Availability issue logged.",
-        })),
+        watchlist: sharedEnabled
+          ? sharedDataset.latestRecords.map((record) => {
+              const availabilityLabel = record.availability === "unavailable" ? "Unavailable" : record.availability === "modified" ? "Modified" : "Available";
+              return {
+                id: record.id,
+                title: record.playerName || record.playerId || "Player",
+                date: record.date || "-",
+                metrics: [
+                  availabilityLabel,
+                  record.readiness != null ? `Readiness ${record.readiness}%` : "No readiness yet",
+                  record.sessionType ? `${record.sessionType}${record.sessionLoad != null ? ` · Load ${record.sessionLoad}` : ""}` : `Sessions ${record.sessionCount || 0}`,
+                ],
+                note: record.note || (record.focusAreas?.length ? `Focus: ${record.focusAreas.join(", ")}` : "No latest note."),
+              };
+            })
+          : activeIssues.map((log) => ({
+              id: log.id,
+              title: log.location,
+              date: log.date || "-",
+              metrics: [log.rtp ? `Estimated return ${log.rtp}` : "Return date not set"],
+              note: log.notes || "Availability issue logged.",
+            })),
       }}
       renderAttendance={() => (
         <TeacherAttendanceGate>
@@ -9084,6 +9510,7 @@ export default function App() {
   const [perfInitTab, setPerfInitTab] = useState(null);
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", photo: "", onboarded: false });
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
+  const [coachAccessGranted, setCoachAccessGranted] = useState(() => hasCoachAccessSession());
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("nbss-theme") !== "light"; } catch { return true; }
   });
@@ -9114,9 +9541,16 @@ export default function App() {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [active]);
 
-  const isCoach = profile?.role === "coach";
-  // Coaches can preview the app as a player — viewAsPlayer toggles this
-  const effectiveIsCoach = isCoach && !viewAsPlayer;
+  useEffect(() => {
+    const syncCoachAccess = () => setCoachAccessGranted(hasCoachAccessSession());
+    window.addEventListener("nbss-coach-access-changed", syncCoachAccess);
+    return () => window.removeEventListener("nbss-coach-access-changed", syncCoachAccess);
+  }, []);
+
+  const isCoach = isStaffRole(profile?.role);
+  const coachLocked = Boolean(profile?.onboarded && isCoach && !coachAccessGranted);
+  // Staff can preview the app as a player — viewAsPlayer toggles this
+  const effectiveIsCoach = isCoach && coachAccessGranted && !viewAsPlayer;
   const navItems = effectiveIsCoach ? COACH_PRIMARY_NAV : PLAYER_PRIMARY_NAV;
 
   // Compute streak + daysSinceLast for global ticker
@@ -9139,15 +9573,54 @@ export default function App() {
   }, [active, validRouteIds]);
 
   const handleOnboardingComplete = (data) => {
-    setProfile({ ...data, version: PROFILE_VERSION });
+    setProfile({
+      ...data,
+      playerId: data.role === "player" ? (profile?.playerId || generatePlayerId()) : profile?.playerId || "",
+      version: PROFILE_VERSION,
+    });
   };
+
+  const handleCoachAccessUnlock = (password) => {
+    if (!isCoachPasswordValid(password)) return false;
+    grantCoachAccessSession();
+    setCoachAccessGranted(true);
+    return true;
+  };
+
+  const handleResetCoachProfile = () => {
+    clearCoachAccessSession();
+    setCoachAccessGranted(false);
+    setViewAsPlayer(false);
+    setProfile((prev) => ({
+      ...prev,
+      role: "player",
+      position: "Midfielder",
+      level: prev?.level || "beginner",
+      onboarded: false,
+      version: PROFILE_VERSION,
+    }));
+  };
+
+  useEffect(() => {
+    if (profile?.role !== "player" || profile?.playerId) return;
+    setProfile((prev) => ({ ...prev, playerId: prev?.playerId || generatePlayerId() }));
+  }, [profile?.playerId, profile?.role, setProfile]);
 
   return (
     <ThemeContext.Provider value={theme}>
-      {!profile?.onboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
+      {!profile?.onboarded && (
+        <OnboardingModal
+          onComplete={handleOnboardingComplete}
+          coachAccessGranted={coachAccessGranted}
+          onUnlockCoachAccess={handleCoachAccessUnlock}
+          coachPasswordConfigured={Boolean(COACH_ACCESS_PASSWORD)}
+        />
+      )}
+
+      {coachLocked && <CoachAccessScreen onUnlock={handleCoachAccessUnlock} onResetProfile={handleResetCoachProfile} />}
 
       {/* PWA update banner */}
-      {needRefresh && (
+      {!coachLocked && needRefresh && (
         <div style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
           background: theme.gold === "#FFFFFF" ? "#000" : "#fff",
@@ -9222,36 +9695,39 @@ export default function App() {
         }
       `}</style>
 
-      <Navbar
-        active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme}
-        navItems={navItems} roleLabel={effectiveIsCoach ? "Coach" : "Player"}
-        isCoach={isCoach} viewAsPlayer={viewAsPlayer}
-        onToggleView={(asPlayer) => { setViewAsPlayer(asPlayer); setActive("dashboard"); }}
-      />
+      {!coachLocked && (
+        <>
+          <Navbar
+            active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme}
+            navItems={navItems} roleLabel={effectiveIsCoach ? getRoleLabel(profile?.role) : "Player"}
+            isCoach={isCoach && coachAccessGranted} viewAsPlayer={viewAsPlayer}
+            onToggleView={(asPlayer) => { setViewAsPlayer(asPlayer); setActive("dashboard"); }}
+          />
 
-      {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
-      <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
+          {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
+          <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
+          {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} setPerfInitTab={setPerfInitTab} profile={profile} sessions={sessions} />}
+          {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage initialTab={perfInitTab} onTabConsumed={() => setPerfInitTab(null)} />}
+          {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
+          {!effectiveIsCoach && active === "hub" && <TeamHubSection isCoach={false} />}
+          {!effectiveIsCoach && active === "profile" && <SquadSection />}
 
-      {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} setPerfInitTab={setPerfInitTab} profile={profile} sessions={sessions} />}
-      {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage initialTab={perfInitTab} onTabConsumed={() => setPerfInitTab(null)} />}
-      {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
-      {!effectiveIsCoach && active === "hub" && <TeamHubSection isCoach={false} />}
-      {!effectiveIsCoach && active === "profile" && <SquadSection />}
+          {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} profile={profile} setProfile={setProfile} />}
+          {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
+          {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
+          {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach />}
 
-      {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} profile={profile} setProfile={setProfile} />}
-      {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
-      {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
-      {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach />}
-
-      <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
-          <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Performance and Development Platform</span>
-        </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
-      </footer>
+          <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
+              <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Performance and Development Platform</span>
+            </div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
+          </footer>
+        </>
+      )}
     </ThemeContext.Provider>
   );
 }

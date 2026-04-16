@@ -396,11 +396,20 @@ export function CoachDashboardSurface({ theme, fonts, summary, renderActions, cl
       />
       <MetricGrid theme={theme} headFont={fonts.head} bodyFont={fonts.body} items={summary.metrics} columns="repeat(auto-fit, minmax(180px, 1fr))" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20, marginTop: 20 }}>
-        <PanelCard theme={theme} headFont={fonts.head} bodyFont={fonts.body} title="Availability watchlist">
+        <PanelCard theme={theme} headFont={fonts.head} bodyFont={fonts.body} title={summary.watchlistTitle || "Availability watchlist"}>
           <RecentList theme={theme} headFont={fonts.head} bodyFont={fonts.body} entries={summary.watchlist} emptyText="No active availability constraints are currently logged." />
         </PanelCard>
-        <PanelCard theme={theme} headFont={fonts.head} bodyFont={fonts.body} title="Workload trend">
-          <TrendPanel theme={theme} bodyFont={fonts.body} data={summary.loadTrend} lines={[{ key: "acute", label: "Acute (7d)", color: theme.orange }, { key: "chronic", label: "Chronic (28d)", color: theme.electric }]} yUnit="AU" emptyText="Collect more session load data to unlock squad workload trends." />
+        <PanelCard theme={theme} headFont={fonts.head} bodyFont={fonts.body} title={summary.trendPanel?.title || "Workload trend"} meta={summary.trendPanel?.meta}>
+          <TrendPanel
+            theme={theme}
+            bodyFont={fonts.body}
+            data={summary.trendPanel?.data || summary.loadTrend}
+            lines={summary.trendPanel?.lines || [{ key: "acute", label: "Acute (7d)", color: theme.orange }, { key: "chronic", label: "Chronic (28d)", color: theme.electric }]}
+            yUnit={summary.trendPanel?.yUnit || "AU"}
+            yDomain={summary.trendPanel?.yDomain}
+            referenceLines={summary.trendPanel?.referenceLines}
+            emptyText={summary.trendPanel?.emptyText || "Collect more session load data to unlock squad workload trends."}
+          />
         </PanelCard>
       </div>
     </SurfaceShell>
