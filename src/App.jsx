@@ -615,6 +615,9 @@ function clearCoachAccessSession() {
   try {
     sessionStorage.removeItem(COACH_ACCESS_SESSION_KEY);
   } catch {}
+  try {
+    localStorage.removeItem(COACH_ACCESS_REMEMBERED_KEY);
+  } catch {}
   broadcastCoachAccessChange();
 }
 
