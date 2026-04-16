@@ -1976,11 +1976,13 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 //  NAVBAR
 // ══════════════════════════════════════════════════
-function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
+function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", accountRole = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
   const C = useTheme();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const staffModeLabel = accountRole === "teacher" ? "Teacher" : "Coach";
+  const staffModeShortLabel = accountRole === "teacher" ? "T" : "C";
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", h);
@@ -2013,13 +2015,13 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
             </div>
           </button>
-          {/* Coach ↔ Player view toggle — only for coach accounts */}
+          {/* Staff ↔ Player view toggle — label reflects actual staff role */}
           {isCoach && onToggleView && (
             <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
               <button
                 onClick={() => { onToggleView(false); }}
                 style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >{isMobile ? "C" : "Coach"}</button>
+              >{isMobile ? staffModeShortLabel : staffModeLabel}</button>
               <button
                 onClick={() => { onToggleView(true); }}
                 style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
@@ -9925,7 +9927,7 @@ export default function App() {
         <>
           <Navbar
             active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme}
-            navItems={navItems} roleLabel={effectiveIsCoach ? getRoleLabel(profile?.role) : "Player"}
+            navItems={navItems} roleLabel={effectiveIsCoach ? getRoleLabel(profile?.role) : "Player"} accountRole={profile?.role}
             isCoach={isCoach && coachAccessGranted} viewAsPlayer={viewAsPlayer}
             onToggleView={(asPlayer) => { setViewAsPlayer(asPlayer); setActive("dashboard"); }}
           />
