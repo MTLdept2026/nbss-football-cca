@@ -475,6 +475,7 @@ const DRAFT_KEYS = {
 // Prefer VITE_COACH_PASSWORD. VITE_TEACHER_PASSWORD remains supported for backwards compatibility.
 const COACH_ACCESS_PASSWORD = import.meta.env.VITE_COACH_PASSWORD ?? import.meta.env.VITE_TEACHER_PASSWORD ?? "";
 const COACH_ACCESS_SESSION_KEY = "nbss-coach-access";
+const COACH_ACCESS_REMEMBERED_KEY = "nbss-coach-access-remembered";
 const STORAGE_META_SUFFIX = "__meta";
 
 // Increment this to force all existing users through the onboarding flow again.
@@ -576,11 +577,19 @@ function stampRecord(record, previous = null) {
   };
 }
 
-function hasCoachAccessSession() {
+function hasRememberedCoachAccess() {
   try {
-    return sessionStorage.getItem(COACH_ACCESS_SESSION_KEY) === "true";
+    return localStorage.getItem(COACH_ACCESS_REMEMBERED_KEY) === "true";
   } catch {
     return false;
+  }
+}
+
+function hasCoachAccessSession() {
+  try {
+    return sessionStorage.getItem(COACH_ACCESS_SESSION_KEY) === "true" || hasRememberedCoachAccess();
+  } catch {
+    return hasRememberedCoachAccess();
   }
 }
 
@@ -590,9 +599,14 @@ function broadcastCoachAccessChange() {
   } catch {}
 }
 
-function grantCoachAccessSession() {
+function grantCoachAccessSession(options = {}) {
+  const { remember = false } = options;
   try {
     sessionStorage.setItem(COACH_ACCESS_SESSION_KEY, "true");
+  } catch {}
+  try {
+    if (remember) localStorage.setItem(COACH_ACCESS_REMEMBERED_KEY, "true");
+    else localStorage.removeItem(COACH_ACCESS_REMEMBERED_KEY);
   } catch {}
   broadcastCoachAccessChange();
 }
@@ -1587,6 +1601,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
   const [goal, setGoal] = useState("");
   const [coachPassword, setCoachPassword] = useState("");
   const [coachError, setCoachError] = useState("");
+  const [rememberCoachAccess, setRememberCoachAccess] = useState(true);
   const positions = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
   const isStaff = isStaffRole(role);
   const roleMeta = {
@@ -1660,7 +1675,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
       setCoachError("Staff unlock is unavailable.");
       return;
     }
-    if (onUnlockCoachAccess(coachPassword)) {
+    if (onUnlockCoachAccess(coachPassword, { remember: rememberCoachAccess })) {
       setCoachPassword("");
       setCoachError("");
       return;
@@ -1729,11 +1744,22 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
                   />
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: coachAccessGranted ? C.success : C.textDim, marginTop: 10, lineHeight: 1.5 }}>
                     {coachAccessGranted
-                      ? "Teacher and coach access is unlocked for this tab."
+                      ? "Teacher and coach access is unlocked on this device until you lock it again."
                       : coachPasswordConfigured
                         ? "Teacher and coach modes require the shared staff password."
                         : "Set `VITE_COACH_PASSWORD` or `VITE_TEACHER_PASSWORD` before enabling staff mode."}
                   </div>
+                  {!coachAccessGranted && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={rememberCoachAccess}
+                        onChange={(e) => setRememberCoachAccess(e.target.checked)}
+                        style={{ accentColor: C.textBright }}
+                      />
+                      Remember on this device
+                    </label>
+                  )}
                   {coachError && (
                     <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 12, color: C.danger }}>
                       {coachError}
@@ -6514,6 +6540,7 @@ function ScheduleCard() {
   const [showEditUnlock, setShowEditUnlock] = useState(false);
   const [editPassword, setEditPassword] = useState("");
   const [editError, setEditError] = useState("");
+  const [rememberEditAccess, setRememberEditAccess] = useState(true);
   const [teacherEditUnlocked, setTeacherEditUnlocked] = useState(() => hasCoachAccessSession());
   const [publishSecret, setPublishSecret] = usePersistedState(SCHEDULE_PUBLISH_SECRET_KEY, "");
   const emptyScheduleDraft = {
@@ -6577,7 +6604,7 @@ function ScheduleCard() {
   const unlockScheduleEdit = (e) => {
     e.preventDefault();
     if (isCoachPasswordValid(editPassword)) {
-      grantCoachAccessSession();
+      grantCoachAccessSession({ remember: rememberEditAccess });
       setTeacherEditUnlocked(true);
       setShowEditUnlock(false);
       setEditPassword("");
@@ -6803,6 +6830,15 @@ function ScheduleCard() {
             placeholder="Teacher password"
             style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13, WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
           />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={rememberEditAccess}
+              onChange={(e) => setRememberEditAccess(e.target.checked)}
+              style={{ accentColor: C.textBright }}
+            />
+            Remember on this device
+          </label>
           <button type="submit" style={{ padding: "9px 14px", borderRadius: 999, border: "none", background: C.textBright, color: C.navy, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
             Unlock Edit
           </button>
@@ -7568,6 +7604,7 @@ function TeacherAttendanceGate({ children }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [granted, setGranted] = useState(() => hasCoachAccessSession());
+  const [rememberAccess, setRememberAccess] = useState(true);
 
   useEffect(() => {
     const syncCoachAccess = () => setGranted(hasCoachAccessSession());
@@ -7578,7 +7615,7 @@ function TeacherAttendanceGate({ children }) {
   const unlockAttendance = (e) => {
     e.preventDefault();
     if (isCoachPasswordValid(password)) {
-      grantCoachAccessSession();
+      grantCoachAccessSession({ remember: rememberAccess });
       setGranted(true);
       setPassword("");
       setError("");
@@ -7605,7 +7642,7 @@ function TeacherAttendanceGate({ children }) {
           <div>
             <div style={{ fontFamily: FONT_HEAD, color: C.textBright, fontSize: 16 }}>Coach Access Enabled</div>
             <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13 }}>
-              Coach and teacher tools are unlocked for this browser tab.
+              Coach and teacher tools are unlocked until you lock them again on this device.
             </div>
           </div>
           <button onClick={relockAttendance} style={{
@@ -7640,7 +7677,7 @@ function TeacherAttendanceGate({ children }) {
         Coach Tools Locked
       </h3>
       <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
-        Enter the coach password to unlock attendance and the other protected coach or teacher tools for this tab.
+        Enter the coach password to unlock attendance and the other protected coach or teacher tools here.
       </p>
       <form onSubmit={unlockAttendance} style={{ display: "grid", gap: 14, maxWidth: 420 }}>
         <div>
@@ -7660,6 +7697,15 @@ function TeacherAttendanceGate({ children }) {
             }}
           />
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={rememberAccess}
+            onChange={(e) => setRememberAccess(e.target.checked)}
+            style={{ accentColor: C.textBright }}
+          />
+          Remember on this device
+        </label>
         {error && (
           <div style={{
             padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13,
@@ -7684,10 +7730,11 @@ function CoachAccessScreen({ onUnlock, onResetProfile }) {
   const C = useTheme();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [rememberAccess, setRememberAccess] = useState(true);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (onUnlock(password)) {
+    if (onUnlock(password, { remember: rememberAccess })) {
       setPassword("");
       setError("");
       return;
@@ -7719,6 +7766,15 @@ function CoachAccessScreen({ onUnlock, onResetProfile }) {
               style={{ ...makeInputStyle(C), WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
             />
           </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={rememberAccess}
+              onChange={(event) => setRememberAccess(event.target.checked)}
+              style={{ accentColor: C.textBright }}
+            />
+            Remember on this device
+          </label>
           {error && (
             <div style={{ padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13, color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
               {error}
@@ -9747,9 +9803,9 @@ export default function App() {
     });
   };
 
-  const handleCoachAccessUnlock = (password) => {
+  const handleCoachAccessUnlock = (password, options = {}) => {
     if (!isCoachPasswordValid(password)) return false;
-    grantCoachAccessSession();
+    grantCoachAccessSession(options);
     setCoachAccessGranted(true);
     return true;
   };
