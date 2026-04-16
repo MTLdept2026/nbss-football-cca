@@ -194,10 +194,24 @@ function RecentList({ theme, bodyFont, headFont, entries, emptyText }) {
   return (
     <div style={{ display: "grid", gap: 10 }}>
       {entries.map((entry) => (
-        <div key={entry.id || `${entry.title}-${entry.date}`} style={{ padding: "14px", borderRadius: 14, background: theme.surfaceSubtle, border: `1px solid ${theme.navyBorder}` }}>
+        <div
+          key={entry.id || `${entry.title}-${entry.date}`}
+          onClick={entry.onClick}
+          style={{
+            padding: "14px",
+            borderRadius: 14,
+            background: theme.surfaceSubtle,
+            border: `1px solid ${entry.onClick ? `${theme.gold}28` : theme.navyBorder}`,
+            cursor: entry.onClick ? "pointer" : "default",
+            transition: "border-color 0.15s ease",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
             <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textBright, fontWeight: 700 }}>{entry.title}</div>
-            <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim }}>{entry.date}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim }}>{entry.date}</div>
+              {entry.actionLabel ? <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.gold, fontWeight: 700 }}>{entry.actionLabel}</div> : null}
+            </div>
           </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: bodyFont, fontSize: 12, color: theme.textMid }}>
             {(entry.metrics || []).map((metric, idx) => <span key={idx}>{metric}</span>)}
@@ -416,8 +430,18 @@ export function CoachDashboardSurface({ theme, fonts, summary, renderActions, cl
   );
 }
 
-export function CoachSquadSurface({ theme, fonts, summary, renderAttendance }) {
+export function CoachSquadSurface({ theme, fonts, summary, renderAttendance, renderPlayerDetail }) {
   const [tab, setTab] = useState("overview");
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    ...(summary.playerDetail ? [{ id: "player", label: "Player Detail" }] : []),
+    { id: "attendance", label: "Attendance" },
+  ];
+
+  useEffect(() => {
+    if (!summary.playerDetail && tab === "player") setTab("overview");
+  }, [summary.playerDetail, tab]);
+
   return (
     <div style={{ paddingTop: 64 }}>
       <SurfaceShell theme={theme}>
@@ -438,12 +462,13 @@ export function CoachSquadSurface({ theme, fonts, summary, renderAttendance }) {
           }
         />
         <MetricGrid theme={theme} headFont={fonts.head} bodyFont={fonts.body} items={summary.metrics} columns="repeat(auto-fit, minmax(180px, 1fr))" />
-        <SurfaceTabs theme={theme} bodyFont={fonts.body} items={[{ id: "overview", label: "Overview" }, { id: "attendance", label: "Attendance" }]} active={tab} setActive={setTab} />
+        <SurfaceTabs theme={theme} bodyFont={fonts.body} items={tabs} active={tab} setActive={setTab} />
         {tab === "overview" && (
           <PanelCard theme={theme} headFont={fonts.head} bodyFont={fonts.body} title="Availability details">
             <RecentList theme={theme} headFont={fonts.head} bodyFont={fonts.body} entries={summary.watchlist} emptyText="No active availability constraints are currently logged." />
           </PanelCard>
         )}
+        {tab === "player" && renderPlayerDetail && renderPlayerDetail()}
         {tab === "attendance" && renderAttendance()}
       </SurfaceShell>
     </div>

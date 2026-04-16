@@ -157,3 +157,40 @@ export function buildCoachPlayerDataset(playerInputs = []) {
     lastUpdated: sortedInputs[0]?.updatedAt || sortedInputs[0]?.date || null,
   };
 }
+
+export function getPlayerRecordKey(record = {}) {
+  return sanitizePlayerKey(record.playerId || record.playerName || record.id || "");
+}
+
+export function buildCoachPlayerDetail(playerInputs = [], selectedKey = "") {
+  const key = sanitizePlayerKey(selectedKey);
+  if (!key) return null;
+
+  const history = [...(playerInputs || [])]
+    .filter(Boolean)
+    .filter((record) => getPlayerRecordKey(record) === key)
+    .sort((a, b) => {
+      const dateDiff = new Date(`${b.date || ""}T00:00:00`).getTime() - new Date(`${a.date || ""}T00:00:00`).getTime();
+      if (dateDiff) return dateDiff;
+      return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
+    });
+
+  if (!history.length) return null;
+
+  const latest = history[0];
+  const readinessTrend = history
+    .filter((record) => record.readiness != null && record.date)
+    .slice()
+    .reverse()
+    .map((record) => ({
+      date: String(record.date).slice(5),
+      readiness: Number(record.readiness) || 0,
+    }));
+
+  return {
+    key,
+    latest,
+    history,
+    readinessTrend,
+  };
+}

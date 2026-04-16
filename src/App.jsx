@@ -4,10 +4,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CoachDashboardSurface, CoachOperationsSurface, CoachSquadSurface, PlayerMatchSurface, PlayerPerformanceSurface } from "./components/PremiumExperience";
 import LocalTrustPanel from "./components/LocalTrustPanel";
 import { fetchPlayerInputs, submitPlayerInput } from "./lib/backend";
-import { buildCoachPlayerDataset, buildPlayerInputPayload, generatePlayerId } from "./lib/playerSync";
+import { buildCoachPlayerDataset, buildCoachPlayerDetail, buildPlayerInputPayload, generatePlayerId, getPlayerRecordKey } from "./lib/playerSync";
 import { Target, Lightning, Crown, Diamond, Brain, Shield, Trophy, Star, Fire, Drop, Moon, Footprints, PersonSimpleRun, PersonSimpleWalk, PersonSimpleTaiChi, ArrowUp, ArrowsHorizontal, ArrowsClockwise, Barbell, Wind, GasPump, SoccerBall, Medal, Plant, CalendarBlank, Snowflake, Clock, PhoneSlash, Camera, Megaphone, ChartBar, CheckCircle, Warning, TrendDown, TrendUp, NotePencil, Globe, BookOpen, Mountains, Rocket, Sword, PuzzlePiece, PaintBrush, Backpack, ClipboardText, Handshake, BatteryHigh, Gift, Eye, Sneaker, Strategy, Smiley, BowlFood, HandPalm, PlayCircle } from "@phosphor-icons/react";
 
 const NETLIFY_FUNCTIONS_BASE = "/.netlify/functions";
+const STAFF_PLAYER_POLL_INTERVAL_MS = 30000;
 const ANNOUNCEMENT_PUBLISH_SECRET_KEY = "nbss-announcement-publish-secret";
 const SCHEDULE_PUBLISH_SECRET_KEY = "nbss-schedule-publish-secret";
 
@@ -691,6 +692,15 @@ function getAvailabilityDirective(activeIssues) {
   if (moderateIssue) return "Modify sprint, contact, and volume demands until the issue settles.";
   if (activeIssues.length) return "Minor issue logged. Train, but keep the area under review.";
   return "No active constraints are recorded. Full availability is clear.";
+}
+
+function getStaffPlayerRecommendation(record) {
+  if (!record) return "Select a player to see individual planning guidance.";
+  if (record.availability === "unavailable") return "Keep the player out of full training. Plan individual recovery or review before selection decisions.";
+  if (record.availability === "modified") return "Place the player in a managed load group and strip repeated high-speed or contact demands.";
+  if (record.readiness != null && Number(record.readiness) < 60) return "Player is available on paper but recovery is poor. Trim intensity and monitor closely.";
+  if (record.readiness != null && Number(record.readiness) < 75) return "Usable for training, but control volume and quality. Avoid unnecessary load spikes.";
+  return "Player status supports normal involvement. Keep monitoring and confirm response after the session.";
 }
 
 // ── NAVIGATION ──
@@ -9182,20 +9192,32 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
 
   useEffect(() => {
     let active = true;
-    fetchPlayerInputs()
-      .then((data) => {
+    let intervalId = null;
+
+    const loadSharedInputs = async () => {
+      try {
+        const data = await fetchPlayerInputs();
         if (!active) return;
         setPlayerInputsData({
           playerInputs: Array.isArray(data.playerInputs) ? data.playerInputs : [],
           summary: data.summary || null,
         });
         setPlayerInputsError("");
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!active) return;
         setPlayerInputsError(error.message || "Could not load shared player check-ins.");
-      });
-    return () => { active = false; };
+      }
+    };
+
+    void loadSharedInputs();
+    intervalId = window.setInterval(() => {
+      void loadSharedInputs();
+    }, STAFF_PLAYER_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, []);
 
   const squadDirective = activeIssues.length ? getAvailabilityDirective(activeIssues) : "Squad availability is clear enough to plan the next block aggressively.";
@@ -9271,6 +9293,7 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
           { label: "Next session", value: nextEvent ? nextEvent.title : "No schedule", note: nextEvent ? `${nextEvent.date}${nextEvent.time ? ` · ${nextEvent.time}` : ""}` : "Schedule feed unavailable", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
           { label: "Recommendation", value: sharedEnabled ? sharedDirective : squadDirective, note: sharedEnabled ? "Generated from live player check-ins." : "This recommendation updates from current availability constraints." },
           { label: sharedEnabled ? "Readiness coaching" : "Load coaching", value: sharedEnabled ? getReadinessDirective(sharedSummary?.averageReadiness ?? null) : loadDirective, note: sharedEnabled ? "Use live readiness before setting the next session intensity." : (latestLoad ? `Current ACWR ${latestLoad.acwr.toFixed(2)}.` : "Use consistent load capture to unlock this view.") },
+          ...(sharedEnabled ? [{ label: "Refresh", value: "Auto-refresh is live.", note: `Shared player data refreshes every ${Math.round(STAFF_PLAYER_POLL_INTERVAL_MS / 1000)} seconds.` }] : []),
           ...(playerInputsError ? [{ label: "Sync status", value: "Using device-only fallback.", note: playerInputsError }] : []),
         ],
         watchlistTitle: sharedEnabled ? "Players needing attention" : "Availability watchlist",
@@ -9338,33 +9361,66 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
 
 function CoachSquadPage() {
   const C = useTheme();
+  const NO_PLAYER_SELECTED = "__none__";
   const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
   const [playerInputsError, setPlayerInputsError] = useState("");
+  const [selectedPlayerKey, setSelectedPlayerKey] = useState("");
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
   const sharedDataset = buildCoachPlayerDataset(playerInputsData.playerInputs);
   const sharedSummary = playerInputsData.summary;
   const sharedEnabled = Boolean(sharedSummary?.totalSubmissions || sharedDataset.latestRecords.length);
   const sharedAvailability = sharedSummary?.availability || { available: 0, modified: 0, unavailable: 0 };
+  const playerDetail = buildCoachPlayerDetail(playerInputsData.playerInputs, selectedPlayerKey);
 
   useEffect(() => {
     let active = true;
-    fetchPlayerInputs()
-      .then((data) => {
+    let intervalId = null;
+
+    const loadSharedInputs = async () => {
+      try {
+        const data = await fetchPlayerInputs();
         if (!active) return;
         setPlayerInputsData({
           playerInputs: Array.isArray(data.playerInputs) ? data.playerInputs : [],
           summary: data.summary || null,
         });
         setPlayerInputsError("");
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!active) return;
         setPlayerInputsError(error.message || "Could not load shared squad check-ins.");
-      });
-    return () => { active = false; };
+      }
+    };
+
+    void loadSharedInputs();
+    intervalId = window.setInterval(() => {
+      void loadSharedInputs();
+    }, STAFF_PLAYER_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!sharedEnabled) {
+      if (selectedPlayerKey) setSelectedPlayerKey("");
+      return;
+    }
+
+    const selectedStillExists = sharedDataset.latestRecords.some((record) => getPlayerRecordKey(record) === selectedPlayerKey);
+    if (selectedPlayerKey === NO_PLAYER_SELECTED) return;
+    if (!selectedPlayerKey || !selectedStillExists) {
+      const fallbackRecord = sharedDataset.latestRecords[0];
+      setSelectedPlayerKey(fallbackRecord ? getPlayerRecordKey(fallbackRecord) : "");
+    }
+  }, [NO_PLAYER_SELECTED, selectedPlayerKey, sharedDataset.latestRecords, sharedEnabled]);
+
+  const detailRecord = playerDetail?.latest || null;
+  const detailRecommendation = getStaffPlayerRecommendation(detailRecord);
+  const detailFocus = detailRecord?.focusAreas?.length ? detailRecord.focusAreas.join(", ") : "No current focus areas submitted.";
 
   return (
     <CoachSquadSurface
@@ -9388,8 +9444,10 @@ function CoachSquadPage() {
             ],
         guidance: [
           { label: "Recommendation", value: sharedEnabled ? (sharedAvailability.unavailable > 0 ? "Use the unavailable list to shape the next session before finalising intensity." : sharedAvailability.modified > 0 ? "Split the modified players into managed work before the main block starts." : "Shared squad status is clear enough for a normal session structure.") : getAvailabilityDirective(activeIssues), note: "Use the attendance view to lock the operational picture.", bg: `${C.gold}08`, border: `${C.gold}20`, labelTone: C.gold },
+          ...(sharedEnabled ? [{ label: "Refresh", value: "Auto-refresh is live.", note: `Shared player data refreshes every ${Math.round(STAFF_PLAYER_POLL_INTERVAL_MS / 1000)} seconds.` }] : []),
           ...(playerInputsError ? [{ label: "Sync status", value: "Using device-only fallback.", note: playerInputsError }] : []),
         ],
+        playerDetail: detailRecord ? { title: detailRecord.playerName || detailRecord.playerId || "Player" } : null,
         watchlist: sharedEnabled
           ? sharedDataset.latestRecords.map((record) => {
               const availabilityLabel = record.availability === "unavailable" ? "Unavailable" : record.availability === "modified" ? "Modified" : "Available";
@@ -9403,6 +9461,8 @@ function CoachSquadPage() {
                   record.sessionType ? `${record.sessionType}${record.sessionLoad != null ? ` · Load ${record.sessionLoad}` : ""}` : `Sessions ${record.sessionCount || 0}`,
                 ],
                 note: record.note || (record.focusAreas?.length ? `Focus: ${record.focusAreas.join(", ")}` : "No latest note."),
+                actionLabel: "Open",
+                onClick: () => setSelectedPlayerKey(getPlayerRecordKey(record)),
               };
             })
           : activeIssues.map((log) => ({
@@ -9413,6 +9473,113 @@ function CoachSquadPage() {
               note: log.notes || "Availability issue logged.",
             })),
       }}
+      renderPlayerDetail={() => detailRecord ? (
+        <div style={{ display: "grid", gap: 20 }}>
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Player detail</div>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: 24, color: C.textBright, letterSpacing: 1 }}>{detailRecord.playerName || detailRecord.playerId || "Player"}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, marginTop: 6 }}>
+                  Last update {formatDateTime(detailRecord.updatedAt || detailRecord.date)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPlayerKey(NO_PLAYER_SELECTED)}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.navyBorder}`,
+                  background: C.surfaceSubtle,
+                  color: C.textMid,
+                  fontFamily: FONT_BODY,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Back To Overview
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+              {[
+                { label: "Availability", value: String(detailRecord.availability || "available").toUpperCase(), note: "Latest shared status", tone: detailRecord.availability === "unavailable" ? C.danger : detailRecord.availability === "modified" ? C.orange : C.success },
+                { label: "Readiness", value: detailRecord.readiness != null ? `${detailRecord.readiness}%` : "-", note: getReadinessDirective(detailRecord.readiness), tone: detailRecord.readiness != null && detailRecord.readiness < 60 ? C.danger : detailRecord.readiness != null && detailRecord.readiness < 75 ? C.orange : C.success },
+                { label: "Session load", value: detailRecord.sessionLoad != null ? detailRecord.sessionLoad : "-", note: detailRecord.sessionType || "Latest load context", tone: C.electric },
+                { label: "Active issues", value: detailRecord.activeIssueCount || 0, note: detailRecord.activeIssueCount ? "Needs monitoring" : "No active issues in latest submission", tone: detailRecord.activeIssueCount ? C.orange : C.success },
+              ].map((item) => (
+                <div key={item.label} style={{ padding: "16px 14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${item.tone}` }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{item.label}</div>
+                  <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: item.tone, letterSpacing: 1 }}>{item.value}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.55 }}>{item.note}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 14, background: `${C.gold}08`, border: `1px solid ${C.gold}20` }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>Coaching recommendation</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, lineHeight: 1.65 }}>{detailRecommendation}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 10 }}>Focus areas: {detailFocus}</div>
+            </div>
+          </Card>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: 0, letterSpacing: 1 }}>Readiness history</h3>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{playerDetail.readinessTrend.length} data point{playerDetail.readinessTrend.length === 1 ? "" : "s"}</div>
+              </div>
+              {playerDetail.readinessTrend.length < 2 ? (
+                <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>More player check-ins are needed to show a useful readiness trend.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={playerDetail.readinessTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <ReferenceArea y1={0} y2={60} fill={C.danger} fillOpacity={0.07} />
+                    <ReferenceArea y1={60} y2={75} fill={C.orange} fillOpacity={0.06} />
+                    <ReferenceArea y1={75} y2={100} fill={C.success} fillOpacity={0.05} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
+                    <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
+                    <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                    <ReferenceLine y={75} stroke={C.success} strokeDasharray="4 2" strokeOpacity={0.7} />
+                    <ReferenceLine y={60} stroke={C.danger} strokeDasharray="4 2" strokeOpacity={0.5} />
+                    <Line type="monotone" dataKey="readiness" stroke={C.success} strokeWidth={2.4} dot={{ fill: C.success, r: 3 }} name="Readiness" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
+
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: 0, letterSpacing: 1 }}>Submission history</h3>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Latest {playerDetail.history.length}</div>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {playerDetail.history.slice(0, 8).map((record) => (
+                  <div key={record.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{record.date || "-"}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{record.updatedAt ? formatDateTime(record.updatedAt) : "-"}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>
+                      <span>{String(record.availability || "available").toUpperCase()}</span>
+                      <span>{record.readiness != null ? `Readiness ${record.readiness}%` : "No readiness"}</span>
+                      <span>{record.sessionType ? `${record.sessionType}${record.sessionLoad != null ? ` · Load ${record.sessionLoad}` : ""}` : "No session context"}</span>
+                    </div>
+                    {record.note ? <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.55, marginTop: 8 }}>{record.note}</div> : null}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <Card>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.7 }}>
+            Select a player from the overview list to open the dedicated player detail view.
+          </div>
+        </Card>
+      )}
       renderAttendance={() => (
         <TeacherAttendanceGate>
           <ClusterAttendance />
