@@ -7819,7 +7819,21 @@ const SEEDED_SCHEDULE_EVENTS = [
   { date: "2026-04-23", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Chandra", venue: "", notes: "" },
   { date: "2026-04-27", title: "B Div Training", type: "Training", division: "B Div", time: "3pm to 5:30pm", teacher: "Mr Harizan", venue: "", notes: "" },
   { date: "2026-04-28", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
+  { date: "2026-04-28", title: "C Div Friendly (Crest)", type: "Friendly", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
   { date: "2026-04-30", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Kadir", venue: "", notes: "" },
+  { date: "2026-04-30", title: "NSG C Div Game (N2 vs Hougang / N2A vs Zheng Hua)", type: "Match", division: "C Div", time: "3pm to 6pm", teacher: "Mr Lua, Mr Yusman", venue: "", notes: "" },
+  { date: "2026-05-04", title: "C&B combine Trg", type: "Training", division: "", time: "3pm to 5:30pm", teacher: "Mr Yusman", venue: "", notes: "" },
+  { date: "2026-05-05", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Lua", venue: "", notes: "" },
+  { date: "2026-05-07", title: "NSG C Div Game (N2 vs Whitley / N2A vs Assumption Pathway)", type: "Match", division: "C Div", time: "3pm to 6pm", teacher: "Mr Chandra, Mr Herwanto", venue: "", notes: "" },
+  { date: "2026-05-11", title: "C&B combine Trg", type: "Training", division: "", time: "3pm to 5:30pm", teacher: "Mr Harizan", venue: "", notes: "" },
+  { date: "2026-05-12", title: "C Div Training", type: "Training", division: "C Div", time: "3pm to 5:30pm", teacher: "Mr Valavan", venue: "", notes: "" },
+  { date: "2026-05-14", title: "NSG C Div Game (N2 vs Boon Lay / N2A vs Kent Ridge)", type: "Match", division: "C Div", time: "3pm to 6pm", teacher: "Ms Kellie, Mr Kadir", venue: "", notes: "" },
+  { date: "2026-05-18", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
+  { date: "2026-05-19", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
+  { date: "2026-05-21", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
+  { date: "2026-05-25", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
+  { date: "2026-05-26", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
+  { date: "2026-05-28", title: "NO TRAINING (NLE Week)", type: "Other", division: "", time: "", teacher: "", venue: "", notes: "" },
 ];
 
 function inferScheduleType(title = "") {
