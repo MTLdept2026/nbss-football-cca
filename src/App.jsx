@@ -1590,6 +1590,108 @@ function Card({ children, style: s = {}, glow }) {
 }
 
 // ══════════════════════════════════════════════════
+//  NOTIFICATION NUDGE BANNER
+// ══════════════════════════════════════════════════
+const NOTIF_NUDGE_DISMISSED_KEY = "nbss-notif-nudge-dismissed-at";
+const NOTIF_NUDGE_SNOOZE_DAYS = 7;
+
+function NotificationNudgeBanner({ pushAudience }) {
+  const C = useTheme();
+  const [status, setStatus] = useState(() => {
+    // "unsupported" | "granted" | "denied" | "default" | "dismissed"
+    if (typeof window === "undefined") return "unsupported";
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported";
+    const perm = Notification.permission;
+    if (perm === "granted") return "granted";
+    if (perm === "denied") return "denied";
+    // Check snooze
+    try {
+      const dismissedAt = localStorage.getItem(NOTIF_NUDGE_DISMISSED_KEY);
+      if (dismissedAt) {
+        const daysSince = (Date.now() - Number(dismissedAt)) / 86400000;
+        if (daysSince < NOTIF_NUDGE_SNOOZE_DAYS) return "dismissed";
+      }
+    } catch {}
+    return "default";
+  });
+  const [requesting, setRequesting] = useState(false);
+
+  // Don't render if no action needed
+  if (status !== "default") return null;
+
+  const handleEnable = async () => {
+    setRequesting(true);
+    try {
+      // Re-use the existing enableAnnouncementPush function
+      await enableAnnouncementPush(pushAudience || {});
+      setStatus("granted");
+    } catch {
+      // Permission denied by browser or user
+      setStatus(Notification.permission === "denied" ? "denied" : "default");
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handleDismiss = () => {
+    try { localStorage.setItem(NOTIF_NUDGE_DISMISSED_KEY, String(Date.now())); } catch {}
+    setStatus("dismissed");
+  };
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 14,
+      padding: "14px 18px", borderRadius: 14, marginBottom: 16,
+      background: `${C.electric}08`, border: `1px solid ${C.electric}25`,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+        background: `${C.electric}15`, border: `1px solid ${C.electric}30`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <SportIcon name="megaphone" size={16} weight="regular" color={C.electric} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: C.textBright, fontWeight: 600, lineHeight: 1.2 }}>
+          Turn on notifications
+        </div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2, lineHeight: 1.4 }}>
+          Get coach reminders and team announcements on this device.
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <button
+          onClick={handleEnable}
+          disabled={requesting}
+          style={{
+            padding: "7px 14px", borderRadius: 999, border: "none",
+            background: C.electric, color: C.navy,
+            fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)",
+            fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase",
+            cursor: requesting ? "not-allowed" : "pointer",
+            opacity: requesting ? 0.6 : 1, whiteSpace: "nowrap",
+          }}
+        >
+          {requesting ? "..." : "Enable"}
+        </button>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dismiss"
+          style={{
+            padding: "7px 10px", borderRadius: 999,
+            background: "none", border: `1px solid ${C.navyBorder}`,
+            color: C.textDim, fontFamily: FONT_SERIF,
+            fontSize: "var(--gp-type-caption)", cursor: "pointer",
+          }}
+        >
+          later
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════
 //  PLAYER HELPER MODAL
 // ══════════════════════════════════════════════════
 const HELPER_ACTIONS = [
@@ -8110,26 +8212,40 @@ function buildAccountabilityRows({ roster = [], latestRecords = [], targetEvent 
   const targetDate = targetEvent?.date || formatLocalDateKey();
   const rowsByKey = new Map();
 
+  // Build a name -> record lookup so roster entries can be matched to their
+  // synced player record (which carries the playerId-based key used for push targeting)
+  const recordByName = new Map();
+  (latestRecords || []).forEach((record) => {
+    const name = String(record.playerName || "").trim().toLowerCase();
+    if (name) recordByName.set(name, record);
+  });
+
   (roster || []).forEach((player) => {
-    const key = getPlayerRecordKey({ playerName: player.name, id: player.id });
+    const rosterName = String(player.name || "").trim().toLowerCase();
+    // Prefer the playerId-based key from the synced record so it matches push subscriptions
+    const matchedRecord = recordByName.get(rosterName) || null;
+    const key = matchedRecord
+      ? getPlayerRecordKey(matchedRecord)
+      : getPlayerRecordKey({ playerName: player.name, id: player.id });
     if (!key) return;
     rowsByKey.set(key, {
       key,
       name: player.name || "Player",
       group: [player.div, player.school].filter(Boolean).join(" · "),
       rosterPlayer: player,
-      record: null,
+      record: matchedRecord,
     });
   });
 
+  // Add any synced records not matched to a roster entry
   (latestRecords || []).forEach((record) => {
     const key = getPlayerRecordKey(record);
-    if (!key) return;
-    const existing = rowsByKey.get(key) || { key, name: record.playerName || record.playerId || "Player", group: record.team || record.squad || "", rosterPlayer: null, record: null };
+    if (!key || rowsByKey.has(key)) return;
     rowsByKey.set(key, {
-      ...existing,
-      name: existing.name || record.playerName || record.playerId || "Player",
-      group: existing.group || record.team || record.squad || "",
+      key,
+      name: record.playerName || record.playerId || "Player",
+      group: record.team || record.squad || "",
+      rosterPlayer: null,
       record,
     });
   });
@@ -9375,6 +9491,9 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
           </Card>
         </div>
 
+        {/* ── NOTIFICATION NUDGE ── */}
+        <NotificationNudgeBanner pushAudience={buildPushAudience(profile)} />
+
         {/* ── QUICK READINESS WIDGET ── */}
         <div style={{ marginBottom: 16 }}>
           <QuickReadinessWidget />
@@ -10286,7 +10405,12 @@ export default function App() {
 
   // PWA update detection
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
-    onRegistered(r) { r && setInterval(() => r.update(), 60 * 60 * 1000); },
+    onRegistered(r) {
+      if (!r) return;
+      // Check immediately on load, then every hour
+      r.update();
+      setInterval(() => r.update(), 60 * 60 * 1000);
+    },
   });
 
   const toggleTheme = () => {
@@ -10405,8 +10529,8 @@ export default function App() {
 
       {coachLocked && <CoachAccessScreen onUnlock={handleCoachAccessUnlock} onResetProfile={handleResetCoachProfile} />}
 
-      {/* PWA update banner */}
-      {!coachLocked && needRefresh && (
+      {/* PWA update banner — always visible regardless of coach lock state */}
+      {needRefresh && (
         <div style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
           background: theme.gold === "#FFFFFF" ? "#000" : "#fff",
