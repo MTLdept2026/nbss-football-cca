@@ -2436,8 +2436,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0 }}>
-            <span aria-hidden="true" style={{ width: 18, display: "grid", gap: open ? 0 : 4 }}>
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0, position: "relative" }}>
+            <span aria-hidden="true" style={{ width: 18, display: "grid", gap: open ? 0 : 4, position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(2px) rotate(45deg)" : "none", transition: "transform 0.15s ease" }} />
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, opacity: open ? 0 : 1, transition: "opacity 0.15s ease" }} />
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(-2px) rotate(-45deg)" : "none", transition: "transform 0.15s ease" }} />
