@@ -2152,7 +2152,7 @@ function SubNav({ items, active, setActive, color }) {
   const C = useTheme();
   // Nothing design: flat OLED black sub-bar — no blur, no frosted glass
   return (
-    <div style={{ position: "sticky", top: 64, zIndex: 900, background: C.navy, borderBottom: `1px solid ${C.navyBorder}`, padding: "10px 24px", display: "flex", gap: 6, overflowX: "auto" }}>
+    <div style={{ position: "sticky", top: "calc(64px + env(safe-area-inset-top, 0px))", zIndex: 900, background: C.navy, borderBottom: `1px solid ${C.navyBorder}`, padding: "10px 24px", display: "flex", gap: 6, overflowX: "auto" }}>
       {items.map(t => <Pill key={t.id} active={active === t.id} onClick={() => setActive(t.id)} color={color}>{t.label}</Pill>)}
     </div>
   );
@@ -2284,6 +2284,9 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
       background: navBg,
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
       transition: "border-color 0.2s ease",
+      paddingTop: "env(safe-area-inset-top, 0px)",
+      paddingLeft: "env(safe-area-inset-left, 0px)",
+      paddingRight: "env(safe-area-inset-right, 0px)",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: 8, minWidth: 0 }}>
         {/* Logo + coach/player toggle */}
@@ -2556,7 +2559,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
 
   return (
     <div style={{
-      position: "fixed", top: 64, left: 0, right: 0, zIndex: 990,
+      position: "fixed", top: "calc(64px + env(safe-area-inset-top, 0px))", left: 0, right: 0, zIndex: 990,
       overflow: "hidden", height: 36,
       background: TICKER_BG,
       display: "flex", alignItems: "center",
@@ -10626,7 +10629,8 @@ export default function App() {
           font-family: ${FONT_BODY};
           -webkit-font-smoothing: antialiased;
           transition: background 0.3s ease, color 0.3s ease;
-          padding-top: 36px;
+          padding-top: calc(36px + env(safe-area-inset-top, 0px));
+          padding-bottom: env(safe-area-inset-bottom, 0px);
           line-height: 1.55;
         }
         button, input, select, textarea { font: inherit; }
@@ -10669,7 +10673,7 @@ export default function App() {
           .mob-btn { display: block !important; }
           .nav-l {
             display: none !important;
-            position: absolute; top: 64px; left: 0; right: 0;
+            position: absolute; top: calc(64px + env(safe-area-inset-top, 0px)); left: 0; right: 0;
             background: ${isDark ? "rgba(5,15,30,0.98)" : "rgba(240,244,248,0.98)"};
             backdrop-filter: blur(20px);
             flex-direction: column; padding: 16px;
