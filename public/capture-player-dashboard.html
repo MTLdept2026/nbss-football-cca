@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capture Player Dashboard</title>
+  </head>
+  <body>
+    <script>
+      const profile = {
+        name: "Aqil",
+        position: "Midfielder",
+        level: "intermediate",
+        firstGoal: "Build consistency and become trusted in the starting group.",
+        photo: "",
+        role: "player",
+        onboarded: true,
+        version: 3,
+        playerId: "nbss-aqil-01",
+      };
+
+      const sessions = [
+        {
+          id: "session-01",
+          date: "2026-04-08",
+          type: "Training",
+          duration: 90,
+          rpe: 6,
+          sessionLoad: 540,
+          readinessScore: 74,
+          sleep: 7,
+          energy: 7,
+          soreness: 4,
+          availability: "available",
+          note: "Sharp in passing boxes. Need louder communication.",
+        },
+        {
+          id: "session-02",
+          date: "2026-04-11",
+          type: "Match",
+          duration: 80,
+          rpe: 8,
+          sessionLoad: 640,
+          readinessScore: 79,
+          sleep: 8,
+          energy: 8,
+          soreness: 3,
+          availability: "available",
+          note: "Recovered well and handled match tempo better.",
+        },
+        {
+          id: "session-03",
+          date: "2026-04-15",
+          type: "Training",
+          duration: 95,
+          rpe: 7,
+          sessionLoad: 665,
+          readinessScore: 82,
+          sleep: 8,
+          energy: 8,
+          soreness: 2,
+          availability: "available",
+          note: "Good readiness. Push leadership habits in the next block.",
+        }
+      ];
+
+      const squad = {
+        name: "Aqil",
+        position: "Midfielder",
+        number: "8",
+        photo: "",
+        seasonStats: {
+          seasonLabel: "2026",
+          appearances: "7",
+          starts: "5",
+          goals: "2",
+          assists: "3",
+          cleanSheets: "0",
+        },
+      };
+
+      document.cookie = "nbssfc_access=true; path=/; SameSite=Strict";
+      localStorage.setItem("nbss-profile", JSON.stringify(profile));
+      localStorage.setItem("nbss-sessions", JSON.stringify(sessions));
+      localStorage.setItem("nbss-squad", JSON.stringify(squad));
+      localStorage.setItem("nbss-theme", "light");
+      localStorage.setItem("nbss-app-version", "capture");
+      window.location.replace("/?ref=");
+    </script>
+  </body>
+</html>

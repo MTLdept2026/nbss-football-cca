@@ -29,11 +29,21 @@
     <!-- ── GLOBAL RENDERING BASELINE ── -->
     <style>
       *, *::before, *::after { box-sizing: border-box; }
+      :root {
+        --gp-type-micro: 0.75rem;
+        --gp-type-caption: 0.8125rem;
+        --gp-type-small: 0.875rem;
+        --gp-type-compact: 0.9375rem;
+        --gp-type-body: 1rem;
+        --gp-type-lead: 1.0625rem;
+      }
       html {
         font-synthesis: none;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
         /* Enable kerning, ligatures, and contextual alternates across all text */
         font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
       }

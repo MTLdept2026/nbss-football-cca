@@ -9,12 +9,29 @@ function isValidSubscription(subscription) {
   );
 }
 
+function normalizeAudience(body = {}) {
+  const audience = body.audience || {};
+  const audienceKey = String(audience.audienceKey || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return {
+    audienceKey,
+    playerId: String(audience.playerId || "").trim(),
+    playerName: String(audience.playerName || "").trim(),
+    role: String(audience.role || "").trim(),
+  };
+}
+
 export async function handler(event) {
   if (event.httpMethod !== "POST") return methodNotAllowed("POST");
 
   try {
     const body = parseJSONBody(event);
     const subscription = body.subscription;
+    const audience = normalizeAudience(body);
 
     if (!isValidSubscription(subscription)) {
       return json(400, { error: "Invalid push subscription." });
@@ -23,6 +40,7 @@ export async function handler(event) {
     const store = getSubscriptionsStore(event);
     await store.setJSON(subscriptionKey(subscription.endpoint), {
       subscription,
+      audience,
       updatedAt: new Date().toISOString(),
     });
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
 
+const FONT_DISPLAY = "'Doto', 'Space Mono', monospace";
+
 // ── RESPONSIVE HOOK ──
 function useIsMobile(breakpoint = 700) {
   const [isMobile, setIsMobile] = useState(
@@ -39,7 +41,7 @@ function SurfaceTabs({ theme, bodyFont, items, active, setActive }) {
             background: "transparent",
             color: active === item.id ? theme.gold : theme.textDim,
             fontFamily: "'Space Mono', 'JetBrains Mono', monospace",
-            fontSize: 11,
+            fontSize: "var(--gp-type-caption)",
             fontWeight: 400,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
@@ -72,12 +74,12 @@ function HeroPanel({ theme, headFont, bodyFont, eyebrow, title, subtitle, lastUp
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.55fr) minmax(300px, 0.95fr)", gap: 20 }}>
       <div style={{ borderRadius: 24, padding: 30, background: `linear-gradient(135deg, ${theme.navyDeep} 0%, ${theme.navyCard} 58%, ${theme.navy} 100%)`, border: `1px solid ${theme.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>{eyebrow}</div>
-          <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.textDim }}>Last updated {lastUpdated || "-"}</div>
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase" }}>{eyebrow}</div>
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.textDim }}>Last updated {lastUpdated || "-"}</div>
         </div>
         {lead ? <div style={{ marginBottom: 22 }}>{lead}</div> : null}
-        <h1 style={{ fontFamily: headFont, fontSize: "clamp(42px, 7vw, 82px)", color: theme.textBright, margin: 0, lineHeight: 0.92, letterSpacing: 2 }}>{title}</h1>
-        <p style={{ fontFamily: bodyFont, fontSize: 15, color: theme.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{subtitle}</p>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(42px, 7vw, 82px)", color: theme.textBright, margin: 0, lineHeight: 0.92, letterSpacing: 2 }}>{title}</h1>
+        <p style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-lead)", color: theme.textMid, lineHeight: 1.7, margin: "16px 0 0" }}>{subtitle}</p>
       </div>
       <div style={{ borderRadius: 24, padding: 28, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, boxShadow: "0 18px 60px rgba(0,0,0,0.22)" }}>
         {aside}
@@ -91,9 +93,9 @@ function MetricGrid({ theme, headFont, bodyFont, items, columns = "repeat(auto-f
     <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12, marginTop: 20 }}>
       {items.map((card, idx) => (
         <div key={idx} style={{ padding: "18px 16px", borderRadius: 16, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, borderTop: `3px solid ${card.tone || theme.gold}` }}>
-          <div style={{ fontFamily: bodyFont, fontSize: 10, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
-          <div style={{ fontFamily: headFont, fontSize: 34, color: card.tone || theme.gold, letterSpacing: 1 }}>{card.value}</div>
-          <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.textDim, lineHeight: 1.5 }}>{card.note}</div>
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-micro)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 34, color: card.tone || theme.gold, letterSpacing: 1 }}>{card.value}</div>
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.textDim, lineHeight: 1.5 }}>{card.note}</div>
         </div>
       ))}
     </div>
@@ -105,7 +107,7 @@ function PanelCard({ theme, headFont, bodyFont, title, meta, children }) {
     <div style={{ borderRadius: 20, padding: 22, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <h3 style={{ fontFamily: headFont, fontSize: 22, color: theme.textBright, margin: 0, letterSpacing: 1 }}>{title}</h3>
-        {meta ? <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim }}>{meta}</div> : null}
+        {meta ? <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textDim }}>{meta}</div> : null}
       </div>
       {children}
     </div>
@@ -117,9 +119,9 @@ function InsightStack({ theme, bodyFont, items }) {
     <div style={{ display: "grid", gap: 12 }}>
       {items.map((item, idx) => (
         <div key={idx} style={{ padding: "14px 16px", borderRadius: 14, background: item.bg || theme.surfaceSubtle, border: `1px solid ${item.border || theme.navyBorder}` }}>
-          <div style={{ fontFamily: bodyFont, fontSize: 11, color: item.labelTone || theme.textDim, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>{item.label}</div>
-          <div style={{ fontFamily: bodyFont, fontSize: 14, color: theme.textBright, lineHeight: 1.65 }}>{item.value}</div>
-          {item.note ? <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim, lineHeight: 1.55, marginTop: 8 }}>{item.note}</div> : null}
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: item.labelTone || theme.textDim, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>{item.label}</div>
+          <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-body)", color: theme.textBright, lineHeight: 1.65 }}>{item.value}</div>
+          {item.note ? <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textDim, lineHeight: 1.55, marginTop: 8 }}>{item.note}</div> : null}
         </div>
       ))}
     </div>
@@ -128,7 +130,7 @@ function InsightStack({ theme, bodyFont, items }) {
 
 function TrendPanel({ theme, bodyFont, data, lines, yDomain, yUnit, referenceLines, emptyText, height = 220 }) {
   if (!data || data.length < 2) {
-    return <div style={{ fontFamily: bodyFont, color: theme.textDim, fontSize: 14, lineHeight: 1.7 }}>{emptyText}</div>;
+    return <div style={{ fontFamily: bodyFont, color: theme.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>{emptyText}</div>;
   }
 
   const hasMultipleLines = lines.length > 1;
@@ -141,13 +143,13 @@ function TrendPanel({ theme, bodyFont, data, lines, yDomain, yUnit, referenceLin
       {hasMultipleLines && (
         <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
           {lines.map((line) => (
-            <div key={line.key} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: bodyFont, fontSize: 11, color: theme.textMid }}>
+            <div key={line.key} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.textMid }}>
               <span style={{ display: "inline-block", width: 18, height: 2.5, background: line.color, borderRadius: 2, flexShrink: 0 }} />
               {line.label}
             </div>
           ))}
           {(referenceLines || []).map((rl, idx) => rl.label && (
-            <div key={`ref-${idx}`} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: bodyFont, fontSize: 11, color: theme.textMid }}>
+            <div key={`ref-${idx}`} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.textMid }}>
               <span style={{ display: "inline-block", width: 18, height: 0, borderTop: `2px dashed ${rl.color}`, flexShrink: 0 }} />
               {rl.label}
             </div>
@@ -157,25 +159,25 @@ function TrendPanel({ theme, bodyFont, data, lines, yDomain, yUnit, referenceLin
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: leftMargin, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme.navyBorder} />
-          <XAxis dataKey="date" tick={{ fontFamily: bodyFont, fontSize: 10, fill: theme.textDim }} tickLine={false} />
+          <XAxis dataKey="date" tick={{ fontFamily: bodyFont, fontSize: "var(--gp-type-micro)", fill: theme.textDim }} tickLine={false} />
           <YAxis
             domain={yDomain}
-            tick={{ fontFamily: bodyFont, fontSize: 10, fill: theme.textDim }}
+            tick={{ fontFamily: bodyFont, fontSize: "var(--gp-type-micro)", fill: theme.textDim }}
             tickLine={false}
             label={yUnit ? {
               value: yUnit,
               angle: -90,
               position: "insideLeft",
               offset: 12,
-              style: { fill: theme.textDim, fontSize: 10, fontFamily: bodyFont },
+              style: { fill: theme.textDim, fontSize: "var(--gp-type-micro)", fontFamily: bodyFont },
             } : undefined}
           />
           <Tooltip
-            contentStyle={{ background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, borderRadius: 10, fontFamily: bodyFont, fontSize: 12 }}
+            contentStyle={{ background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, borderRadius: 10, fontFamily: bodyFont, fontSize: "var(--gp-type-small)" }}
             formatter={(value, name) => [`${value}${yUnit ? ` ${yUnit}` : ""}`, name]}
           />
           {(referenceLines || []).map((line, idx) => (
-            <ReferenceLine key={idx} y={line.value} stroke={line.color} strokeDasharray="4 2" label={line.label ? { value: line.label, fill: line.color, fontSize: 10, fontFamily: bodyFont } : undefined} />
+            <ReferenceLine key={idx} y={line.value} stroke={line.color} strokeDasharray="4 2" label={line.label ? { value: line.label, fill: line.color, fontSize: "var(--gp-type-micro)", fontFamily: bodyFont } : undefined} />
           ))}
           {lines.map((line) => (
             <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} strokeWidth={2.4} dot={{ fill: line.color, r: 3 }} name={line.label} />
@@ -188,7 +190,7 @@ function TrendPanel({ theme, bodyFont, data, lines, yDomain, yUnit, referenceLin
 
 function RecentList({ theme, bodyFont, headFont, entries, emptyText }) {
   if (!entries.length) {
-    return <div style={{ fontFamily: bodyFont, color: theme.textDim, fontSize: 14, lineHeight: 1.7 }}>{emptyText}</div>;
+    return <div style={{ fontFamily: bodyFont, color: theme.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>{emptyText}</div>;
   }
 
   return (
@@ -207,17 +209,17 @@ function RecentList({ theme, bodyFont, headFont, entries, emptyText }) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-            <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textBright, fontWeight: 700 }}>{entry.title}</div>
+            <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textBright, fontWeight: 700 }}>{entry.title}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim }}>{entry.date}</div>
-              {entry.actionLabel ? <div style={{ fontFamily: bodyFont, fontSize: 11, color: theme.gold, fontWeight: 700 }}>{entry.actionLabel}</div> : null}
+              <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textDim }}>{entry.date}</div>
+              {entry.actionLabel ? <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-caption)", color: theme.gold, fontWeight: 700 }}>{entry.actionLabel}</div> : null}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: bodyFont, fontSize: 12, color: theme.textMid }}>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textMid }}>
             {(entry.metrics || []).map((metric, idx) => <span key={idx}>{metric}</span>)}
           </div>
-          {entry.note ? <div style={{ fontFamily: bodyFont, fontSize: 12, color: theme.textDim, lineHeight: 1.55, marginTop: 8 }}>{entry.note}</div> : null}
-          {entry.emphasis ? <div style={{ fontFamily: headFont, fontSize: 14, color: entry.emphasisTone || theme.gold, letterSpacing: 0.5, marginTop: 8 }}>{entry.emphasis}</div> : null}
+          {entry.note ? <div style={{ fontFamily: bodyFont, fontSize: "var(--gp-type-small)", color: theme.textDim, lineHeight: 1.55, marginTop: 8 }}>{entry.note}</div> : null}
+          {entry.emphasis ? <div style={{ fontFamily: headFont, fontSize: "var(--gp-type-body)", color: entry.emphasisTone || theme.gold, letterSpacing: 0.5, marginTop: 8 }}>{entry.emphasis}</div> : null}
         </div>
       ))}
     </div>
@@ -239,7 +241,7 @@ export function PlayerPerformanceSurface({ theme, fonts, summary, renderSessions
           lastUpdated={summary.lastUpdated}
           aside={
             <>
-              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Decision support</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Decision support</div>
               <h2 style={{ fontFamily: fonts.head, fontSize: 28, color: theme.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Current direction</h2>
               <InsightStack theme={theme} bodyFont={fonts.body} items={summary.guidance} />
             </>
@@ -310,7 +312,7 @@ export function PlayerMatchSurface({ theme, fonts, summary, renderPreMatchPrep, 
           lastUpdated={summary.lastUpdated}
           aside={
             <>
-              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Execution focus</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Execution focus</div>
               <h2 style={{ fontFamily: fonts.head, fontSize: 28, color: theme.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Next action</h2>
               <InsightStack theme={theme} bodyFont={fonts.body} items={summary.guidance} />
             </>
@@ -393,15 +395,15 @@ export function CoachDashboardSurface({ theme, fonts, summary, renderActions, cl
                 : <span style={{ fontFamily: fonts.head, fontSize: 28, color: theme.gold, letterSpacing: 1 }}>{coachInitials}</span>}
             </div>
             <div>
-              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.6, marginBottom: 6 }}>Staff profile</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.6, marginBottom: 6 }}>Staff profile</div>
               <div style={{ fontFamily: fonts.head, fontSize: 26, color: theme.textBright, letterSpacing: 1, lineHeight: 1 }}>{coachName}</div>
-              <div style={{ fontFamily: fonts.body, fontSize: 14, color: theme.textMid, marginTop: 8 }}>{summary.identity.role || "Coach/Teacher"}</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-body)", color: theme.textMid, marginTop: 8 }}>{summary.identity.role || "Coach/Teacher"}</div>
             </div>
           </div>
         ) : null}
         aside={
           <>
-            <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Operational focus</div>
+            <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Operational focus</div>
             <h2 style={{ fontFamily: fonts.head, fontSize: 28, color: theme.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Next priorities</h2>
             <InsightStack theme={theme} bodyFont={fonts.body} items={summary.guidance} />
             <div style={{ marginTop: 18 }}>{renderActions()}</div>
@@ -430,10 +432,11 @@ export function CoachDashboardSurface({ theme, fonts, summary, renderActions, cl
   );
 }
 
-export function CoachSquadSurface({ theme, fonts, summary, renderAttendance, renderPlayerDetail }) {
+export function CoachSquadSurface({ theme, fonts, summary, renderAttendance, renderPlayerDetail, renderAccountability }) {
   const [tab, setTab] = useState("overview");
   const tabs = [
     { id: "overview", label: "Overview" },
+    ...(renderAccountability ? [{ id: "accountability", label: "Accountability" }] : []),
     ...(summary.playerDetail ? [{ id: "player", label: "Player Detail" }] : []),
     { id: "attendance", label: "Attendance" },
   ];
@@ -455,7 +458,7 @@ export function CoachSquadSurface({ theme, fonts, summary, renderAttendance, ren
           lastUpdated={summary.lastUpdated}
           aside={
             <>
-              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Availability status</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Availability status</div>
               <h2 style={{ fontFamily: fonts.head, fontSize: 28, color: theme.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Current watchlist</h2>
               <InsightStack theme={theme} bodyFont={fonts.body} items={summary.guidance} />
             </>
@@ -468,6 +471,7 @@ export function CoachSquadSurface({ theme, fonts, summary, renderAttendance, ren
             <RecentList theme={theme} headFont={fonts.head} bodyFont={fonts.body} entries={summary.watchlist} emptyText="No active availability constraints are currently logged." />
           </PanelCard>
         )}
+        {tab === "accountability" && renderAccountability && renderAccountability()}
         {tab === "player" && renderPlayerDetail && renderPlayerDetail()}
         {tab === "attendance" && renderAttendance()}
       </SurfaceShell>
@@ -490,7 +494,7 @@ export function CoachOperationsSurface({ theme, fonts, summary, renderSchedule, 
           lastUpdated={summary.lastUpdated}
           aside={
             <>
-              <div style={{ fontFamily: fonts.body, fontSize: 11, color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Run of play</div>
+              <div style={{ fontFamily: fonts.body, fontSize: "var(--gp-type-caption)", color: theme.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Run of play</div>
               <h2 style={{ fontFamily: fonts.head, fontSize: 28, color: theme.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Operational guidance</h2>
               <InsightStack theme={theme} bodyFont={fonts.body} items={summary.guidance} />
             </>

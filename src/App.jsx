@@ -66,7 +66,7 @@ async function getAnnouncementPushRegistration() {
   return readyRegistration;
 }
 
-async function enableAnnouncementPush() {
+async function enableAnnouncementPush(audience = {}) {
   if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
     throw new Error("Push notifications are not supported on this device.");
   }
@@ -87,7 +87,7 @@ async function enableAnnouncementPush() {
     });
   }
 
-  await postFunctionJSON("push-subscribe", { subscription });
+  await postFunctionJSON("push-subscribe", { subscription, audience });
   return subscription;
 }
 
@@ -270,7 +270,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
           display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999,
           background: sharing ? C.navyCard : `${C.electric}15`,
           border: `1px solid ${C.electric}30`, color: C.electric,
-          fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer",
+          fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, cursor: sharing ? "wait" : "pointer",
           transition: "opacity 0.15s ease",
         }}>
           {sharing ? "Sharing…" : "↗ Share"}
@@ -279,7 +279,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
           display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999,
           background: saving ? C.navyCard : `${C.orange}15`,
           border: `1px solid ${C.orange}30`, color: C.orange,
-          fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer",
+          fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, cursor: saving ? "wait" : "pointer",
           transition: "opacity 0.15s ease",
         }}>
           {saving ? "Saving…" : <><Camera size={13} weight="thin" style={{ marginRight: 5, verticalAlign: "middle" }} />Save Photo</>}
@@ -287,7 +287,7 @@ function ShareSaveBar({ targetRef, filename, title, style: s = {} }) {
       </div>
       {toast && (
         <div style={{
-          padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: FONT_BODY,
+          padding: "8px 14px", borderRadius: 8, fontSize: "var(--gp-type-small)", fontFamily: FONT_BODY,
           background: toast.type === "error" ? `${C.danger}12` : `${C.success}12`,
           border: `1px solid ${toast.type === "error" ? C.danger : C.success}30`,
           color: toast.type === "error" ? C.danger : C.success,
@@ -425,18 +425,19 @@ const useTheme = () => useContext(ThemeContext);
 const C = DARK_C;
 
 // ── NOTHING DESIGN FONTS ──
-// Doto: variable dot-matrix display — Nothing's NDot 57 spiritual twin.
-//   36px+ only, tight tracking, never body text. One hero moment per screen.
-// Space Grotesk: body and UI text — same Colophon foundry DNA as Nothing's typefaces.
+// Space Grotesk carries headings and body copy for phone readability.
+// Space Mono stays reserved for short labels, badges, and data readouts.
+// Doto is display-only: brand marks, hero words, and large metric numerals.
 // Space Mono: ALL CAPS labels, data readouts, numeric values. The instrument-panel voice.
-const FONT_HEAD  = "'Doto', 'Space Mono', monospace";
+const FONT_DISPLAY = "'Doto', 'Space Mono', monospace";
+const FONT_HEAD  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
 const FONT_BODY  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
 const FONT_SERIF = "'Space Mono', 'JetBrains Mono', 'SF Mono', monospace"; // data / labels
 
 // ── SHARED STYLES (theme-aware helpers) ──
 // Labels: always Space Mono (FONT_SERIF), ALL CAPS, 0.08em spacing — "instrument panel" voice.
 const makeLabelStyle = (C) => ({
-  fontFamily: FONT_SERIF, fontSize: 11, color: C.textDim,
+  fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: C.textDim,
   fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em",
   display: "block", marginBottom: 8,
 });
@@ -445,7 +446,7 @@ const makeInputStyle = (C) => ({
   width: "100%", padding: "11px 0", borderRadius: 0,
   background: "transparent", border: "none",
   borderBottom: `1px solid ${C.surfaceBorder}`,
-  color: C.textBright, fontFamily: FONT_SERIF, fontSize: 14, outline: "none",
+  color: C.textBright, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-body)", outline: "none",
   boxSizing: "border-box", transition: "border-color 0.15s ease-out",
 });
 // Module-level fallbacks (used by StoryExportCard which always uses dark theme)
@@ -1420,14 +1421,14 @@ function SectionHeader({ icon, title, subtitle, accent }) {
   // Nothing design: flat divider, no gradient, Space Mono label above Doto headline
   return (
     <div style={{ marginBottom: 40, borderBottom: `1px solid ${C.navyBorder}`, paddingBottom: 24 }}>
-      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
         {icon ? `${icon} ` : ""}{title}
       </div>
       <h2 style={{
         fontFamily: FONT_HEAD, fontSize: "clamp(28px, 5vw, 44px)",
         color: C.textBright, margin: "0 0 8px", letterSpacing: "0.02em", lineHeight: 1,
       }}>{title}</h2>
-      {subtitle && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: 0, lineHeight: 1.6, maxWidth: 760 }}>{subtitle}</p>}
+      {subtitle && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, margin: 0, lineHeight: 1.6, maxWidth: 760 }}>{subtitle}</p>}
     </div>
   );
 }
@@ -1441,7 +1442,7 @@ function Pill({ children, active, onClick, color }) {
       background: active ? C.textBright : "transparent",
       color: active ? C.navy : C.textMid,
       border: `1px solid ${active ? C.textBright : C.navyBorder}`,
-      fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 400,
+      fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", fontWeight: 400,
       textTransform: "uppercase", letterSpacing: "0.06em",
       transition: "all 0.15s ease",
       whiteSpace: "nowrap",
@@ -1477,7 +1478,7 @@ function ContextTabs({ items, active, setActive, color }) {
               borderBottom: `2px solid ${active === item.id ? C.textBright : "transparent"}`,
               color: active === item.id ? C.textBright : C.textDim,
               fontFamily: FONT_SERIF,
-              fontSize: 11,
+              fontSize: "var(--gp-type-caption)",
               fontWeight: 400,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
@@ -1503,9 +1504,9 @@ function MetricPanel({ label, value, note, tone, compact }) {
       background: C.navyCard,
       border: `1px solid ${C.navyBorder}`,
     }}>
-      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontFamily: FONT_HEAD, fontSize: compact ? 26 : 36, color, letterSpacing: "0.02em", lineHeight: 1 }}>{value}</div>
-      {note && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, lineHeight: 1.6, marginTop: 8 }}>{note}</div>}
+      <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: compact ? 26 : 36, color, letterSpacing: "0.02em", lineHeight: 1 }}>{value}</div>
+      {note && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, lineHeight: 1.6, marginTop: 8 }}>{note}</div>}
     </div>
   );
 }
@@ -1539,14 +1540,14 @@ function DotMatrixPanel({ label, value, displayValue, sub, zones, max = 100, seg
   const numeric = typeof value === "number" ? value : null;
   return (
     <div style={{ padding: compact ? "16px 18px" : "22px 26px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}`, ...s }}>
-      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{label}</div>
-      <div style={{ fontFamily: FONT_HEAD, fontSize: compact ? 44 : 60, color, letterSpacing: "0.04em", lineHeight: 0.88, marginBottom: 14 }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{label}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: compact ? 44 : 60, color, letterSpacing: "0.04em", lineHeight: 0.88, marginBottom: 14 }}>
         {displayValue ?? value}
       </div>
       {numeric !== null && (
         <SegmentedBar value={numeric} max={max} segments={segments} zones={zones} style={{ marginBottom: 8 }} />
       )}
-      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5, marginTop: 6 }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.5, marginTop: 6 }}>{sub}</div>}
     </div>
   );
 }
@@ -1556,7 +1557,7 @@ function GoldButton({ children, onClick, style: s = {}, secondary, destructive, 
   // Nothing design: Primary = solid white pill, Secondary = transparent outlined pill, Destructive = accent-bordered
   const base = {
     padding: "12px 24px", borderRadius: 999, cursor: disabled ? "not-allowed" : "pointer",
-    fontFamily: FONT_SERIF, fontSize: 13, fontWeight: 400,
+    fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", fontWeight: 400,
     textTransform: "uppercase", letterSpacing: "0.06em",
     minHeight: 44, border: "none", background: "none",
     transition: "opacity 0.15s ease",
@@ -1585,6 +1586,189 @@ function Card({ children, style: s = {}, glow }) {
       borderRadius: 16, padding: 24,
       ...s,
     }}>{children}</div>
+  );
+}
+
+// ══════════════════════════════════════════════════
+//  PLAYER HELPER MODAL
+// ══════════════════════════════════════════════════
+const HELPER_ACTIONS = [
+  {
+    id: "log-training",
+    label: "Log last training",
+    sub: "Record session load, readiness + wellness",
+    icon: "note",
+    dest: "performance",
+    tab: "sessions",
+  },
+  {
+    id: "log-match",
+    label: "Log last match",
+    sub: "Post-match review, rating + reflection",
+    icon: "ball",
+    dest: "match",
+    tab: null,
+  },
+  {
+    id: "check-readiness",
+    label: "Check my readiness",
+    sub: "Recovery signals, injury log + availability",
+    icon: "battery",
+    dest: "performance",
+    tab: "recovery",
+  },
+  {
+    id: "view-goals",
+    label: "Review my goals",
+    sub: "Goal wall, XP progress + milestones",
+    icon: "target",
+    dest: "performance",
+    tab: "goals",
+  },
+  {
+    id: "view-stats",
+    label: "See my performance",
+    sub: "Load trends, readiness chart + session history",
+    icon: "chart",
+    dest: "performance",
+    tab: "overview",
+  },
+  {
+    id: "team-hub",
+    label: "Check team hub",
+    sub: "Announcements, schedule + team news",
+    icon: "megaphone",
+    dest: "hub",
+    tab: null,
+  },
+];
+
+function PlayerHelperModal({ onNavigate, onClose }) {
+  const C = useTheme();
+  const [hovered, setHovered] = useState(null);
+
+  const handlePick = (action) => {
+    onNavigate(action.dest, action.tab);
+    onClose();
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="What do you want to do?"
+      style={{
+        position: "fixed", inset: 0, zIndex: 9990,
+        background: `${C.navy}f0`,
+        backdropFilter: "blur(8px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "24px 16px",
+        animation: "slideIn 0.18s ease",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ width: "100%", maxWidth: 480 }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1 }}>
+              WHAT DO YOU WANT TO DO?
+            </div>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 6, letterSpacing: "0.06em" }}>
+              SELECT AN ACTION -- WE'LL TAKE YOU THERE
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close helper"
+            style={{
+              background: "none", border: `1px solid ${C.navyBorder}`,
+              color: C.textDim, borderRadius: 999, width: 36, height: 36,
+              cursor: "pointer", fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, marginLeft: 12,
+            }}
+          >x</button>
+        </div>
+
+        {/* Action grid */}
+        <div style={{ display: "grid", gap: 10 }}>
+          {HELPER_ACTIONS.map((action) => {
+            const isHov = hovered === action.id;
+            return (
+              <button
+                key={action.id}
+                onClick={() => handlePick(action)}
+                onMouseEnter={() => setHovered(action.id)}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 16,
+                  background: isHov ? C.navyCard : "transparent",
+                  border: `1px solid ${isHov ? C.gold : C.navyBorder}`,
+                  borderRadius: 12, padding: "14px 18px",
+                  cursor: "pointer", textAlign: "left",
+                  transition: "border-color 0.15s ease, background 0.15s ease",
+                  width: "100%",
+                }}
+              >
+                {/* Icon dot */}
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: isHov ? `${C.gold}18` : C.navyDeep,
+                  border: `1px solid ${isHov ? C.gold : C.navyBorder}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0, transition: "border-color 0.15s ease, background 0.15s ease",
+                }}>
+                  <SportIcon name={action.icon} size={18} weight="regular" color={isHov ? C.gold : C.textMid} />
+                </div>
+
+                {/* Text */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)",
+                    color: isHov ? C.textBright : C.textMid,
+                    fontWeight: 600, lineHeight: 1.2,
+                    transition: "color 0.15s ease",
+                  }}>
+                    {action.label}
+                  </div>
+                  <div style={{
+                    fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)",
+                    color: C.textDim, marginTop: 3, lineHeight: 1.4,
+                  }}>
+                    {action.sub}
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{
+                  fontFamily: FONT_SERIF, fontSize: "var(--gp-type-small)",
+                  color: isHov ? C.gold : C.navyBorder,
+                  transition: "color 0.15s ease", flexShrink: 0,
+                }}>
+                  {isHov ? "go" : "--"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dismiss */}
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none", border: "none",
+              fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)",
+              color: C.textDim, cursor: "pointer", letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
+          >
+            dismiss -- i know where to go
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1693,10 +1877,10 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           {/* Flat monochrome mark — solid white on black, no gradient, no shadow */}
           <div style={{ width: 48, height: 48, borderRadius: 4, background: C.textBright, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 13, color: C.navy, letterSpacing: "0.08em" }}>GP</span>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", color: C.navy, letterSpacing: "0.08em" }}>GP</span>
           </div>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1 }}>GAMEPLAN</div>
-          <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 6 }}>Performance Platform</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1 }}>GAMEPLAN</div>
+          <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 6 }}>Performance Platform</div>
         </div>
         {/* Progress bar — dots scale with role */}
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 24 }}>
@@ -1709,7 +1893,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
           {step === 1 && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>SELECT YOUR ROLE</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We will configure the platform around the decisions you need to make most often.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 20 }}>We will configure the platform around the decisions you need to make most often.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 24 }}>
                 {[
                   { key: "player", mono: "P", label: "Player", desc: "Performance, readiness, load, and match output." },
@@ -1723,9 +1907,9 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
                     transition: "background 0.15s, border-color 0.15s",
                   }}>
                     {/* Monochrome monogram mark */}
-                    <div style={{ fontFamily: FONT_SERIF, fontSize: 11, color: role === r.key ? C.navy : C.textDim, letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{r.mono}</div>
-                    <div style={{ fontFamily: FONT_HEAD, fontSize: 15, color: role === r.key ? C.navy : C.textBright, letterSpacing: "0.04em", marginBottom: 6 }}>{r.label.toUpperCase()}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: role === r.key ? `${C.navy}99` : C.textDim, lineHeight: 1.4 }}>{r.desc}</div>
+                    <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: role === r.key ? C.navy : C.textDim, letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{r.mono}</div>
+                    <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-lead)", color: role === r.key ? C.navy : C.textBright, letterSpacing: "0.04em", marginBottom: 6 }}>{r.label.toUpperCase()}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: role === r.key ? `${C.navy}99` : C.textDim, lineHeight: 1.4 }}>{r.desc}</div>
                   </div>
                 ))}
               </div>
@@ -1745,7 +1929,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
                       if (e.key === "Enter") handleCoachUnlock(e);
                     }}
                   />
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: coachAccessGranted ? C.success : C.textDim, marginTop: 10, lineHeight: 1.5 }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: coachAccessGranted ? C.success : C.textDim, marginTop: 10, lineHeight: 1.5 }}>
                     {coachAccessGranted
                       ? "Teacher and coach access is unlocked on this device until you lock it again."
                       : coachPasswordConfigured
@@ -1753,7 +1937,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
                         : "Set `VITE_COACH_PASSWORD` or `VITE_TEACHER_PASSWORD` before enabling staff mode."}
                   </div>
                   {!coachAccessGranted && (
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={rememberCoachAccess}
@@ -1764,7 +1948,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
                     </label>
                   )}
                   {coachError && (
-                    <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 12, color: C.danger }}>
+                    <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.danger }}>
                       {coachError}
                     </div>
                   )}
@@ -1789,7 +1973,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
           {step === 2 && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>IDENTITY</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>This sets the profile header and command-centre context.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 20 }}>This sets the profile header and command-centre context.</p>
               <div style={{ marginBottom: role === "player" ? 16 : 0 }}>
                 <label style={labelStyle}>Your name</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder={roleMeta.promptName} style={inputStyle} autoFocus onKeyDown={e => e.key === "Enter" && setStep(isStaff ? 4 : 3)} />
@@ -1813,12 +1997,12 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
           {step === 3 && role === "player" && (
             <>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>WHAT'S YOUR LEVEL?</div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 20 }}>We'll set up your training program accordingly.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 20 }}>We'll set up your training program accordingly.</p>
               {/* Nothing design: inverted solid card for active, bordered neutral for inactive */}
               {Object.entries(TRAINING_DATA).map(([key, val]) => (
                 <div key={key} onClick={() => setLevel(key)} style={{ padding: "14px 18px", borderRadius: 8, cursor: "pointer", marginBottom: 8, background: level === key ? C.textBright : C.navyCard, border: `1px solid ${level === key ? C.textBright : C.navyBorder}`, transition: "background 0.15s, border-color 0.15s" }}>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: level === key ? C.navy : C.textBright, letterSpacing: "0.04em" }}>{val.title.toUpperCase()}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: level === key ? `${C.navy}99` : C.textDim, marginTop: 2 }}>{val.subtitle}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: level === key ? `${C.navy}99` : C.textDim, marginTop: 2 }}>{val.subtitle}</div>
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
@@ -1834,14 +2018,14 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
               <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: 1, marginBottom: 4 }}>
                 {roleMeta.goalTitle}
               </div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 16 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 16 }}>
                 {roleMeta.goalPrompt}
               </p>
               <input value={goal} onChange={e => setGoal(e.target.value)} placeholder={roleMeta.goalPlaceholder} style={{ ...inputStyle, marginBottom: 12 }} />
               {/* Nothing design: Pill chips — active = solid inverted, inactive = outlined neutral */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
                 {roleMeta.goalExamples.map(ex => (
-                  <button key={ex} onClick={() => setGoal(ex)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", background: goal === ex ? C.textBright : "transparent", border: `1px solid ${goal === ex ? C.textBright : C.navyBorder}`, fontFamily: FONT_SERIF, fontSize: 10, color: goal === ex ? C.navy : C.textDim, letterSpacing: "0.06em", textTransform: "uppercase", transition: "all 0.15s" }}>{ex}</button>
+                  <button key={ex} onClick={() => setGoal(ex)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", background: goal === ex ? C.textBright : "transparent", border: `1px solid ${goal === ex ? C.textBright : C.navyBorder}`, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: goal === ex ? C.navy : C.textDim, letterSpacing: "0.06em", textTransform: "uppercase", transition: "all 0.15s" }}>{ex}</button>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -1852,7 +2036,7 @@ function OnboardingModal({ onComplete, coachAccessGranted = false, onUnlockCoach
           )}
         </Card>
         {step === 4 && (
-          <button onClick={handleComplete} style={{ background: "none", border: "none", color: C.textDim, fontFamily: FONT_BODY, fontSize: 12, cursor: "pointer", display: "block", margin: "12px auto 0", textDecoration: "underline" }}>Skip for now</button>
+          <button onClick={handleComplete} style={{ background: "none", border: "none", color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", cursor: "pointer", display: "block", margin: "12px auto 0", textDecoration: "underline" }}>Skip for now</button>
         )}
       </div>
     </div>
@@ -1930,11 +2114,11 @@ function ProgressGroup({ profile, setActive }) {
               {/* Nothing design: flat card, neutral border, no colored tint */}
               <div style={{ padding: "16px 18px", borderRadius: 8, background: C.navyCard, border: `1px solid ${C.navyBorder}`, marginBottom: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                     Coach navigation
                   </span>
                 </div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.6, marginBottom: 12 }}>
                   This view is player-facing. Use the coach tools below for squad management and operations.
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1954,7 +2138,7 @@ function ProgressGroup({ profile, setActive }) {
                         border: `1px solid ${C.navyBorder}`,
                         color: C.textMid,
                         fontFamily: FONT_SERIF,
-                        fontSize: 10,
+                        fontSize: "var(--gp-type-micro)",
                         letterSpacing: "0.08em",
                         textTransform: "uppercase",
                       }}
@@ -2007,12 +2191,12 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               width: 32, height: 32, borderRadius: 4,
               background: C.textBright,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontFamily: FONT_SERIF, letterSpacing: "0.08em",
+              fontSize: "var(--gp-type-caption)", fontFamily: FONT_SERIF, letterSpacing: "0.08em",
               color: C.navy, fontWeight: 400,
             }}>GP</div>
             <div>
-              <div style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
-              {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
+              <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-body)", color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
+              {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
             </div>
           </button>
           {/* Staff ↔ Player view toggle — label reflects actual staff role */}
@@ -2054,7 +2238,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 10, lineHeight: 1, fontFamily: FONT_SERIF, letterSpacing: "0.06em", textTransform: "uppercase" }}>IG</span>
+            <span style={{ fontSize: "var(--gp-type-micro)", lineHeight: 1, fontFamily: FONT_SERIF, letterSpacing: "0.06em", textTransform: "uppercase" }}>IG</span>
           </a>
 
           {/* Theme toggle — flat, no colored glow */}
@@ -2068,13 +2252,13 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               color: C.textMid,
               width: 36, height: 36, borderRadius: 4, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: FONT_SERIF, fontSize: 10, letterSpacing: "0.06em",
+              fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", letterSpacing: "0.06em",
               textTransform: "uppercase", transition: "color 0.15s", flexShrink: 0,
             }}
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: 11, letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4 }}>
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4 }}>
             {open ? "[ X ]" : "[ = ]"}
           </button>
         </div>
@@ -2089,7 +2273,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               borderBottom: active === g.id ? `2px solid ${C.textBright}` : "2px solid transparent",
               padding: "7px 16px",
               cursor: "pointer",
-              fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 400,
+              fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", fontWeight: 400,
               textTransform: "uppercase", letterSpacing: "0.08em",
               transition: "color 0.15s, border-color 0.15s",
             }}
@@ -2290,7 +2474,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
           <span key={i} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "0 20px",
-            fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
+            fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 600,
             color: tickerText, letterSpacing: 0.3,
           }}>
             <span style={{ display: "inline-flex", alignItems: "center" }}><SportIcon name={item.icon} size={14} weight="regular" color={item.color || tickerText} /></span>
@@ -2363,7 +2547,7 @@ function HeroSection({ setActive, profile, sessions }) {
         {/* Eyebrow label — Space Mono ALL CAPS, no pill background */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.success, display: "inline-block" }} />
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             {isPersonalised
               ? `${getRoleLabel(profile.role)} — ${profile.name}`
               : "Naval Base Secondary School · Football CCA"}
@@ -2371,13 +2555,13 @@ function HeroSection({ setActive, profile, sessions }) {
         </div>
 
         {/* Hero headline — Doto display, tight tracking, left-anchored */}
-        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.textBright, margin: "0 0 8px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(52px, 9vw, 96px)", color: C.textBright, margin: "0 0 8px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
           FOOTBALL
         </h1>
-        <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(52px, 9vw, 96px)", color: C.danger, margin: "0 0 32px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(52px, 9vw, 96px)", color: C.danger, margin: "0 0 32px", lineHeight: 0.95, letterSpacing: "0.02em" }}>
           CCA
         </h1>
-        <p style={{ fontFamily: FONT_SERIF, fontSize: 11, color: C.textDim, margin: "0 0 48px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
+        <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: C.textDim, margin: "0 0 48px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Train · Grow · Compete · Together</p>
 
         {/* CTA buttons — Nothing pill spec */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 56 }}>
@@ -2403,8 +2587,8 @@ function HeroSection({ setActive, profile, sessions }) {
 
         {/* Quote carousel — flat card, no shadow, border only */}
         <div style={{ padding: "20px 24px", background: C.navyCard, borderRadius: 12, border: `1px solid ${C.navyBorder}`, opacity: fade ? 1 : 0, transition: "opacity 0.35s ease", marginBottom: 48 }}>
-          <p style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.textBright, fontStyle: "italic", margin: "0 0 8px", lineHeight: 1.6 }}>"{q.text}"</p>
-          <p style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>— {q.author}</p>
+          <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-lead)", color: C.textBright, fontStyle: "italic", margin: "0 0 8px", lineHeight: 1.6 }}>"{q.text}"</p>
+          <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>— {q.author}</p>
         </div>
 
         {/* Stats strip — Nothing stat row style, no color on values by default */}
@@ -2432,7 +2616,7 @@ function HeroSection({ setActive, profile, sessions }) {
           ).map((s, i) => (
             <div key={i}>
               <div style={{ fontFamily: FONT_SERIF, fontSize: 28, color: s.color || C.textBright, letterSpacing: "0.02em", lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -2479,25 +2663,25 @@ function HeroSection({ setActive, profile, sessions }) {
         {/* Daily IQ Question — flat, no colored icon background */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, borderBottom: `1px solid ${C.navyBorder}`, paddingBottom: 8 }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>Football IQ · Daily Question</span>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textMid, letterSpacing: "0.08em", textTransform: "uppercase" }}>Football IQ · Daily Question</span>
           </div>
           <div style={{ padding: "16px 20px", background: C.navyCard, borderRadius: 8, border: `1px solid ${C.navyBorder}` }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, margin: "0 0 14px", lineHeight: 1.5 }}>{todayQ.q}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, margin: "0 0 14px", lineHeight: 1.5 }}>{todayQ.q}</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
               {todayQ.opts.map((opt, i) => (
                 <button key={i} onClick={() => setIqRevealed(true)} style={{
                   padding: "9px 12px", borderRadius: 4, cursor: "pointer", textAlign: "left",
                   background: "transparent",
                   border: `1px solid ${iqRevealed ? (i === todayQ.correct ? C.success : C.navyBorder) : C.navyBorder}`,
-                  fontFamily: FONT_BODY, fontSize: 13,
+                  fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)",
                   color: iqRevealed ? (i === todayQ.correct ? C.success : C.textDim) : C.textMid,
                   fontWeight: 400, transition: "border-color 0.2s, color 0.2s",
                 }}>{opt}</button>
               ))}
             </div>
             {iqRevealed
-              ? <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, margin: 0, lineHeight: 1.5, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 10 }}>{todayQ.explain}</p>
-              : <p style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, margin: 0, letterSpacing: "0.06em", textTransform: "uppercase" }}>Tap any answer to reveal</p>
+              ? <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.success, margin: 0, lineHeight: 1.5, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 10 }}>{todayQ.explain}</p>
+              : <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, margin: 0, letterSpacing: "0.06em", textTransform: "uppercase" }}>Tap any answer to reveal</p>
             }
           </div>
         </div>
@@ -2605,7 +2789,7 @@ function PerformanceHome({ setActive, profile, sessions }) {
       <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           <div style={{ borderRadius: 24, padding: 28, background: `linear-gradient(135deg, ${C.navyDeep} 0%, ${C.navyCard} 100%)`, border: `1px solid ${C.gold}24`, boxShadow: "0 18px 60px rgba(0,0,0,0.32)" }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase", marginBottom: 12 }}>Player Performance</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.gold, fontWeight: 700, letterSpacing: 1.7, textTransform: "uppercase", marginBottom: 12 }}>Player Performance</div>
             <h1 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(46px, 8vw, 86px)", color: C.textBright, margin: 0, lineHeight: 0.92, letterSpacing: 2 }}>{name.toUpperCase()}</h1>
             <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: C.textMid, lineHeight: 1.65, margin: "18px 0 0" }}>{position} · Level {level.level} {level.title}. This homepage is now built around your work, your load, and your recent form.</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 24 }}>
@@ -2616,16 +2800,16 @@ function PerformanceHome({ setActive, profile, sessions }) {
           </div>
 
           <Card style={{ borderRadius: 24, padding: 28, boxShadow: "0 18px 60px rgba(0,0,0,0.22)" }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Today's status</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.7, marginBottom: 8 }}>Today's status</div>
             <h2 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>Performance snapshot</h2>
             <div style={{ display: "grid", gap: 12 }}>
               {[{ label: "Recent form", value: recentAvg !== null ? `${recentAvg.toFixed(1)}/5` : "No data", note: recentAvg !== null ? `Last ${recent.length} sessions` : "Start logging sessions", color: C.gold }, { label: "Readiness", value: latestReady !== null ? `${latestReady}%` : "Not tracked", note: latestReady !== null ? (latestReady >= 75 ? "Body looks ready" : latestReady >= 60 ? "Train smart today" : "Recovery first") : "Log sleep, energy, soreness", color: latestReady !== null && latestReady < 60 ? C.danger : C.success }, { label: "ACWR", value: latestACWR !== null ? latestACWR.toFixed(2) : "Not available", note: latestACWR !== null ? (latestACWR > 1.3 ? "Load is climbing" : latestACWR < 0.8 ? "Load is low" : "Load is balanced") : "Add duration and RPE", color: latestACWR !== null && latestACWR > 1.3 ? C.orange : C.electric }].map((item, idx) => (
                 <div key={idx} style={{ padding: "15px 16px", borderRadius: 16, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.4 }}>{item.label}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.4 }}>{item.label}</div>
                     <div style={{ fontFamily: FONT_HEAD, fontSize: 26, color: item.color }}>{item.value}</div>
                   </div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, marginTop: 8, lineHeight: 1.6 }}>{item.note}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, marginTop: 8, lineHeight: 1.6 }}>{item.note}</div>
                 </div>
               ))}
             </div>
@@ -2635,9 +2819,9 @@ function PerformanceHome({ setActive, profile, sessions }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 20 }}>
           {stats.map((card, idx) => (
             <div key={idx} style={{ padding: "18px 16px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${card.color}` }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
             </div>
           ))}
         </div>
@@ -2646,16 +2830,16 @@ function PerformanceHome({ setActive, profile, sessions }) {
           <Card style={{ borderRadius: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recent sessions</h3>
-              <button onClick={() => setActive("progress")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open full log</button>
+              <button onClick={() => setActive("progress")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>Open full log</button>
             </div>
-            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
+            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
           </Card>
 
           <Card style={{ borderRadius: 20 }}>
             <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 16px", letterSpacing: 1 }}>What needs attention</h3>
             <div style={{ display: "grid", gap: 12 }}>
               {[`${daysSinceLast === null ? "No sessions logged yet." : daysSinceLast === 0 ? "You trained today." : `Last session was ${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago.`}`, `${latestSleep !== null || latestEnergy !== null ? `Recovery inputs: sleep ${latestSleep ?? "-"} / energy ${latestEnergy ?? "-"}.` : "Recovery inputs are not being tracked yet."}`, `${latestACWR !== null ? `Current ACWR is ${latestACWR.toFixed(2)}.` : "Training load is not unlocked yet."}`, `${earned.length} badge${earned.length === 1 ? "" : "s"} earned so far.`].map((text, idx) => (
-                <div key={idx} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.65 }}>{text}</div>
+                <div key={idx} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.65 }}>{text}</div>
               ))}
             </div>
           </Card>
@@ -2689,11 +2873,11 @@ function TrainingSection() {
             background: level === key ? val.color : C.navyCard,
             color: level === key ? (key === "beginner" ? C.navy : C.textBright) : C.textMid,
             border: level === key ? "none" : `1px solid ${C.navyBorder}`,
-            fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+            fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700,
             transition: "opacity 0.15s ease",
           }}>
             {val.title}
-            <span style={{ display: "block", fontSize: 10, fontWeight: 400, marginTop: 1, opacity: 0.8 }}>{val.subtitle.split("·")[0].trim()}</span>
+            <span style={{ display: "block", fontSize: "var(--gp-type-micro)", fontWeight: 400, marginTop: 1, opacity: 0.8 }}>{val.subtitle.split("·")[0].trim()}</span>
           </button>
         ))}
       </div>
@@ -2711,21 +2895,21 @@ function TrainingSection() {
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: posDrillData.color, letterSpacing: 1 }}>
                   YOUR POSITION — {posDrillData.label.toUpperCase()} DRILLS
                 </div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{posDrillData.drills.length} position-specific drills · tap to watch</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>{posDrillData.drills.length} position-specific drills · tap to watch</div>
               </div>
             </div>
-            <span style={{ color: C.textDim, fontSize: 12, transform: showPosDrills ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
+            <span style={{ color: C.textDim, fontSize: "var(--gp-type-small)", transform: showPosDrills ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
           </button>
           {showPosDrills && (
             <div style={{ padding: "0 22px 20px" }}>
-              <div style={{ background: `${posDrillData.color}08`, border: `1px solid ${posDrillData.color}20`, borderRadius: 10, padding: "12px 16px", margin: "14px 0", fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, fontStyle: "italic" }}>
+              <div style={{ background: `${posDrillData.color}08`, border: `1px solid ${posDrillData.color}20`, borderRadius: 10, padding: "12px 16px", margin: "14px 0", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.6, fontStyle: "italic" }}>
                 {posDrillData.focus}
               </div>
               {posDrillData.drills.map((d, di) => (
                 <div key={di} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: di % 2 === 0 ? C.surfaceSubtle : "transparent", borderRadius: 8, marginBottom: 2 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: posDrillData.color, color: C.navyDeep, fontSize: 11, fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0 }}>{di + 1}</span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, flex: 1 }}>{d.text}</span>
-                  <a href={d.video} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6, background: `${C.electric}10`, border: `1px solid ${C.electric}25`, textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11, color: C.electric, fontWeight: 700, flexShrink: 0 }}><PlayCircle size={11} weight="fill" style={{ marginRight: 4, verticalAlign: "middle" }} />Watch</a>
+                  <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: posDrillData.color, color: C.navyDeep, fontSize: "var(--gp-type-caption)", fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0 }}>{di + 1}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, flex: 1 }}>{d.text}</span>
+                  <a href={d.video} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6, background: `${C.electric}10`, border: `1px solid ${C.electric}25`, textDecoration: "none", fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.electric, fontWeight: 700, flexShrink: 0 }}><PlayCircle size={11} weight="fill" style={{ marginRight: 4, verticalAlign: "middle" }} />Watch</a>
                 </div>
               ))}
             </div>
@@ -2753,10 +2937,10 @@ function TrainingSection() {
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 19, color: C.textBright, letterSpacing: 1 }}>
                     WEEK {idx + 1}: {week.name.toUpperCase()}
                   </div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{week.drills.length} drills · tap for video demos</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>{week.drills.length} drills · tap for video demos</div>
                 </div>
               </div>
-              <span style={{ color: C.textDim, fontSize: 12, transform: openWeek === idx ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
+              <span style={{ color: C.textDim, fontSize: "var(--gp-type-small)", transform: openWeek === idx ? "rotate(180deg)" : "", transition: "transform 0.3s" }}>▼</span>
             </button>
 
             {openWeek === idx && (
@@ -2764,7 +2948,7 @@ function TrainingSection() {
                 <div style={{
                   background: `${data.color}08`, border: `1px solid ${data.color}20`,
                   borderRadius: 10, padding: "12px 16px", marginBottom: 14,
-                  fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, fontStyle: "italic",
+                  fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.6, fontStyle: "italic",
                 }}>
                   {week.focus}
                 </div>
@@ -2776,13 +2960,13 @@ function TrainingSection() {
                   }}>
                     <span style={{
                       width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                      background: data.color, color: C.navy, fontSize: 11, fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0,
+                      background: data.color, color: C.navy, fontSize: "var(--gp-type-caption)", fontWeight: 800, fontFamily: FONT_BODY, flexShrink: 0,
                     }}>{di + 1}</span>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, flex: 1 }}>{drill.text}</span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, flex: 1 }}>{drill.text}</span>
                     <a href={drill.video} target="_blank" rel="noopener noreferrer" style={{
                       display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6,
                       background: `${C.electric}10`, border: `1px solid ${C.electric}25`,
-                      textDecoration: "none", fontFamily: FONT_BODY, fontSize: 11,
+                      textDecoration: "none", fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)",
                       color: C.electric, fontWeight: 700, flexShrink: 0,
                     }}><PlayCircle size={11} weight="fill" style={{ marginRight: 4, verticalAlign: "middle" }} />Watch</a>
                   </div>
@@ -2822,7 +3006,7 @@ function NutritionSection({ compact = false }) {
         background: checkerOpen ? C.navyCard : `linear-gradient(135deg, ${C.navy}, ${C.navyCard})`,
         color: checkerOpen ? C.danger : C.gold,
         border: checkerOpen ? `1px solid ${C.danger}30` : `1px solid ${C.gold}30`,
-        fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700,
+        fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontWeight: 700,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
       }}>
         {checkerOpen ? "Close Food Checker" : "Open Food Checker"}
@@ -2831,7 +3015,7 @@ function NutritionSection({ compact = false }) {
       {checkerOpen && (
         <Card style={{ marginBottom: 28 }}>
           <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>FOOD CHECKER</h3>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 16px" }}>Search for a food, pick the timing, get instant feedback.</p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 16px" }}>Search for a food, pick the timing, get instant feedback.</p>
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
             <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setSelectedFood(null); }}
               placeholder="Search: chicken rice, banana, bubble tea..."
@@ -2845,7 +3029,7 @@ function NutritionSection({ compact = false }) {
           {searchTerm.trim().length > 0 && (
             <div style={{ display: "grid", gap: 6, maxHeight: 320, overflowY: "auto" }}>
               {filteredFoods.length === 0 ? (
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, textAlign: "center", padding: 20 }}>No match found.</p>
+                <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, textAlign: "center", padding: 20 }}>No match found.</p>
               ) : filteredFoods.map((food, i) => {
                 const rating = food[timing];
                 const isSelected = selectedFood?.name === food.name;
@@ -2859,20 +3043,20 @@ function NutritionSection({ compact = false }) {
                       transition: "all 0.2s",
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, fontWeight: 600 }}>{food.name}</span>
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{food.cal} kcal</span>
+                        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, fontWeight: 600 }}>{food.name}</span>
+                        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>{food.cal} kcal</span>
                       </div>
                       <span style={{
-                        padding: "4px 12px", borderRadius: 6, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+                        padding: "4px 12px", borderRadius: 6, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700,
                         background: `${ratingColors[rating]}15`, color: ratingColors[rating],
                       }}>{ratingLabels[rating]}</span>
                     </div>
                     {isSelected && (
                       <div style={{ padding: "12px 16px", borderRadius: "0 0 10px 10px", background: `${ratingColors[rating]}06`, borderLeft: `3px solid ${ratingColors[rating]}50` }}>
-                        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.6 }}>{food.note}</p>
+                        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.6 }}>{food.note}</p>
                         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
                           {["carb","protein","fat"].map(m => (
-                            <span key={m} style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "2px 8px", borderRadius: 4, background: C.surfaceSubtle, color: C.textDim }}>
+                            <span key={m} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", padding: "2px 8px", borderRadius: 4, background: C.surfaceSubtle, color: C.textDim }}>
                               {m}: <strong style={{ color: C.textMid }}>{food[m]}</strong>
                             </span>
                           ))}
@@ -2895,19 +3079,19 @@ function NutritionSection({ compact = false }) {
               <span style={{ display: "inline-flex" }}><SportIcon name={item.icon} size={28} color={item.color} /></span>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, margin: 0, letterSpacing: 0.5 }}>{item.meal.toUpperCase()}</h3>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: item.color }}>{item.time}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: item.color }}>{item.time}</span>
               </div>
             </div>
             <ul style={{ padding: 0, margin: "0 0 14px", listStyle: "none" }}>
               {item.options.map((opt, j) => (
-                <li key={j} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>
+                <li key={j} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid }}>
                   <span style={{ width: 4, height: 4, borderRadius: "50%", background: item.color, flexShrink: 0 }} />
                   {opt}
                 </li>
               ))}
             </ul>
             <div style={{ padding: "10px 14px", borderRadius: 8, background: C.surfaceSubtle, borderLeft: `2px solid ${item.color}40` }}>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0, lineHeight: 1.5, fontStyle: "italic" }}>{item.tip}</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, margin: 0, lineHeight: 1.5, fontStyle: "italic" }}>{item.tip}</p>
             </div>
           </Card>
         ))}
@@ -2982,7 +3166,7 @@ function BoxBreathingTimer() {
   return (
     <Card style={{ marginBottom: 28 }}>
       <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>BOX BREATHING TIMER</h3>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 24px" }}>4-4-4-4 breathing to calm nerves before kick-off. Complete {totalRounds} rounds.</p>
+      <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 24px" }}>4-4-4-4 breathing to calm nerves before kick-off. Complete {totalRounds} rounds.</p>
 
       {/* Phase steps */}
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
@@ -2994,7 +3178,7 @@ function BoxBreathingTimer() {
             border: `1px solid ${running && phaseIdx === i ? p.color + "50" : C.navyBorder}`,
             transition: "all 0.4s",
           }}>
-            <span style={{ fontFamily: FONT_HEAD, fontSize: 11, color: running && phaseIdx === i ? p.color : C.textDim, letterSpacing: 1 }}>{p.label}</span>
+            <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-caption)", color: running && phaseIdx === i ? p.color : C.textDim, letterSpacing: 1 }}>{p.label}</span>
             <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: running && phaseIdx === i ? p.color : C.textDim }}>{p.duration}s</span>
           </div>
         ))}
@@ -3020,10 +3204,10 @@ function BoxBreathingTimer() {
               <span style={{ fontSize: 32 }}>✅</span>
             ) : (
               <>
-                <span style={{ fontFamily: FONT_HEAD, fontSize: 38, color: running ? phase.color : C.textDim, lineHeight: 1, transition: "color 0.4s" }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 38, color: running ? phase.color : C.textDim, lineHeight: 1, transition: "color 0.4s" }}>
                   {secondsLeft}
                 </span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: running ? phase.color : C.textDim, fontWeight: 700, letterSpacing: 1, marginTop: 2, textTransform: "uppercase", transition: "color 0.4s" }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: running ? phase.color : C.textDim, fontWeight: 700, letterSpacing: 1, marginTop: 2, textTransform: "uppercase", transition: "color 0.4s" }}>
                   {running ? phase.label : "READY"}
                 </span>
               </>
@@ -3042,7 +3226,7 @@ function BoxBreathingTimer() {
             }} />
           ))}
         </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "10px 0 0", textAlign: "center" }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, margin: "10px 0 0", textAlign: "center" }}>
           {done ? "Well done! You've completed 5 rounds. 🎉" : running ? phase.instruction : "Press Start when you're ready"}
         </p>
       </div>
@@ -3115,11 +3299,11 @@ function MindsetSection() {
               }}><SportIcon name={card.icon} size={20} color={C.electric} /></span>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, margin: 0, letterSpacing: 0.5 }}>{card.title.toUpperCase()}</h3>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{card.technique}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{card.technique}</span>
               </div>
             </div>
             {activeCard === i && (
-              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: 0, lineHeight: 1.65 }}>{card.content}</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, margin: 0, lineHeight: 1.65 }}>{card.content}</p>
             )}
           </div>
         ))}
@@ -3131,14 +3315,14 @@ function MindsetSection() {
       {/* Fixed vs Growth Mindset — Flippable Cards */}
       <Card style={{ marginBottom: 28 }}>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>FIXED vs GROWTH MINDSET</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 16px" }}>Tap a card to flip from fixed thinking to growth thinking.</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 16px" }}>Tap a card to flip from fixed thinking to growth thinking.</p>
 
         {/* Phase filter pills */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
           {phaseFilters.map(f => (
             <button key={f} onClick={() => { setMindsetFilter(f); setFlippedCards({}); }} style={{
               padding: "6px 14px", borderRadius: 20, cursor: "pointer", border: "none",
-              fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+              fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, letterSpacing: 0.5,
               background: mindsetFilter === f ? (phaseColors[f] || C.electric) : C.surfaceSubtle,
               color: mindsetFilter === f ? C.navy : C.textDim,
               transition: "all 0.2s",
@@ -3170,8 +3354,8 @@ function MindsetSection() {
                       <span style={{ display: "inline-flex" }}><SportIcon name={item.icon} size={22} /></span>
                       <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: phaseColor, background: `${phaseColor}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.phase}</span>
                     </div>
-                    <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.danger, margin: 0, lineHeight: 1.5 }}>"{item.fixed}"</p>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textAlign: "right" }}>Tap to flip →</span>
+                    <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.danger, margin: 0, lineHeight: 1.5 }}>"{item.fixed}"</p>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textAlign: "right" }}>Tap to flip →</span>
                   </div>
                   {/* Back — Growth mindset */}
                   <div style={{
@@ -3185,8 +3369,8 @@ function MindsetSection() {
                       <span style={{ display: "inline-flex" }}><SportIcon name="plant" size={22} color={C.success} /></span>
                       <span style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: C.success, background: `${C.success}15`, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Growth</span>
                     </div>
-                    <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, margin: 0, lineHeight: 1.5 }}>"{item.growth}"</p>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textAlign: "right" }}>← Tap to flip back</span>
+                    <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.success, margin: 0, lineHeight: 1.5 }}>"{item.growth}"</p>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textAlign: "right" }}>← Tap to flip back</span>
                   </div>
                 </div>
               </div>
@@ -3200,7 +3384,7 @@ function MindsetSection() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div>
             <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>GROWTH JOURNAL</h3>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0 }}>{journalEntries.length} entries saved</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0 }}>{journalEntries.length} entries saved</p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {journalEntries.length > 0 && <ShareSaveBar targetRef={journalRef} filename="nbss-journal.png" title="My NBSS Growth Journal" />}
@@ -3237,10 +3421,10 @@ function MindsetSection() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
               {journalEntries.slice().reverse().map(entry => (
                 <div key={entry.id} style={{ padding: "12px 16px", borderRadius: 10, background: C.surfaceSubtle, borderLeft: `3px solid ${C.electric}40` }}>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: 4 }}>{entry.date}</div>
-                  {entry.fixed && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, margin: "0 0 3px" }}>Fixed: {entry.fixed}</p>}
-                  {entry.growth && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, margin: "0 0 3px" }}>Growth: {entry.growth}</p>}
-                  {entry.reflection && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{entry.reflection}</p>}
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginBottom: 4 }}>{entry.date}</div>
+                  {entry.fixed && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.danger, margin: "0 0 3px" }}>Fixed: {entry.fixed}</p>}
+                  {entry.growth && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.success, margin: "0 0 3px" }}>Growth: {entry.growth}</p>}
+                  {entry.reflection && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.5 }}>{entry.reflection}</p>}
                 </div>
               ))}
             </div>
@@ -3279,7 +3463,7 @@ function WarmUpSection() {
       <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
         {[{ id: "warmup", label: "Pre-Session Preparation" }, { id: "cooldown", label: "Post-Session Recovery" }].map(t => (
           <button key={t.id} onClick={() => { setMode(t.id); setActiveStep(0); }} style={{
-            padding: "10px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+            padding: "10px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700,
             background: mode === t.id ? accentColor : C.navyCard,
             color: mode === t.id ? C.navyDeep : C.textMid,
             border: mode === t.id ? "none" : `1px solid ${C.navyBorder}`,
@@ -3291,10 +3475,10 @@ function WarmUpSection() {
       {/* Progress bar */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontWeight: 700 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, fontWeight: 700 }}>
             {mode === "warmup" ? "WARM-UP PROGRESS" : "COOL-DOWN PROGRESS"}
           </span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: accentColor, fontWeight: 700 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: accentColor, fontWeight: 700 }}>
             {Object.keys(done).filter(k => k.startsWith(mode) && done[k]).length}/{steps.length} steps
           </span>
         </div>
@@ -3314,10 +3498,10 @@ function WarmUpSection() {
           <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: accentColor, letterSpacing: 1, margin: "8px 0 4px" }}>
             {mode === "warmup" ? "FULLY WARMED UP — YOU'RE READY." : "RECOVERY COMPLETE — WELL DONE."}
           </div>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 12 }}>
             {mode === "warmup" ? "Your joints, muscles and brain are primed. Go play your game." : "Your body is in recovery mode. Hydrate, eat within 45 mins, rest."}
           </p>
-          <button onClick={resetFlow} style={{ padding: "8px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid }}>Reset Protocol</button>
+          <button onClick={resetFlow} style={{ padding: "8px 20px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid }}>Reset Protocol</button>
         </div>
       )}
 
@@ -3348,12 +3532,12 @@ function WarmUpSection() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <span style={{ display: "inline-flex" }}><SportIcon name={step.icon} size={18} /></span>
                   <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: isDone ? accentColor : C.textBright, letterSpacing: 0.5 }}>{step.name.toUpperCase()}</span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: accentColor, background: `${accentColor}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{step.duration}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: accentColor, background: `${accentColor}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{step.duration}</span>
                 </div>
                 {isActive && (
-                  <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
                 )}
-                {isDone && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: accentColor, margin: 0, fontStyle: "italic" }}>Complete ✓</p>}
+                {isDone && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: accentColor, margin: 0, fontStyle: "italic" }}>Complete ✓</p>}
               </div>
               {/* Step number */}
               <span style={{ fontFamily: FONT_HEAD, fontSize: 22, color: isDone ? accentColor : C.textDim, opacity: isDone ? 1 : 0.4 }}>{String(idx + 1).padStart(2, "0")}</span>
@@ -3362,7 +3546,7 @@ function WarmUpSection() {
         })}
       </div>
 
-      <p style={{ fontFamily: FONT_SERIF, fontSize: 13, color: C.textDim, textAlign: "center", margin: "28px 0 0", fontStyle: "italic" }}>
+      <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", color: C.textDim, textAlign: "center", margin: "28px 0 0", fontStyle: "italic" }}>
         "The more I practise, the luckier I get." — Players who skip warm-up get to test that theory the hard way.
       </p>
     </section>
@@ -3422,17 +3606,17 @@ function FitnessSection() {
               <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.gold}15`, border: `1px solid ${C.gold}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚖️</div>
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>WHAT IS ACWR?</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Acute:Chronic Workload Ratio — your injury risk indicator</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>Acute:Chronic Workload Ratio — your injury risk indicator</div>
               </div>
             </div>
-            <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{eduOpen === "acwr" ? "▲" : "▼"}</span>
+            <span style={{ color: C.gold, fontSize: "var(--gp-type-body)", fontWeight: 700, flexShrink: 0 }}>{eduOpen === "acwr" ? "▲" : "▼"}</span>
           </button>
           {eduOpen === "acwr" && (
             <div style={{ padding: "0 20px 20px" }}>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
                 <strong style={{ color: C.textBright }}>ACWR compares your recent training load (last 7 days) against your long-term load (last 28 days).</strong> Think of it as your fitness GPS — it tells you if you're training too much, too little, or just right.
               </p>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
                 <strong style={{ color: C.textBright }}>How it's calculated:</strong> Each session's load = RPE × Duration (minutes). ACWR = 7-day average ÷ 28-day average.
               </p>
               {/* Zone chart */}
@@ -3444,15 +3628,15 @@ function FitnessSection() {
                   { range: "Above 1.5", label: "High Risk", desc: "Overload warning. High injury risk. Reduce session intensity and rest immediately.", color: C.danger, bg: `${C.danger}15` },
                 ].map((z, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: z.bg, borderBottom: i < 3 ? `1px solid ${C.navyBorder}` : "none" }}>
-                    <div style={{ minWidth: 72, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: z.color, paddingTop: 1 }}>{z.range}</div>
+                    <div style={{ minWidth: 72, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: z.color, paddingTop: 1 }}>{z.range}</div>
                     <div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: z.color, marginBottom: 2 }}>{z.label}</div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{z.desc}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, color: z.color, marginBottom: 2 }}>{z.label}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.5 }}>{z.desc}</div>
                     </div>
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.6, margin: 0 }}>
                 Log your session <strong style={{ color: C.textMid }}>RPE and duration</strong> in the Progress Tracker to see your ACWR chart automatically.
               </p>
             </div>
@@ -3469,14 +3653,14 @@ function FitnessSection() {
               <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.electric}15`, border: `1px solid ${C.electric}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>💬</div>
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>WHAT IS RPE?</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Rate of Perceived Exertion — your personal effort score</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>Rate of Perceived Exertion — your personal effort score</div>
               </div>
             </div>
-            <span style={{ color: C.electric, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{eduOpen === "rpe" ? "▲" : "▼"}</span>
+            <span style={{ color: C.electric, fontSize: "var(--gp-type-body)", fontWeight: 700, flexShrink: 0 }}>{eduOpen === "rpe" ? "▲" : "▼"}</span>
           </button>
           {eduOpen === "rpe" && (
             <div style={{ padding: "0 20px 20px" }}>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.7, marginBottom: 16 }}>
                 <strong style={{ color: C.textBright }}>RPE is a simple 1–10 scale of how hard you felt you worked.</strong> It's used by elite sports scientists because it captures the real mental and physical toll of training — not just distance or time.
               </p>
               {/* RPE Scale */}
@@ -3490,10 +3674,10 @@ function FitnessSection() {
                   { val: "10",  label: "Maximum", desc: "Total effort — cannot sustain beyond seconds", color: C.danger },
                 ].map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: `${r.color}10`, border: `1px solid ${r.color}25` }}>
-                    <div style={{ minWidth: 32, fontFamily: FONT_HEAD, fontSize: 15, color: r.color, letterSpacing: 1 }}>{r.val}</div>
+                    <div style={{ minWidth: 32, fontFamily: FONT_HEAD, fontSize: "var(--gp-type-lead)", color: r.color, letterSpacing: 1 }}>{r.val}</div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}</span>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}> — {r.desc}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, color: r.color }}>{r.label}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}> — {r.desc}</span>
                     </div>
                     {/* Mini bar */}
                     <div style={{ width: 40, height: 6, borderRadius: 3, background: C.navyBorder, overflow: "hidden", flexShrink: 0 }}>
@@ -3502,7 +3686,7 @@ function FitnessSection() {
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.6, margin: 0 }}>
                 Most team training sessions should sit at <strong style={{ color: C.textMid }}>RPE 6–8</strong>. Recovery sessions should be RPE 3–4. Always honest with yourself — no one benefits from inflated scores.
               </p>
             </div>
@@ -3522,7 +3706,7 @@ function FitnessSection() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>{test.name.toUpperCase()}</h3>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{test.unit}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{test.unit}</span>
                 </div>
                 {latest && (
                   <span style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.gold, background: `${C.gold}10`, padding: "4px 14px", borderRadius: 8, border: `1px solid ${C.gold}20` }}>
@@ -3540,14 +3724,14 @@ function FitnessSection() {
                 ))}
               </div>
 
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: "0 0 14px", paddingTop: 12, borderTop: `1px solid ${C.navyBorder}` }}>{test.tip}</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, margin: "0 0 14px", paddingTop: 12, borderTop: `1px solid ${C.navyBorder}` }}>{test.tip}</p>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => { setShowLog(showLog === test.name ? null : test.name); setShowChart(null); }} style={{
                   padding: "8px 16px", borderRadius: 999, cursor: "pointer", border: "none",
                   background: showLog === test.name ? `${C.danger}15` : C.gold,
                   color: showLog === test.name ? C.danger : C.navy,
-                  fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                  fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
                 }}>
                   {showLog === test.name ? "Cancel" : `+ Log Result (${entries.length})`}
                 </button>
@@ -3555,7 +3739,7 @@ function FitnessSection() {
                   <button onClick={() => { setShowChart(showChart === test.name ? null : test.name); setShowLog(null); }} style={{
                     padding: "8px 16px", borderRadius: 999, cursor: "pointer",
                     background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`,
-                    color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                    color: C.textMid, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
                   }}>
                     {showChart === test.name ? "Hide Chart" : "📈 Progress"}
                   </button>
@@ -3572,13 +3756,13 @@ function FitnessSection() {
                   </div>
                   {entries.length > 0 && (
                     <div style={{ marginTop: 12 }}>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Recent Results</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Recent Results</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {entries.slice(-8).reverse().map(e => (
                           <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 6, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
-                            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{e.date}</span>
-                            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 700 }}>{e.value}</span>
-                            <button onClick={() => deleteResult(test.name, e.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 12, opacity: 0.5 }}>✕</button>
+                            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>{e.date}</span>
+                            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.gold, fontWeight: 700 }}>{e.value}</span>
+                            <button onClick={() => deleteResult(test.name, e.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-small)", opacity: 0.5 }}>✕</button>
                           </div>
                         ))}
                       </div>
@@ -3592,11 +3776,11 @@ function FitnessSection() {
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: C.textDim }} />
-                      <YAxis tick={{ fontSize: 10, fill: C.textDim }} />
-                      <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 12, color: C.textBright }} />
+                      <XAxis dataKey="date" tick={{ fontSize: "var(--gp-type-micro)", fill: C.textDim }} />
+                      <YAxis tick={{ fontSize: "var(--gp-type-micro)", fill: C.textDim }} />
+                      <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textBright }} />
                       <Line type="monotone" dataKey="value" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 4 }} activeDot={{ r: 6 }} />
-                      {target && <ReferenceLine y={parseFloat(target)} stroke={C.success} strokeDasharray="5 5" label={{ value: "Target", fill: C.success, fontSize: 10 }} />}
+                      {target && <ReferenceLine y={parseFloat(target)} stroke={C.success} strokeDasharray="5 5" label={{ value: "Target", fill: C.success, fontSize: "var(--gp-type-micro)" }} />}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -3797,12 +3981,12 @@ function TrackerSection() {
     <section style={{ padding: "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
       <div ref={exportRef} style={{ background: C.navy, paddingBottom: 8 }}>
       <SectionHeader icon="" title="SESSION LOG" subtitle="Log sessions, track workload, and monitor performance progression." accent={C.electric} />
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
         <span>Last updated {formatDateTime(sessionsMeta?.updatedAt)}</span>
         <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
       </div>
       {syncFeedback && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
           {syncFeedback.message}
         </div>
       )}
@@ -3817,8 +4001,8 @@ function TrackerSection() {
         ].map((s, i) => (
           <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "18px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
             {s.icon ? <span style={{ display: "inline-flex" }}><SportIcon name={s.icon} size={22} /></span> : null}
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 30, color: s.color, marginTop: 6 }}>{s.value}</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: s.color, marginTop: 6 }}>{s.value}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -3835,13 +4019,13 @@ function TrackerSection() {
               <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>TRAINING LOAD - ACWR</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontFamily: FONT_HEAD, fontSize: 22, color: acwrColor }}>{last.acwr.toFixed(2)}</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "3px 10px", borderRadius: 6, background: `${acwrColor}15`, color: acwrColor, fontWeight: 700 }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", padding: "3px 10px", borderRadius: 6, background: `${acwrColor}15`, color: acwrColor, fontWeight: 700 }}>
                   {last.acwr > 1.5 ? "HIGH RISK" : last.acwr > 1.3 ? "CAUTION" : last.acwr < 0.8 ? "UNDERLOADED" : "OPTIMAL"}
                 </span>
               </div>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Acute:Chronic Workload Ratio (7-day vs 28-day). Target zone: 0.8 - 1.3.</p>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, lineHeight: 1.6, marginBottom: 14 }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, margin: "0 0 16px" }}>Acute:Chronic Workload Ratio (7-day vs 28-day). Target zone: 0.8 - 1.3.</p>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, lineHeight: 1.6, marginBottom: 14 }}>
               {getLoadDirective(last.acwr)}
             </div>
             <div style={{ width: "100%", overflow: "hidden" }}>
@@ -3850,7 +4034,7 @@ function TrackerSection() {
                 <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
                 <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
                 <YAxis domain={[0, 2.5]} tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
-                <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                 <ReferenceArea y1={0.8} y2={1.3} fill={`${C.success}12`} />
                 <ReferenceArea y1={1.3} y2={1.5} fill={`${C.orange}12`} />
                 <ReferenceArea y1={1.5} y2={2.5} fill={`${C.danger}10`} />
@@ -3876,19 +4060,19 @@ function TrackerSection() {
           <Card style={{ marginBottom: 24, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>SLEEP AND ENERGY TREND</div>
-              <div style={{ display: "flex", gap: 12, fontSize: 11, fontFamily: FONT_BODY }}>
+              <div style={{ display: "flex", gap: 12, fontSize: "var(--gp-type-caption)", fontFamily: FONT_BODY }}>
                 <span style={{ color: C.electric }}>— Sleep quality (1–5)</span>
                 <span style={{ color: C.success }}>— Energy (1–5)</span>
               </div>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, margin: "0 0 16px" }}>Last {sleepData.length} sessions · higher = better · aim for consistent 4–5</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, margin: "0 0 16px" }}>Last {sleepData.length} sessions · higher = better · aim for consistent 4–5</p>
             <div style={{ width: "100%", overflow: "hidden" }}>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={sleepData} margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
                   <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
                   <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontFamily: FONT_BODY, fontSize: 9, fill: C.textDim }} tickLine={false} />
-                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                   <ReferenceLine y={4} stroke={C.success} strokeDasharray="4 2" strokeWidth={1} label={{ value: "Target", position: "right", fontSize: 9, fill: C.success, fontFamily: FONT_BODY }} />
                   <Line type="monotone" dataKey="sleep" stroke={C.electric} strokeWidth={2} dot={{ fill: C.electric, r: 3 }} activeDot={{ r: 5 }} name="Sleep" connectNulls />
                   <Line type="monotone" dataKey="energy" stroke={C.success} strokeWidth={2} dot={{ fill: C.success, r: 3 }} activeDot={{ r: 5 }} name="Energy" connectNulls />
@@ -3907,19 +4091,19 @@ function TrackerSection() {
       {/* Quick Log */}
       <Card style={{ marginBottom: 16, border: `1px solid ${C.electric}25` }}>
         <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.electric, letterSpacing: 1, marginBottom: 8 }}>QUICK ENTRY</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginBottom: 12 }}>Log today quickly when speed matters.</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginBottom: 12 }}>Log today quickly when speed matters.</p>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {[{type:"training",label:"Training",color:C.electric},{type:"match",label:"Match",color:C.gold},{type:"fitness",label:"Fitness",color:C.success},{type:"recovery",label:"Recovery",color:C.orange}].map(t => (
-            <button key={t.type} onClick={() => setQuickType(t.type)} style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", background: quickType === t.type ? `${t.color}20` : C.navyCard, border: `1px solid ${quickType === t.type ? t.color : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 12, color: quickType === t.type ? t.color : C.textMid, fontWeight: quickType === t.type ? 700 : 400 }}>{t.label}</button>
+            <button key={t.type} onClick={() => setQuickType(t.type)} style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", background: quickType === t.type ? `${t.color}20` : C.navyCard, border: `1px solid ${quickType === t.type ? t.color : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: quickType === t.type ? t.color : C.textMid, fontWeight: quickType === t.type ? 700 : 400 }}>{t.label}</button>
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Quality:</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Quality:</span>
           {[1,2,3,4,5].map(r => (
-            <button key={r} onClick={() => setQuickRating(r)} style={{ width: 36, height: 36, borderRadius: 8, cursor: "pointer", background: quickRating >= r ? C.gold : C.navyCard, border: quickRating >= r ? "none" : `1px solid ${C.navyBorder}`, color: quickRating >= r ? C.navy : C.textDim, fontSize: 14, fontWeight: 700 }}>{r}</button>
+            <button key={r} onClick={() => setQuickRating(r)} style={{ width: 36, height: 36, borderRadius: 8, cursor: "pointer", background: quickRating >= r ? C.gold : C.navyCard, border: quickRating >= r ? "none" : `1px solid ${C.navyBorder}`, color: quickRating >= r ? C.navy : C.textDim, fontSize: "var(--gp-type-body)", fontWeight: 700 }}>{r}</button>
           ))}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 12 }}>
+        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginBottom: 12 }}>
           {getLoadDirective(latestAcwr)}
         </div>
         <GoldButton onClick={quickLog} style={{ width: "100%" }}>Save {quickType.charAt(0).toUpperCase()+quickType.slice(1)} Session</GoldButton>
@@ -3945,7 +4129,7 @@ function TrackerSection() {
                 {[1,2,3,4,5,6,7,8,9,10].map(r => {
                   const rpeColor = r <= 3 ? C.success : r <= 6 ? C.gold : r <= 8 ? C.orange : C.danger;
                   return (
-                    <button key={r} onClick={() => setForm({ ...form, rpe: r })} style={{ width: 32, height: 32, borderRadius: 8, cursor: "pointer", background: form.rpe === r ? `${rpeColor}30` : C.navyCard, border: `1px solid ${form.rpe === r ? rpeColor : C.navyBorder}`, color: form.rpe === r ? rpeColor : C.textDim, fontSize: 12, fontWeight: form.rpe === r ? 800 : 400 }}>{r}</button>
+                    <button key={r} onClick={() => setForm({ ...form, rpe: r })} style={{ width: 32, height: 32, borderRadius: 8, cursor: "pointer", background: form.rpe === r ? `${rpeColor}30` : C.navyCard, border: `1px solid ${form.rpe === r ? rpeColor : C.navyBorder}`, color: form.rpe === r ? rpeColor : C.textDim, fontSize: "var(--gp-type-small)", fontWeight: form.rpe === r ? 800 : 400 }}>{r}</button>
                   );
                 })}
               </div>
@@ -3953,7 +4137,7 @@ function TrackerSection() {
           </div>
           {/* Readiness check-in */}
           <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20` }}>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.electric, letterSpacing: 1, marginBottom: 10 }}>READINESS CHECK-IN</div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: C.electric, letterSpacing: 1, marginBottom: 10 }}>READINESS CHECK-IN</div>
             {[{key:"sleep",label:"Sleep quality last night",inverse:false},{key:"energy",label:"Energy level right now",inverse:false},{key:"soreness",label:"Body soreness (lower = better)",inverse:true}].map(({key,label,inverse}) => (
               <div key={key} style={{ marginBottom: 10 }}>
                 <label style={{ ...makeLabelStyle(C), marginBottom: 4 }}>{label}</label>
@@ -3961,12 +4145,12 @@ function TrackerSection() {
                   {[1,2,3,4,5].map(v => {
                     const isActive = form[key] === v;
                     const col = inverse ? (v <= 2 ? C.success : v === 3 ? C.gold : C.danger) : (v <= 2 ? C.danger : v === 3 ? C.gold : C.success);
-                    return <button key={v} onClick={() => setForm({ ...form, [key]: v })} style={{ width: 40, height: 32, borderRadius: 8, cursor: "pointer", background: isActive ? `${col}25` : C.navyCard, border: `1px solid ${isActive ? col : C.navyBorder}`, color: isActive ? col : C.textDim, fontFamily: FONT_BODY, fontSize: 12, fontWeight: isActive ? 700 : 400 }}>{v}</button>;
+                    return <button key={v} onClick={() => setForm({ ...form, [key]: v })} style={{ width: 40, height: 32, borderRadius: 8, cursor: "pointer", background: isActive ? `${col}25` : C.navyCard, border: `1px solid ${isActive ? col : C.navyBorder}`, color: isActive ? col : C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: isActive ? 700 : 400 }}>{v}</button>;
                   })}
                 </div>
               </div>
             ))}
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, marginTop: 4 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, marginTop: 4 }}>
               Readiness score: <strong style={{ color: C.electric }}>{Math.round(((+form.sleep + +form.energy + (6 - +form.soreness)) / 15) * 100)}%</strong>
             </div>
           </div>
@@ -4004,7 +4188,7 @@ function TrackerSection() {
             <label style={makeLabelStyle(C)}>Goal for next session</label>
             <input value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} placeholder="e.g. Complete 5 successful dribbles" style={makeInputStyle(C)} />
           </div>
-          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
             Draft autosaves on this device. Updated {formatDateTime(draftUpdatedAt)}.
           </div>
           <GoldButton onClick={addEntry} style={{ marginTop: 18, width: "100%" }}>Save Entry</GoldButton>
@@ -4013,8 +4197,8 @@ function TrackerSection() {
 
       {yearSessions.length === 0 ? (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions logged for {year} yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use the quick entry above to start building your performance history.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No sessions logged for {year} yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6, lineHeight: 1.6 }}>Use the quick entry above to start building your performance history.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -4024,21 +4208,21 @@ function TrackerSection() {
                 <span style={{ fontSize: 22 }}>{entry.mood}</span>
                 <div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: 0.5 }}>{entry.type.toUpperCase()}</span>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>— {entry.date}</span>
+                    <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: C.textBright, letterSpacing: 0.5 }}>{entry.type.toUpperCase()}</span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>— {entry.date}</span>
                   </div>
                   <div style={{ display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-                    {entry.load > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.orange, background: `${C.orange}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Load: {entry.load}</span>}
-                    {entry.readinessScore != null && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger, background: `${entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Ready: {entry.readinessScore}%</span>}
+                    {entry.load > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.orange, background: `${C.orange}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Load: {entry.load}</span>}
+                    {entry.readinessScore != null && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger, background: `${entry.readinessScore >= 70 ? C.success : entry.readinessScore >= 50 ? C.gold : C.danger}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>Ready: {entry.readinessScore}%</span>}
                   </div>
-                  {entry.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(entry.updatedAt)}</div>}
-                  {entry.notes && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, marginTop: 2 }}>{entry.notes}</div>}
-                  {entry.goals && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.electric, marginTop: 2 }}>Focus: {entry.goals}</div>}
+                  {entry.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(entry.updatedAt)}</div>}
+                  {entry.notes && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, marginTop: 2 }}>{entry.notes}</div>}
+                  {entry.goals && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.electric, marginTop: 2 }}>Focus: {entry.goals}</div>}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div>{[1,2,3,4,5].map(r => <span key={r} style={{ color: entry.rating >= r ? C.gold : C.navyBorder, fontSize: 14 }}>★</span>)}</div>
-                <button onClick={() => deleteEntry(entry.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                <div>{[1,2,3,4,5].map(r => <span key={r} style={{ color: entry.rating >= r ? C.gold : C.navyBorder, fontSize: "var(--gp-type-body)" }}>★</span>)}</div>
+                <button onClick={() => deleteEntry(entry.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4 }}>✕</button>
               </div>
             </div>
           ))}
@@ -4124,43 +4308,43 @@ function WellnessSection() {
   return (
     <section style={{ padding: "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
       <SectionHeader icon="" title="AVAILABILITY LOG" subtitle="Track issues, return-to-play timelines, and current training status." accent={C.orange} />
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
         <span>Last updated {formatDateTime(logsMeta?.updatedAt)}</span>
         <span>Autosave draft {draftUpdatedAt ? `active · ${formatDateTime(draftUpdatedAt)}` : "inactive"}</span>
       </div>
       {syncFeedback && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: syncFeedback.type === "error" ? `${C.danger}10` : `${C.success}10`, border: `1px solid ${syncFeedback.type === "error" ? `${C.danger}35` : `${C.success}35`}`, color: syncFeedback.type === "error" ? C.danger : C.success, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
           {syncFeedback.message}
         </div>
       )}
 
       {/* Info banner */}
-      <div style={{ background: `${C.orange}08`, border: `1px solid ${C.orange}25`, borderRadius: 12, padding: "14px 18px", marginBottom: 24, fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.6 }}>
+      <div style={{ background: `${C.orange}08`, border: `1px solid ${C.orange}25`, borderRadius: 12, padding: "14px 18px", marginBottom: 24, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.6 }}>
         This log supports awareness only. Always tell your coach about injuries and do not train through pain without guidance.
       </div>
 
       {/* Active injuries */}
       {active.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.danger, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Active</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.danger, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Active</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {active.map(log => (
               <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${severityColor(log.severity)}35`, borderRadius: 14, padding: "16px 20px", borderLeft: `4px solid ${severityColor(log.severity)}` }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
-                      <span style={{ fontFamily: FONT_HEAD, fontSize: 15, color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: severityColor(log.severity), background: `${severityColor(log.severity)}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{severityLabel(log.severity)}</span>
+                      <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-lead)", color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: severityColor(log.severity), background: `${severityColor(log.severity)}15`, padding: "2px 8px", borderRadius: 5, fontWeight: 700 }}>{severityLabel(log.severity)}</span>
                     </div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: log.notes ? 6 : 0 }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginBottom: log.notes ? 6 : 0 }}>
                       Logged: {log.date}{log.rtp ? ` · Est. return: ${log.rtp}` : ""}
                     </div>
-                    {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginBottom: 6 }}>Updated {formatDateTime(log.updatedAt)}</div>}
-                    {log.notes && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0 }}>{log.notes}</p>}
+                    {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginBottom: 6 }}>Updated {formatDateTime(log.updatedAt)}</div>}
+                    {log.notes && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, margin: 0 }}>{log.notes}</p>}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                    <button onClick={() => toggleResolved(log.id)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.success}10`, border: `1px solid ${C.success}30`, color: C.success, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Mark Resolved</button>
-                    <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                    <button onClick={() => toggleResolved(log.id)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.success}10`, border: `1px solid ${C.success}30`, color: C.success, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>Mark Resolved</button>
+                    <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4 }}>✕</button>
                   </div>
                 </div>
               </div>
@@ -4193,7 +4377,7 @@ function WellnessSection() {
                   padding: "12px 16px", borderRadius: 10, cursor: "pointer", textAlign: "left",
                   background: form.severity === v ? `${severityColor(v)}15` : C.surfaceSubtle,
                   border: `1px solid ${form.severity === v ? severityColor(v) + "50" : C.navyBorder}`,
-                  fontFamily: FONT_BODY, fontSize: 13, color: form.severity === v ? severityColor(v) : C.textMid, fontWeight: form.severity === v ? 700 : 400,
+                  fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: form.severity === v ? severityColor(v) : C.textMid, fontWeight: form.severity === v ? 700 : 400,
                 }}>{["", "1 — Mild: light discomfort, can train normally", "2 — Moderate: noticeable pain, should modify load", "3 — Severe: significant pain, rest + see physio"][v]}</button>
               ))}
             </div>
@@ -4205,7 +4389,7 @@ function WellnessSection() {
             <label style={makeLabelStyle(C)}>Notes (how it happened, what it feels like)</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="e.g. Twisted ankle going for a 50-50, dull ache in outer ankle when running." style={{ ...makeInputStyle(C), height: 70, resize: "vertical", marginTop: 4 }} />
           </div>
-          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
             Draft autosaves on this device. Updated {formatDateTime(draftUpdatedAt)}.
           </div>
           <GoldButton onClick={addLog} style={{ marginTop: 16, width: "100%" }}>Save Log</GoldButton>
@@ -4215,18 +4399,18 @@ function WellnessSection() {
       {/* Resolved log */}
       {resolved.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Resolved</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Resolved</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {resolved.map(log => (
               <div key={log.id} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, opacity: 0.6 }}>
                 <div>
-                  <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginLeft: 8 }}>{log.date}</span>
-                  {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(log.updatedAt)}</div>}
+                  <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: C.textBright, letterSpacing: 0.5 }}>{log.location}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginLeft: 8 }}>{log.date}</span>
+                  {log.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(log.updatedAt)}</div>}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => toggleResolved(log.id)} style={{ padding: "4px 12px", borderRadius: 999, cursor: "pointer", background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11 }}>Reopen</button>
-                  <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                  <button onClick={() => toggleResolved(log.id)} style={{ padding: "4px 12px", borderRadius: 999, cursor: "pointer", background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)" }}>Reopen</button>
+                  <button onClick={() => deleteLog(log.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4 }}>✕</button>
                 </div>
               </div>
             ))}
@@ -4236,8 +4420,8 @@ function WellnessSection() {
 
       {logs.length === 0 && !showForm && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.success, fontSize: 15, fontWeight: 600 }}>No availability issues are currently logged.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Use this log if you pick up a knock so you can track your recovery properly.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.success, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No availability issues are currently logged.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6, lineHeight: 1.6 }}>Use this log if you pick up a knock so you can track your recovery properly.</p>
         </div>
       )}
     </section>
@@ -4312,12 +4496,12 @@ function SquadSection() {
               <button onClick={() => photoInputRef.current?.click()} style={{
                 padding: "8px 16px", borderRadius: 999, cursor: "pointer",
                 background: `${C.gold}15`, border: `1px solid ${C.gold}30`,
-                color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                color: C.gold, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
               }}>{tempSquad.photo ? "Change Photo" : "Add Photo"}</button>
               {tempSquad.photo && (
-                <button onClick={() => setTempSquad(p => ({ ...p, photo: "" }))} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 999, cursor: "pointer", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 12 }}>Remove</button>
+                <button onClick={() => setTempSquad(p => ({ ...p, photo: "" }))} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 999, cursor: "pointer", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }}>Remove</button>
               )}
-              <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, margin: "6px 0 0" }}>Square photos work best. Stored on your device only.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, margin: "6px 0 0" }}>Square photos work best. Stored on your device only.</p>
             </div>
             <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
           </div>
@@ -4333,7 +4517,7 @@ function SquadSection() {
           </div>
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.navyBorder}` }}>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1, marginBottom: 6 }}>CURRENT SEASON STATS</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 14 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.6, marginBottom: 14 }}>
               Add the numbers you want shown on your player card this season.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
@@ -4433,7 +4617,7 @@ function SquadSection() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: `linear-gradient(135deg, ${C.gold}20, ${C.gold}08)`,
                       border: `2px solid ${C.gold}40`,
-                      fontFamily: FONT_HEAD, fontSize: 38, color: C.gold,
+                      fontFamily: FONT_DISPLAY, fontSize: 38, color: C.gold,
                     }}>
                       {squad.photo
                         ? <img src={squad.photo} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -4444,31 +4628,31 @@ function SquadSection() {
                       position: "absolute", bottom: -4, right: -4, width: 24, height: 24,
                       borderRadius: "50%", background: C.navyCard, border: `2px solid ${C.navyBorder}`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 11, lineHeight: 1,
+                      fontSize: "var(--gp-type-caption)", lineHeight: 1,
                     }}>✎</div>
                   </button>
                   {squad.photo && squad.number && (
                     <div style={{
                       position: "absolute", top: -6, left: -6, width: 22, height: 22,
                       borderRadius: 6, background: C.gold, display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: FONT_HEAD, fontSize: 11, color: C.navyDeep,
+                      fontFamily: FONT_HEAD, fontSize: "var(--gp-type-caption)", color: C.navyDeep,
                       border: `2px solid ${C.navyDeep}`,
                     }}>{squad.number}</div>
                   )}
                 </div>
                 <div>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: C.textBright, letterSpacing: 2 }}>{squad.name.toUpperCase()}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>{squad.position || "No position"} · GamePlan</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>{squad.position || "No position"} · GamePlan</div>
                 </div>
               </div>
-              <button onClick={startEdit} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "8px 18px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600 }}>Edit ✎</button>
+              <button onClick={startEdit} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "8px 18px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 600 }}>Edit ✎</button>
             </div>
 
             {/* XP Bar */}
             <div style={{ marginTop: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                 <span style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.gold, letterSpacing: 1 }}>LVL {lvl.level} · {lvl.title.toUpperCase()}</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>{xp} XP{lvl.next ? ` / ${lvl.next}` : " · MAX"}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>{xp} XP{lvl.next ? ` / ${lvl.next}` : " · MAX"}</span>
               </div>
               <div style={{ height: 6, borderRadius: 3, background: C.navyBorder }}>
                 <div style={{
@@ -4483,19 +4667,19 @@ function SquadSection() {
             <div style={{ marginTop: 20, padding: "16px 18px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>CURRENT SEASON</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>{seasonLabel}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>{seasonLabel}</div>
               </div>
               {hasSeasonStats ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", gap: 10 }}>
                   {seasonStatCards.map((stat) => (
                     <div key={stat.key} style={{ padding: "12px 10px", borderRadius: 10, background: C.navyCard, textAlign: "center", border: `1px solid ${C.navyBorder}` }}>
                       <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.gold }}>{String(seasonStats[stat.key] ?? "").trim() || "—"}</div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>{stat.short}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>{stat.short}</div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.6 }}>
                   Add current season numbers to keep this profile relevant throughout the year.
                 </div>
               )}
@@ -4510,7 +4694,7 @@ function SquadSection() {
               ].map((s, i) => (
                 <div key={i} style={{ padding: "12px 10px", borderRadius: 10, background: C.surfaceSubtle, textAlign: "center", border: `1px solid ${C.navyBorder}` }}>
                   <div style={{ fontFamily: FONT_HEAD, fontSize: 24, color: C.textBright }}>{s.value}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -4532,9 +4716,9 @@ function SquadSection() {
                 opacity: unlocked ? 1 : 0.45, transition: "all 0.2s",
               }}>
                 <span style={{ display: "flex", justifyContent: "center", opacity: unlocked ? 1 : 0.25 }}><SportIcon name={badge.icon} size={28} /></span>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: unlocked ? C.gold : C.textDim, fontWeight: 700, marginTop: 6 }}>{badge.name}</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 3 }}>{badge.desc}</div>
-                {unlocked && <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.success, fontWeight: 700, marginTop: 6 }}>+{badge.xp} XP ✓</div>}
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: unlocked ? C.gold : C.textDim, fontWeight: 700, marginTop: 6 }}>{badge.name}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 3 }}>{badge.desc}</div>
+                {unlocked && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.success, fontWeight: 700, marginTop: 6 }}>+{badge.xp} XP ✓</div>}
               </div>
             );
           })}
@@ -4550,7 +4734,7 @@ function SquadSection() {
       {/* Position Finder */}
       <Card style={{ marginTop: 24 }}>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>POSITION FINDER</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
         <PositionFinder />
       </Card>
     </section>
@@ -4646,17 +4830,17 @@ function LegendsSection() {
             <div style={{ textAlign: "center", padding: "60px 24px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>📓</div>
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 10px", letterSpacing: 1 }}>YOUR JOURNAL IS EMPTY</h3>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.7, margin: "0 0 20px", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textDim, lineHeight: 1.7, margin: "0 0 20px", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
                 Read a legend's story, answer the reflection prompt, and your entry will appear here. Your thoughts are private — only you can see them.
               </p>
-              <button onClick={() => { setTab("global"); setActiveIdx(0); }} style={{ background: C.textBright, color: C.navy, border: "none", padding: "12px 24px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>
+              <button onClick={() => { setTab("global"); setActiveIdx(0); }} style={{ background: C.textBright, color: C.navy, border: "none", padding: "12px 24px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700 }}>
                 Start with a Legend →
               </button>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ padding: "12px 16px", borderRadius: 10, background: `${"#a855f7"}12`, border: `1px solid ${"#a855f7"}25` }}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: "#a855f7", margin: 0, fontWeight: 600 }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: "#a855f7", margin: 0, fontWeight: 600 }}>
                   📓 {journalEntries.length} reflection{journalEntries.length !== 1 ? "s" : ""} saved — your private growth journal
                 </p>
               </div>
@@ -4669,22 +4853,22 @@ function LegendsSection() {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
                           <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 1 }}>{l.name.toUpperCase()}</span>
-                          <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{isGlobal ? "🌍 Global" : "🇸🇬 Singapore"}</span>
+                          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{isGlobal ? "🌍 Global" : "🇸🇬 Singapore"}</span>
                           {(l.recipeValues || [l.recipe]).map(rv => {
                             const rc = RECIPE_COLORS[rv] || C.gold;
                             return <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: 9, fontWeight: 700, color: rc, background: `${rc}15`, padding: "2px 8px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>{rv}</span>;
                           })}
                         </div>
-                        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, fontStyle: "italic", lineHeight: 1.5, margin: "0 0 10px" }}>"{getLegendReflectionPrompt(l)}"</p>
+                        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, fontStyle: "italic", lineHeight: 1.5, margin: "0 0 10px" }}>"{getLegendReflectionPrompt(l)}"</p>
                         <div style={{ padding: "12px 14px", borderRadius: 10, background: `${"#a855f7"}08`, border: `1px solid ${"#a855f7"}20` }}>
-                          <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
+                          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
                             {reflections[l.name]}
                           </p>
                         </div>
                       </div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <button onClick={() => { setTab(isGlobal ? "global" : "sg"); setActiveIdx(isGlobal ? LEGENDS_GLOBAL.findIndex(g => g.name === l.name) : LEGENDS_SG.findIndex(g => g.name === l.name)); setDraft(reflections[l.name] || ""); }} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>
+                      <button onClick={() => { setTab(isGlobal ? "global" : "sg"); setActiveIdx(isGlobal ? LEGENDS_GLOBAL.findIndex(g => g.name === l.name) : LEGENDS_SG.findIndex(g => g.name === l.name)); setDraft(reflections[l.name] || ""); }} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }}>
                         Edit ✎
                       </button>
                     </div>
@@ -4714,7 +4898,7 @@ function LegendsSection() {
                     <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "#a855f7", display: "block" }} />
                   )}
                   <span style={{ fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center" }}><BadgeIcon legend={l} size={28} /></span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: activeIdx === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, color: activeIdx === idx ? C.gold : C.textDim, marginTop: 5, display: "block", lineHeight: 1.3 }}>
                     {l.shortName}
                   </span>
                 </button>
@@ -4734,11 +4918,11 @@ function LegendsSection() {
                   <div style={{ flex: 1 }}>
                     <h2 style={{ fontFamily: FONT_HEAD, fontSize: "clamp(24px, 5vw, 34px)", color: C.textBright, margin: 0, letterSpacing: 2 }}>{legend.name.toUpperCase()}</h2>
                     <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legend.era}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, background: C.surfaceSubtle, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navyBorder}` }}>{legend.era}</span>
                       {(legend.recipeValues || [legend.recipe]).map(rv => {
                         const rc = RECIPE_COLORS[rv] || C.gold;
                         return (
-                          <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: rc, background: `${rc}15`, padding: "4px 10px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>
+                          <span key={rv} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fontWeight: 700, color: rc, background: `${rc}15`, padding: "4px 10px", borderRadius: 6, border: `1px solid ${rc}30`, textTransform: "uppercase", letterSpacing: 1 }}>
                             {rv}
                           </span>
                         );
@@ -4749,19 +4933,19 @@ function LegendsSection() {
 
                 {/* Stat chip */}
                 <div style={{ padding: "8px 14px", borderRadius: 8, background: `${C.gold}10`, border: `1px solid ${C.gold}25`, marginBottom: 18, display: "inline-block" }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}><Trophy size={12} weight="thin" />{legend.stat}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.gold, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}><Trophy size={12} weight="thin" />{legend.stat}</span>
                 </div>
 
                 {/* Lesson text */}
                 <div style={{ padding: "20px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, marginBottom: 24 }}>
-                  <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textBright, lineHeight: 1.85, margin: 0 }}>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-lead)", color: C.textBright, lineHeight: 1.85, margin: 0 }}>
                     {legend.lesson}
                   </p>
                 </div>
 
                 {/* RECIPE breakdown chips */}
                 <div style={{ marginBottom: 24, padding: "14px 16px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>RECIPE Values in this story</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>RECIPE Values in this story</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {(legend.recipeValues || [legend.recipe]).map(rv => {
                       const rc = RECIPE_COLORS[rv] || C.gold;
@@ -4775,8 +4959,8 @@ function LegendsSection() {
                       };
                       return (
                         <div key={rv} style={{ padding: "10px 14px", borderRadius: 10, background: `${rc}10`, border: `1px solid ${rc}25`, flex: "1 1 200px" }}>
-                          <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: rc, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{rv}</div>
-                          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>{descriptions[rv] || ""}</div>
+                          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: rc, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{rv}</div>
+                          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.5 }}>{descriptions[rv] || ""}</div>
                         </div>
                       );
                     })}
@@ -4787,9 +4971,9 @@ function LegendsSection() {
                 <div style={{ borderRadius: 14, border: `1px solid ${"#a855f7"}30`, background: `${"#a855f7"}08`, padding: "18px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                     <span style={{ fontSize: 18 }}>✍️</span>
-                    <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: "#a855f7", letterSpacing: 1 }}>REFLECT</span>
+                    <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: "#a855f7", letterSpacing: 1 }}>REFLECT</span>
                   </div>
-                  <p style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.textBright, fontStyle: "italic", lineHeight: 1.75, margin: "0 0 16px" }}>
+                  <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-body)", color: C.textBright, fontStyle: "italic", lineHeight: 1.75, margin: "0 0 16px" }}>
                     "{reflectionPrompt}"
                   </p>
                   <div style={{ marginBottom: 10 }}>
@@ -4807,21 +4991,21 @@ function LegendsSection() {
                       background: draft.trim() ? C.textBright : C.surfaceSubtle,
                       color: draft.trim() ? C.navy : C.textDim,
                       border: "none", padding: "10px 20px", borderRadius: 999, cursor: draft.trim() ? "pointer" : "not-allowed",
-                      fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, transition: "opacity 0.15s ease",
+                      fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700, transition: "opacity 0.15s ease",
                     }}>
                       {saved ? "✅ Saved!" : "Save Reflection"}
                     </button>
                     {savedReflection && !saved && (
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: "#a855f7" }}>📓 Reflection saved — edit anytime</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: "#a855f7" }}>📓 Reflection saved — edit anytime</span>
                     )}
                   </div>
                 </div>
               </Card>
 
               <div style={{ marginTop: 16, padding: "12px 20px", borderRadius: 10, background: C.navyCard, border: `1px solid ${C.navyBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>Every legend started as someone who just loved kicking a ball around. Your story is still being written. ✍️</p>
+                <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, margin: 0 }}>Every legend started as someone who just loved kicking a ball around. Your story is still being written. ✍️</p>
                 {journalEntries.length > 0 && (
-                  <button onClick={() => setTab("journal")} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "7px 16px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+                  <button onClick={() => setTab("journal")} style={{ background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "7px 16px", borderRadius: 999, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
                     View Journal ({journalEntries.length})
                   </button>
                 )}
@@ -4884,7 +5068,7 @@ function StoryExportCard({ lineup }) {
             <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚽</div>
             <div>
               <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 2, lineHeight: 1 }}>GAMEPLAN</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, letterSpacing: 3, textTransform: "uppercase" }}>Match Lineup</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: 3, textTransform: "uppercase" }}>Match Lineup</div>
             </div>
           </div>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.electric, background: `${C.electric}12`, padding: "5px 16px", borderRadius: 8, border: `1px solid ${C.electric}30`, letterSpacing: 1 }}>
@@ -4898,10 +5082,10 @@ function StoryExportCard({ lineup }) {
             GamePlan <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, background: `${C.gold}12`, padding: "3px 11px", borderRadius: 5, fontWeight: 700 }}>🏆 {lineup.competition}</span>}
-            {lineup.date       && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📅 {lineup.date}</span>}
-            {lineup.time       && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>🕐 {lineup.time}</span>}
-            {lineup.venue      && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📍 {lineup.venue}</span>}
+            {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.gold, background: `${C.gold}12`, padding: "3px 11px", borderRadius: 5, fontWeight: 700 }}>🏆 {lineup.competition}</span>}
+            {lineup.date       && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📅 {lineup.date}</span>}
+            {lineup.time       && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>🕐 {lineup.time}</span>}
+            {lineup.venue      && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, background: C.surfaceSubtle, padding: "3px 11px", borderRadius: 5, border: `1px solid ${C.navyBorder}` }}>📍 {lineup.venue}</span>}
           </div>
         </div>
       </div>
@@ -4981,13 +5165,13 @@ function StoryExportCard({ lineup }) {
                   : "rgba(255,255,255,0.15)",
                 border: `2.5px solid ${name ? C.gold : "rgba(255,255,255,0.3)"}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: FONT_HEAD, fontSize: 10, color: name ? C.navy : "rgba(255,255,255,0.6)",
+                fontFamily: FONT_HEAD, fontSize: "var(--gp-type-micro)", color: name ? C.navy : "rgba(255,255,255,0.6)",
                 letterSpacing: 0.5,
                 boxShadow: name ? `0 3px 12px ${C.gold}60` : "none",
               }}>{pos.role}</div>
               {/* Name */}
               <div style={{
-                fontFamily: FONT_BODY, fontWeight: 700, fontSize: 10,
+                fontFamily: FONT_BODY, fontWeight: 700, fontSize: "var(--gp-type-micro)",
                 color: name ? "#ffffff" : "rgba(255,255,255,0.35)",
                 textShadow: "0 1px 4px rgba(0,0,0,1)",
                 overflow: "hidden", textOverflow: "ellipsis",
@@ -5012,11 +5196,11 @@ function StoryExportCard({ lineup }) {
         {/* Subs */}
         {activeSubs.length > 0 && (
           <div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>Substitutes</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>Substitutes</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {activeSubs.map((s, i) => (
-                <span key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, padding: "5px 14px", borderRadius: 7, background: C.navyCard, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>
-                  <span style={{ color: C.textDim, fontSize: 10, marginRight: 5 }}>{i + 12}</span>{s}
+                <span key={i} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 600, padding: "5px 14px", borderRadius: 7, background: C.navyCard, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>
+                  <span style={{ color: C.textDim, fontSize: "var(--gp-type-micro)", marginRight: 5 }}>{i + 12}</span>{s}
                 </span>
               ))}
             </div>
@@ -5026,16 +5210,16 @@ function StoryExportCard({ lineup }) {
         {/* Notes */}
         {hasNotes && (
           <div style={{ padding: "12px 16px", borderRadius: 10, background: `${C.gold}08`, borderLeft: `3px solid ${C.gold}60`, flex: 1 }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 5 }}>Coach's Notes</div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{lineup.notes}</p>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 5 }}>Coach's Notes</div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{lineup.notes}</p>
           </div>
         )}
 
         {/* Footer watermark */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 4 }}>
-          <span style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 2 }}>GAMEPLAN</span>
-          <span style={{ color: C.navyBorder, fontSize: 12 }}>·</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, letterSpacing: 1 }}>GamePlan</span>
+          <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: C.gold, letterSpacing: 2 }}>GAMEPLAN</span>
+          <span style={{ color: C.navyBorder, fontSize: "var(--gp-type-small)" }}>·</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, letterSpacing: 1 }}>GamePlan</span>
         </div>
       </div>
     </div>
@@ -5094,9 +5278,9 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
               GamePlan <span style={{ color: C.gold }}>vs</span> {lineup.opponent || "TBD"}
             </h3>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-              {lineup.date        && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.navyBorder}` }}>{lineup.date}</span>}
-              {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, background: `${C.gold}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.competition}</span>}
-              <span style={{ fontFamily: FONT_HEAD, fontSize: 11, color: C.electric, background: `${C.electric}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.formation}</span>
+              {lineup.date        && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.navyBorder}` }}>{lineup.date}</span>}
+              {lineup.competition && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.gold, background: `${C.gold}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.competition}</span>}
+              <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-caption)", color: C.electric, background: `${C.electric}10`, padding: "2px 8px", borderRadius: 4 }}>{lineup.formation}</span>
             </div>
           </div>
         </div>
@@ -5105,45 +5289,45 @@ function LineupCard({ lineup, filled, subCount, onEdit, onDuplicate, onDelete })
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 5, marginBottom: activeSubs.length ? 10 : 0 }}>
           {FORMATIONS[lineup.formation]?.positions.map((pos, idx) => (
             <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: C.surfaceSubtle, borderRadius: 6 }}>
-              <span style={{ fontFamily: FONT_HEAD, fontSize: 10, color: C.gold, width: 28, flexShrink: 0 }}>{pos.role}</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(lineup.players[idx] || "").trim() || "—"}</span>
+              <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-micro)", color: C.gold, width: 28, flexShrink: 0 }}>{pos.role}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(lineup.players[idx] || "").trim() || "—"}</span>
             </div>
           ))}
         </div>
 
         {activeSubs.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 4, alignSelf: "center" }}>Subs:</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 4, alignSelf: "center" }}>Subs:</span>
             {activeSubs.map((s, i) => (
-              <span key={i} style={{ fontFamily: FONT_BODY, fontSize: 12, padding: "2px 9px", borderRadius: 5, background: C.surfaceSubtle, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>{s}</span>
+              <span key={i} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", padding: "2px 9px", borderRadius: 5, background: C.surfaceSubtle, color: C.textMid, border: `1px solid ${C.navyBorder}` }}>{s}</span>
             ))}
           </div>
         )}
 
         {(lineup.notes || "").trim() && (
           <div style={{ padding: "9px 13px", borderRadius: 8, background: `${C.gold}06`, borderLeft: `3px solid ${C.gold}30` }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{lineup.notes}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, margin: 0, lineHeight: 1.5 }}>{lineup.notes}</p>
           </div>
         )}
       </div>
 
       {/* Action bar */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <GoldButton onClick={onEdit} style={{ fontSize: 12, padding: "8px 16px" }}>Edit ✎</GoldButton>
-        <GoldButton secondary onClick={onDuplicate} style={{ fontSize: 12, padding: "8px 16px" }}>Duplicate</GoldButton>
-        <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 999, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
+        <GoldButton onClick={onEdit} style={{ fontSize: "var(--gp-type-small)", padding: "8px 16px" }}>Edit ✎</GoldButton>
+        <GoldButton secondary onClick={onDuplicate} style={{ fontSize: "var(--gp-type-small)", padding: "8px 16px" }}>Duplicate</GoldButton>
+        <button onClick={onDelete} style={{ padding: "8px 16px", borderRadius: 999, background: `${C.danger}10`, color: C.danger, border: `1px solid ${C.danger}20`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, cursor: "pointer" }}>Delete</button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: sharing ? C.navyCard : `${C.electric}15`, border: `1px solid ${C.electric}30`, color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
+          <button onClick={handleShareStory} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: sharing ? C.navyCard : `${C.electric}15`, border: `1px solid ${C.electric}30`, color: C.electric, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, cursor: sharing ? "wait" : "pointer" }}>
             {sharing ? "Sharing…" : "↗ Share"}
           </button>
-          <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: saving ? C.navyCard : `${C.orange}15`, border: `1px solid ${C.orange}30`, color: C.orange, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
+          <button onClick={handleSaveStory} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, background: saving ? C.navyCard : `${C.orange}15`, border: `1px solid ${C.orange}30`, color: C.orange, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>
             {saving ? "Saving…" : "📸 Save Story"}
           </button>
         </div>
       </div>
       {cardToast && (
         <div style={{
-          marginTop: 8, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontFamily: FONT_BODY,
+          marginTop: 8, padding: "8px 14px", borderRadius: 8, fontSize: "var(--gp-type-small)", fontFamily: FONT_BODY,
           background: cardToast.type === "error" ? `${C.danger}12` : `${C.success}12`,
           border: `1px solid ${cardToast.type === "error" ? C.danger : C.success}30`,
           color: cardToast.type === "error" ? C.danger : C.success,
@@ -5208,7 +5392,7 @@ function PreMatchSection() {
           }} />
         </div>
         {allReady && (
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.success, marginTop: 10 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.success, marginTop: 10 }}>
             You've done the preparation. Now trust it and go play your game.
           </p>
         )}
@@ -5217,7 +5401,7 @@ function PreMatchSection() {
       {/* Checklist by category */}
       {categories.map(cat => (
         <div key={cat} style={{ marginBottom: 20 }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{cat}</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{cat}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {PRE_MATCH_ITEMS.filter(i => i.category === cat).map(item => (
               <button key={item.id} onClick={() => toggleItem(item.id)} style={{
@@ -5231,10 +5415,10 @@ function PreMatchSection() {
                   background: checked[item.id] ? C.success : "transparent",
                   border: `2px solid ${checked[item.id] ? C.success : C.navyBorder}`,
                 }}>
-                  {checked[item.id] && <span style={{ color: C.navyDeep, fontWeight: 900, fontSize: 14 }}>✓</span>}
+                  {checked[item.id] && <span style={{ color: C.navyDeep, fontWeight: 900, fontSize: "var(--gp-type-body)" }}>✓</span>}
                 </div>
                 <span style={{
-                  fontFamily: FONT_BODY, fontSize: 14, color: checked[item.id] ? C.textDim : C.textBright,
+                  fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: checked[item.id] ? C.textDim : C.textBright,
                   textDecoration: checked[item.id] ? "line-through" : "none", flex: 1,
                 }}>{item.label}</span>
               </button>
@@ -5246,20 +5430,20 @@ function PreMatchSection() {
       {/* Match intention */}
       <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25`, borderRadius: 14, padding: "20px 24px", marginTop: 12 }}>
         <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>MATCH INTENTION</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 12 }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginBottom: 12 }}>
           One word or phrase that captures your focus for today's match. Write it and lock it in.
         </p>
         {editIntention ? (
           <div style={{ display: "flex", gap: 8 }}>
             <input value={tempIntention} onChange={e => setTempIntention(e.target.value)} placeholder="e.g. Aggressive. First. Calm." style={{ ...makeInputStyle(C), flex: 1 }} maxLength={40} />
-            <button onClick={() => { setIntention(tempIntention); setEditIntention(false); }} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.gold, border: "none", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: C.navyDeep }}>Save</button>
+            <button onClick={() => { setIntention(tempIntention); setEditIntention(false); }} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.gold, border: "none", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700, color: C.navyDeep }}>Save</button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.gold, letterSpacing: 2, flex: 1 }}>
-              {intention || <span style={{ color: C.textDim, fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic" }}>Not set yet…</span>}
+              {intention || <span style={{ color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontStyle: "italic" }}>Not set yet…</span>}
             </div>
-            <button onClick={() => { setTempIntention(intention); setEditIntention(true); }} style={{ padding: "7px 16px", borderRadius: 999, cursor: "pointer", background: `${C.gold}15`, border: `1px solid ${C.gold}30`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            <button onClick={() => { setTempIntention(intention); setEditIntention(true); }} style={{ padding: "7px 16px", borderRadius: 999, cursor: "pointer", background: `${C.gold}15`, border: `1px solid ${C.gold}30`, color: C.gold, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
               {intention ? "Edit" : "Set Intention"}
             </button>
           </div>
@@ -5268,11 +5452,11 @@ function PreMatchSection() {
 
       {/* Kit Checklist */}
       <div style={{ marginTop: 28 }}>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Kit Checklist</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Kit Checklist</div>
         <KitChecklist />
       </div>
 
-      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, textAlign: "center", margin: "28px 0 0", lineHeight: 1.6 }}>
+      <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, textAlign: "center", margin: "28px 0 0", lineHeight: 1.6 }}>
         Preparation quality should reduce noise and sharpen the first actions of the match.
       </p>
     </section>
@@ -5342,7 +5526,7 @@ function MatchHistorySection() {
   return (
     <section style={{ padding: "100px 24px 88px", maxWidth: 900, margin: "0 auto" }}>
       <SectionHeader icon="" title="MATCH OUTPUT" subtitle="Record results, track output, and review match performance." accent={C.electric} />
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
         <span>Last updated {formatDateTime(matchesMeta?.updatedAt)}</span>
         <span>Entry draft {matchDraftUpdatedAt ? `active · ${formatDateTime(matchDraftUpdatedAt)}` : "inactive"}</span>
       </div>
@@ -5359,8 +5543,8 @@ function MatchHistorySection() {
           ].map((s, i) => (
             <div key={i} style={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 14, padding: "16px 14px", textAlign: "center", borderTop: `3px solid ${s.color}` }}>
               {s.icon ? <span style={{ fontSize: 20 }}>{s.icon}</span> : null}
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: s.color, marginTop: 4 }}>{s.value}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: s.color, marginTop: 4 }}>{s.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -5394,7 +5578,7 @@ function MatchHistorySection() {
 
           {/* Score */}
           <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: `${C.electric}08`, border: `1px solid ${C.electric}20` }}>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.electric, letterSpacing: 1, marginBottom: 10 }}>FINAL SCORE</div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: C.electric, letterSpacing: 1, marginBottom: 10 }}>FINAL SCORE</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flex: 1 }}><label style={makeLabelStyle(C)}>We scored</label><input type="number" min="0" max="20" value={form.scoreFor} onChange={e => setForm({ ...form, scoreFor: e.target.value })} placeholder="0" style={makeInputStyle(C)} /></div>
               <span style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textDim, marginTop: 14 }}>–</span>
@@ -5404,7 +5588,7 @@ function MatchHistorySection() {
 
           {/* Personal stats */}
           <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: `${C.gold}08`, border: `1px solid ${C.gold}20` }}>
-            <div style={{ fontFamily: FONT_HEAD, fontSize: 13, color: C.gold, letterSpacing: 1, marginBottom: 10 }}>YOUR STATS</div>
+            <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: C.gold, letterSpacing: 1, marginBottom: 10 }}>YOUR STATS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div><label style={makeLabelStyle(C)}>Goals</label><input type="number" min="0" max="20" value={form.goalsScored} onChange={e => setForm({ ...form, goalsScored: e.target.value })} style={makeInputStyle(C)} /></div>
               <div><label style={makeLabelStyle(C)}>Assists</label><input type="number" min="0" max="20" value={form.assists} onChange={e => setForm({ ...form, assists: e.target.value })} style={makeInputStyle(C)} /></div>
@@ -5429,7 +5613,7 @@ function MatchHistorySection() {
             <label style={makeLabelStyle(C)}>Notes</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering about this match?" style={{ ...makeInputStyle(C), height: 60, resize: "vertical" }} />
           </div>
-          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
             Draft autosaves on this device. Updated {formatDateTime(matchDraftUpdatedAt)}.
           </div>
           <GoldButton onClick={addMatch} style={{ marginTop: 16, width: "100%" }}>Save Match And Open Review</GoldButton>
@@ -5440,7 +5624,7 @@ function MatchHistorySection() {
       {showReview && (
         <div style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}30`, borderRadius: 16, padding: "24px", marginBottom: 24 }}>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.gold, letterSpacing: 1, marginBottom: 4 }}>POST-MATCH REVIEW</div>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginBottom: 20 }}>Five questions. Honest answers. This is how you grow faster than everyone else.</p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginBottom: 20 }}>Five questions. Honest answers. This is how you grow faster than everyone else.</p>
           {[
             { key: "q1", label: "What went well for you personally in this match?", type: "text" },
             { key: "q2", label: "What's the ONE thing you want to improve before the next match?", type: "text" },
@@ -5467,12 +5651,12 @@ function MatchHistorySection() {
               )}
             </div>
           ))}
-          <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+          <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
             Review draft autosaves on this device. Updated {formatDateTime(reviewDraftUpdatedAt)}.
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <GoldButton onClick={() => saveReview(showReview)} style={{ flex: 1 }}>Save Review ✓</GoldButton>
-            <button onClick={() => setShowReview(null)} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Skip for now</button>
+            <button onClick={() => setShowReview(null)} style={{ padding: "10px 18px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700 }}>Skip for now</button>
           </div>
         </div>
       )}
@@ -5480,8 +5664,8 @@ function MatchHistorySection() {
       {/* Match list */}
       {matches.length === 0 ? (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No matches logged yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Log your first match above — track goals, assists, result and write your review.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No matches logged yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6, lineHeight: 1.6 }}>Log your first match above — track goals, assists, result and write your review.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -5500,38 +5684,38 @@ function MatchHistorySection() {
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 0.5 }}>vs {m.opponent}</span>
                       {m.scoreFor !== "" && m.scoreAgainst !== "" && (
-                        <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: rc }}>{m.scoreFor}–{m.scoreAgainst}</span>
+                        <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: rc }}>{m.scoreFor}–{m.scoreAgainst}</span>
                       )}
-                      {m.position && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 5 }}>{m.position}</span>}
+                      {m.position && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, background: C.surfaceSubtle, padding: "2px 8px", borderRadius: 5 }}>{m.position}</span>}
                     </div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>
                       {m.date}{m.competition ? ` · ${m.competition}` : ""}{m.venue ? ` · ${m.venue}` : ""}
                     </div>
                   </div>
-                  {m.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(m.updatedAt)}</div>}
+                  {m.updatedAt && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 4 }}>Updated {formatDateTime(m.updatedAt)}</div>}
                   {/* Personal stats */}
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    {Number(m.goalsScored) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>⚽ {m.goalsScored}</span>}
-                    {Number(m.assists) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, background: `${C.success}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>Assists {m.assists}</span>}
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>⏱ {m.minutesPlayed}′</span>
-                    <div style={{ display: "flex" }}>{[1,2,3,4,5].map(r => <span key={r} style={{ fontSize: 11, color: Number(m.rating) >= r ? C.gold : C.navyBorder }}>★</span>)}</div>
+                    {Number(m.goalsScored) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>⚽ {m.goalsScored}</span>}
+                    {Number(m.assists) > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.success, background: `${C.success}15`, padding: "3px 10px", borderRadius: 6, fontWeight: 700 }}>Assists {m.assists}</span>}
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>⏱ {m.minutesPlayed}′</span>
+                    <div style={{ display: "flex" }}>{[1,2,3,4,5].map(r => <span key={r} style={{ fontSize: "var(--gp-type-caption)", color: Number(m.rating) >= r ? C.gold : C.navyBorder }}>★</span>)}</div>
                     {!m.review && (
-                      <button onClick={() => setShowReview(m.id)} style={{ padding: "4px 10px", borderRadius: 6, cursor: "pointer", background: `${C.gold}10`, border: `1px solid ${C.gold}25`, color: C.gold, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700 }}>Review</button>
+                      <button onClick={() => setShowReview(m.id)} style={{ padding: "4px 10px", borderRadius: 6, cursor: "pointer", background: `${C.gold}10`, border: `1px solid ${C.gold}25`, color: C.gold, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700 }}>Review</button>
                     )}
-                    <button onClick={() => deleteMatch(m.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                    <button onClick={() => deleteMatch(m.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4 }}>✕</button>
                   </div>
                 </div>
                 {/* Review preview */}
                 {m.review && (
                   <div style={{ padding: "10px 18px 14px", borderTop: `1px solid ${C.navyBorder}`, background: `${C.gold}05` }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Review</div>
-                    {m.review.q1 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: "0 0 4px" }}>✅ <em>{m.review.q1}</em></p>}
-                    {m.review.q2 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, margin: 0 }}>🔧 <em>{m.review.q2}</em></p>}
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Review</div>
+                    {m.review.q1 && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, margin: "0 0 4px" }}>✅ <em>{m.review.q1}</em></p>}
+                    {m.review.q2 && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, margin: 0 }}>🔧 <em>{m.review.q2}</em></p>}
                   </div>
                 )}
                 {m.notes && (
                   <div style={{ padding: "8px 18px 12px", borderTop: `1px solid ${C.navyBorder}` }}>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{m.notes}</span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{m.notes}</span>
                   </div>
                 )}
               </div>
@@ -5694,7 +5878,7 @@ function LineupBuilderSection() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
           <label style={labelStyle}>Formation</label>
           {fullscreen && (
-            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
+            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>
               Full-screen tactics board
             </span>
           )}
@@ -5707,19 +5891,19 @@ function LineupBuilderSection() {
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
+        <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
           {drawMode ? "Drawing On - Tap Pitch" : "Draw Tactics"}
         </button>
         {isCompactLayout && !fullscreen && (
-          <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+          <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: C.electric }}>
             {isTabletLayout ? "Expand Pitch" : "Full Screen"}
           </button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
+          <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textMid }}>Undo</button>
         )}
         {drawPaths.length > 0 && (
-          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
+          <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>Clear</button>
         )}
       </div>
 
@@ -5793,7 +5977,7 @@ function LineupBuilderSection() {
           </div>
         ))}
       </div>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, textAlign: "center" }}>
+      <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 8, textAlign: "center" }}>
         {fullscreen ? "Draw with more room, then tap Close to return." : `${filled}/11 starters | ${subCount} subs`}
       </p>
     </div>
@@ -5802,7 +5986,7 @@ function LineupBuilderSection() {
   return (
     <section style={{ padding: isPhoneLayout ? "88px 16px 64px" : isTabletLayout ? "92px 20px 72px" : "100px 24px 80px", maxWidth: isTabletLayout ? 1120 : 1000, margin: "0 auto" }}>
       <SectionHeader icon="" title="LINEUP BUILDER" subtitle="Plan formations, assign positions, and save match lineups." accent={C.electric} />
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "-20px 0 20px", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
         <span>Last updated {formatDateTime(lineupsMeta?.updatedAt)}</span>
         <span>Autosave draft {lineupDraftUpdatedAt ? `active · ${formatDateTime(lineupDraftUpdatedAt)}` : "inactive"}</span>
       </div>
@@ -5828,19 +6012,19 @@ function LineupBuilderSection() {
 
             {/* Draw mode controls */}
             <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
+              <button onClick={() => setDrawMode(!drawMode)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: drawMode ? `${C.danger}20` : C.navyCard, border: `1px solid ${drawMode ? C.danger : C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: drawMode ? C.danger : C.textMid }}>
                 {drawMode ? "Drawing Active" : "Draw Tactics"}
               </button>
               {isCompactLayout && (
-                <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: C.electric }}>
+                <button onClick={() => setIsDrawFullscreen(true)} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: `${C.electric}15`, border: `1px solid ${C.electric}30`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 700, color: C.electric }}>
                   {isTabletLayout ? "Expand Pitch" : "Full Screen"}
                 </button>
               )}
               {drawPaths.length > 0 && (
-                <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textMid }}>Undo</button>
+                <button onClick={() => { setDrawPaths(prev => prev.slice(0, -1)); }} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textMid }}>Undo</button>
               )}
               {drawPaths.length > 0 && (
-                <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Clear</button>
+                <button onClick={() => setDrawPaths([])} style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>Clear</button>
               )}
             </div>
 
@@ -5896,7 +6080,7 @@ function LineupBuilderSection() {
                 </div>
               ))}
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 8, textAlign: "center" }}>{filled}/11 starters · {subCount} subs</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 8, textAlign: "center" }}>{filled}/11 starters · {subCount} subs</p>
           </div>
           )}
 
@@ -5913,7 +6097,7 @@ function LineupBuilderSection() {
             <div style={{ display: "grid", gap: 6, marginBottom: 16 }}>
               {formation.positions.map((pos, idx) => (
                 <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontFamily: FONT_HEAD, fontSize: 12, color: C.gold, width: 36, textAlign: "right", letterSpacing: 0.5 }}>{pos.role}</span>
+                  <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-small)", color: C.gold, width: 36, textAlign: "right", letterSpacing: 0.5 }}>{pos.role}</span>
                   <input value={current.players[idx] || ""} onChange={e => updatePlayer(idx, e.target.value)} placeholder={`${pos.role} name`} style={{ ...inputStyle, flex: 1 }} />
                 </div>
               ))}
@@ -5921,7 +6105,7 @@ function LineupBuilderSection() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <label style={labelStyle}>Substitutes</label>
-              <button onClick={addSub} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "3px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: FONT_BODY }}>+ Add Sub</button>
+              <button onClick={addSub} style={{ background: "none", border: `1px solid ${C.navyBorder}`, color: C.textMid, padding: "3px 10px", borderRadius: 6, cursor: "pointer", fontSize: "var(--gp-type-caption)", fontFamily: FONT_BODY }}>+ Add Sub</button>
             </div>
             <div style={{ display: "grid", gap: 6, marginBottom: 16 }}>
               {current.subs.map((sub, idx) => (
@@ -5936,7 +6120,7 @@ function LineupBuilderSection() {
               <label style={labelStyle}>Coach's Notes</label>
               <textarea value={current.notes} onChange={e => setCurrent({ ...current, notes: e.target.value })} placeholder="Tactical instructions, key matchups..." style={{ ...inputStyle, height: 70, resize: "vertical" }} />
             </div>
-            <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+            <div style={{ marginBottom: 16, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
               Draft autosaves on this device. Updated {formatDateTime(lineupDraftUpdatedAt)}.
             </div>
 
@@ -5953,7 +6137,7 @@ function LineupBuilderSection() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>TACTICS BOARD</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>Draw with more room, then tap Close to return.</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>Draw with more room, then tap Close to return.</div>
               </div>
             </div>
             {renderPitchPanel(true)}
@@ -5976,7 +6160,7 @@ function LineupBuilderSection() {
             background: C.textBright,
             border: "none",
             fontFamily: FONT_BODY,
-            fontSize: 13,
+            fontSize: "var(--gp-type-compact)",
             fontWeight: 700,
             color: C.navy,
             letterSpacing: "0.06em",
@@ -6038,7 +6222,7 @@ function PositionFinder() {
       <div style={{ display: "grid", gap: 14 }}>
         {questions.map(q => (
           <div key={q.id}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, margin: "0 0 8px", fontWeight: 600 }}>{q.q}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textBright, margin: "0 0 8px", fontWeight: 600 }}>{q.q}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {q.opts.map(opt => (
                 <Pill key={opt} active={answers[q.id] === opt} onClick={() => setAnswers({ ...answers, [q.id]: opt })} color={C.electric}>{opt}</Pill>
@@ -6053,7 +6237,7 @@ function PositionFinder() {
             <span style={{ display: "inline-flex" }}><SportIcon name={result.icon} size={32} color={C.gold} /></span>
             <h4 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.gold, margin: 0, letterSpacing: 1 }}>{result.pos.toUpperCase()}</h4>
           </div>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, marginTop: 10, lineHeight: 1.5 }}>{result.desc}</p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, marginTop: 10, lineHeight: 1.5 }}>{result.desc}</p>
         </div>
       )}
     </div>
@@ -6078,8 +6262,8 @@ function KitChecklist() {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{checkedCount}/{items.length} packed</span>
-        {checkedCount === items.length && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, fontWeight: 700 }}>✓ All packed!</span>}
+        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{checkedCount}/{items.length} packed</span>
+        {checkedCount === items.length && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.success, fontWeight: 700 }}>✓ All packed!</span>}
       </div>
       <div style={{ display: "grid", gap: 4 }}>
         {items.map((item, idx) => (
@@ -6091,10 +6275,10 @@ function KitChecklist() {
             <span style={{
               width: 22, height: 22, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
               background: checked[idx] ? C.success : C.navyCard, border: checked[idx] ? "none" : `1px solid ${C.navyBorder}`,
-              color: C.navy, fontSize: 12, flexShrink: 0,
+              color: C.navy, fontSize: "var(--gp-type-small)", flexShrink: 0,
             }}>{checked[idx] ? "✓" : ""}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: checked[idx] ? C.success : C.textMid, textDecoration: checked[idx] ? "line-through" : "none", opacity: checked[idx] ? 0.7 : 1 }}>{item.name}</span>
-            {item.essential && <span style={{ marginLeft: "auto", fontSize: 10, padding: "2px 8px", borderRadius: 4, background: `${C.danger}08`, color: C.danger, fontFamily: FONT_BODY, fontWeight: 700, border: `1px solid ${C.danger}15` }}>ESSENTIAL</span>}
+            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: checked[idx] ? C.success : C.textMid, textDecoration: checked[idx] ? "line-through" : "none", opacity: checked[idx] ? 0.7 : 1 }}>{item.name}</span>
+            {item.essential && <span style={{ marginLeft: "auto", fontSize: "var(--gp-type-micro)", padding: "2px 8px", borderRadius: 4, background: `${C.danger}08`, color: C.danger, fontFamily: FONT_BODY, fontWeight: 700, border: `1px solid ${C.danger}15` }}>ESSENTIAL</span>}
           </button>
         ))}
       </div>
@@ -6109,7 +6293,7 @@ function RecoveryZone() {
     <div>
       <Card style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>POST-TRAINING STRETCHING</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 16px" }}>Tap each stretch for instructions. Hold — no bouncing!</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 16px" }}>Tap each stretch for instructions. Hold — no bouncing!</p>
         <div style={{ display: "grid", gap: 6 }}>
           {RECOVERY_STRETCHES.map((s, idx) => (
             <div key={idx}>
@@ -6122,15 +6306,15 @@ function RecoveryZone() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ display: "inline-flex", color: C.success }}><SportIcon name={s.icon} size={20} color={C.success} /></span>
                   <div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, fontWeight: 600 }}>{s.name}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>{s.muscle} · {s.duration}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, fontWeight: 600 }}>{s.name}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>{s.muscle} · {s.duration}</div>
                   </div>
                 </div>
-                <span style={{ fontSize: 10, color: C.textDim, transform: activeStretch === idx ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▼</span>
+                <span style={{ fontSize: "var(--gp-type-micro)", color: C.textDim, transform: activeStretch === idx ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▼</span>
               </button>
               {activeStretch === idx && (
                 <div style={{ padding: "12px 16px 12px 52px", background: `${C.success}05`, borderRadius: "0 0 10px 10px", borderLeft: `3px solid ${C.success}30` }}>
-                  <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.6 }}><strong>How:</strong> {s.how}</p>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.6 }}><strong>How:</strong> {s.how}</p>
                 </div>
               )}
             </div>
@@ -6139,12 +6323,12 @@ function RecoveryZone() {
       </Card>
       <Card>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>SLEEP = SUPERPOWER</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 16px" }}>Cristiano Ronaldo sleeps 5 naps a day. You don't need that — but sleep matters more than you think.</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 16px" }}>Cristiano Ronaldo sleeps 5 naps a day. You don't need that — but sleep matters more than you think.</p>
         <div style={{ display: "grid", gap: 8 }}>
           {SLEEP_TIPS.map((tip, i) => (
             <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px", background: C.surfaceSubtle, borderRadius: 10 }}>
               <span style={{ display: "inline-flex", flexShrink: 0 }}><SportIcon name={tip.icon} size={20} color={C.electric} /></span>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{tip.tip}</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.5 }}>{tip.tip}</p>
             </div>
           ))}
         </div>
@@ -6186,8 +6370,8 @@ function FootballIQQuiz() {
   if (quizState === "intro") return (
     <Card style={{ textAlign: "center", padding: 40 }}>
       <h3 style={{ fontFamily: FONT_HEAD, fontSize: 32, color: C.textBright, margin: "0 0 8px", letterSpacing: 2 }}>FOOTBALL IQ QUIZ</h3>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, margin: "0 0 6px", lineHeight: 1.5 }}>{QUIZ_QUESTIONS.length} questions on tactics, rules, nutrition, and Singapore football history.</p>
-      {bestScore > 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.gold, fontWeight: 700, margin: "0 0 16px" }}>Best score: {bestScore}/{QUIZ_QUESTIONS.length}</p>}
+      <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, margin: "0 0 6px", lineHeight: 1.5 }}>{QUIZ_QUESTIONS.length} questions on tactics, rules, nutrition, and Singapore football history.</p>
+      {bestScore > 0 && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.gold, fontWeight: 700, margin: "0 0 16px" }}>Best score: {bestScore}/{QUIZ_QUESTIONS.length}</p>}
       <GoldButton onClick={startQuiz} style={{ marginTop: 24 }}>Start Quiz</GoldButton>
     </Card>
   );
@@ -6201,13 +6385,13 @@ function FootballIQQuiz() {
     return (
       <Card style={{ textAlign: "center" }}>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 28, color: C.textBright, margin: "0 0 8px", letterSpacing: 2 }}>ASSESSMENT COMPLETE</h3>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 56, color: grade.color, margin: "8px 0" }}>{score}/{QUIZ_QUESTIONS.length}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 56, color: grade.color, margin: "8px 0" }}>{score}/{QUIZ_QUESTIONS.length}</div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: grade.color, fontWeight: 700, margin: "0 0 4px" }}>{grade.label}</p>
         <div style={{ textAlign: "left", margin: "24px 0", display: "grid", gap: 6, maxHeight: 300, overflowY: "auto" }}>
           {answers.map((a, i) => (
             <div key={i} style={{ padding: "10px 14px", borderRadius: 8, background: a.correct ? `${C.success}06` : `${C.danger}06`, border: `1px solid ${a.correct ? C.success : C.danger}20` }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, fontWeight: 600, marginBottom: 2 }}>{a.correct ? "✓" : "✗"} Q{i+1}: {QUIZ_QUESTIONS[a.qIdx].q}</div>
-              {!a.correct && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>{QUIZ_QUESTIONS[a.qIdx].explain}</div>}
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textBright, fontWeight: 600, marginBottom: 2 }}>{a.correct ? "✓" : "✗"} Q{i+1}: {QUIZ_QUESTIONS[a.qIdx].q}</div>
+              {!a.correct && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid }}>{QUIZ_QUESTIONS[a.qIdx].explain}</div>}
             </div>
           ))}
         </div>
@@ -6220,8 +6404,8 @@ function FootballIQQuiz() {
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Q {currentQ + 1} / {QUIZ_QUESTIONS.length}</span>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.success, fontWeight: 700 }}>Score: {score}</span>
+        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Q {currentQ + 1} / {QUIZ_QUESTIONS.length}</span>
+        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.success, fontWeight: 700 }}>Score: {score}</span>
       </div>
       <div style={{ height: 4, borderRadius: 2, background: C.navyBorder, marginBottom: 20 }}>
         <div style={{ height: "100%", borderRadius: 2, background: C.gold, width: `${((currentQ + 1) / QUIZ_QUESTIONS.length) * 100}%`, transition: "width 0.3s" }} />
@@ -6235,8 +6419,8 @@ function FootballIQQuiz() {
             else if (idx === selected && idx !== q.correct) { bg = `${C.danger}08`; border = `1px solid ${C.danger}30`; color = C.danger; }
           } else if (idx === selected) { bg = `${C.electric}10`; border = `1px solid ${C.electric}40`; color = C.electric; }
           return (
-            <button key={idx} onClick={() => selectAnswer(idx)} style={{ padding: "13px 18px", borderRadius: 10, cursor: showAnswer ? "default" : "pointer", background: bg, border, textAlign: "left", fontFamily: FONT_BODY, fontSize: 14, color, fontWeight: 500, transition: "all 0.2s", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: C.navyBorder, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+            <button key={idx} onClick={() => selectAnswer(idx)} style={{ padding: "13px 18px", borderRadius: 10, cursor: showAnswer ? "default" : "pointer", background: bg, border, textAlign: "left", fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color, fontWeight: 500, transition: "all 0.2s", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: C.navyBorder, fontSize: "var(--gp-type-caption)", fontWeight: 700, flexShrink: 0 }}>
                 {String.fromCharCode(65 + idx)}
               </span>
               {opt}
@@ -6247,7 +6431,7 @@ function FootballIQQuiz() {
       {showAnswer && (
         <div>
           <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 10, background: selected === q.correct ? `${C.success}06` : `${C.danger}06`, borderLeft: `3px solid ${selected === q.correct ? C.success : C.danger}` }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{selected === q.correct ? "Correct. " : "Review this. "}{q.explain}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.5 }}>{selected === q.correct ? "Correct. " : "Review this. "}{q.explain}</p>
           </div>
           <GoldButton onClick={nextQuestion} style={{ marginTop: 14, width: "100%" }}>{currentQ + 1 >= QUIZ_QUESTIONS.length ? "View Results" : "Continue"}</GoldButton>
         </div>
@@ -6312,7 +6496,7 @@ function GoalWall() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>GOALS</h3>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, margin: 0 }}>{completed.length}/{goals.length} completed</p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, margin: 0 }}>{completed.length}/{goals.length} completed</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {goals.length > 0 && <ShareSaveBar targetRef={exportRef} filename="gameplan-goals.png" title="GamePlan Goals" />}
@@ -6332,8 +6516,8 @@ function GoalWall() {
                 border: `1px solid ${formMode === m.id ? C.gold + "50" : C.navyBorder}`,
                 fontFamily: FONT_BODY, color: formMode === m.id ? C.gold : C.textDim,
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{m.label}</div>
-                <div style={{ fontSize: 11, marginTop: 2, opacity: 0.8 }}>{m.desc}</div>
+                <div style={{ fontSize: "var(--gp-type-compact)", fontWeight: 700 }}>{m.label}</div>
+                <div style={{ fontSize: "var(--gp-type-caption)", marginTop: 2, opacity: 0.8 }}>{m.desc}</div>
               </button>
             ))}
           </div>
@@ -6344,7 +6528,7 @@ function GoalWall() {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
               {GOAL_CATEGORIES.map(c => (
                 <button key={c.cat} onClick={() => formMode === "smart" ? setSmart(p => ({ ...p, cat: c.cat })) : setQuick(p => ({ ...p, cat: c.cat }))}
-                  style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                  style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
                     background: (formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyCard,
                     color: (formMode === "smart" ? smart : quick).cat === c.cat ? C.navyDeep : C.textMid,
                     border: `1px solid ${(formMode === "smart" ? smart : quick).cat === c.cat ? catColors[c.cat] : C.navyBorder}`,
@@ -6368,7 +6552,7 @@ function GoalWall() {
                 <label style={{ ...makeLabelStyle(C), marginBottom: 8 }}>Examples</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {GOAL_CATEGORIES.find(c => c.cat === quick.cat)?.examples.map(ex => (
-                    <button key={ex} onClick={() => setQuick(p => ({ ...p, text: ex }))} style={{ fontFamily: FONT_BODY, fontSize: 11, padding: "4px 10px", borderRadius: 6, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, cursor: "pointer" }}>{ex}</button>
+                    <button key={ex} onClick={() => setQuick(p => ({ ...p, text: ex }))} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", padding: "4px 10px", borderRadius: 6, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, color: C.textMid, cursor: "pointer" }}>{ex}</button>
                   ))}
                 </div>
               </div>
@@ -6393,18 +6577,18 @@ function GoalWall() {
                 return (
                   <div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 5, fontWeight: 700 }}>Step {smartStep + 1} of {SMART_STEPS.length} — {step.label.toUpperCase()}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.gold, background: `${C.gold}15`, padding: "3px 10px", borderRadius: 5, fontWeight: 700 }}>Step {smartStep + 1} of {SMART_STEPS.length} — {step.label.toUpperCase()}</span>
                     </div>
                     <p style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 0.5, marginBottom: 12 }}>{step.question}</p>
                     {step.type === "date"
                       ? <input type="date" value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} style={makeInputStyle(C)} />
                       : <textarea value={smart[step.key]} onChange={e => setSmart(p => ({ ...p, [step.key]: e.target.value }))} placeholder={step.placeholder} style={{ ...makeInputStyle(C), height: 70, resize: "vertical" }} />
                     }
-                    <p style={{ fontFamily: FONT_SERIF, fontSize: 12, color: C.textDim, fontStyle: "italic", marginTop: 8 }}>{step.hint}</p>
+                    <p style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-small)", color: C.textDim, fontStyle: "italic", marginTop: 8 }}>{step.hint}</p>
 
                     <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                       {smartStep > 0 && (
-                        <button onClick={() => setSmartStep(s => s - 1)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700 }}>Back</button>
+                        <button onClick={() => setSmartStep(s => s - 1)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700 }}>Back</button>
                       )}
                       {smartStep < SMART_STEPS.length - 1
                         ? <GoldButton onClick={() => setSmartStep(s => s + 1)} style={{ flex: 1 }}>Continue</GoldButton>
@@ -6422,8 +6606,8 @@ function GoalWall() {
       {/* Empty state */}
       {goals.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No goals set yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>Tap "Set a Goal" and use the SMART framework — it takes 2 minutes and makes the goal 3× more likely to happen.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No goals set yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6, lineHeight: 1.6 }}>Tap "Set a Goal" and use the SMART framework — it takes 2 minutes and makes the goal 3× more likely to happen.</p>
         </div>
       )}
 
@@ -6439,28 +6623,28 @@ function GoalWall() {
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 18px" }}>
                     <button onClick={() => toggleGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `2px solid ${C.navyBorder}`, cursor: "pointer", marginTop: 2 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, fontWeight: 600, lineHeight: 1.5 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, fontWeight: 600, lineHeight: 1.5 }}>
                         {goal.isSmart ? goal.specific : goal.text}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: catColors[goal.cat], fontWeight: 700 }}>{goal.cat}</span>
-                        {goal.isSmart && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, background: `${C.gold}15`, padding: "1px 7px", borderRadius: 4, fontWeight: 700 }}>SMART</span>}
-                        {goal.deadline && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim }}>· Due {goal.deadline}</span>}
-                        {goal.checkIn && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric }}>· Check-in {goal.checkIn}</span>}
+                        <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: catColors[goal.cat], fontWeight: 700 }}>{goal.cat}</span>
+                        {goal.isSmart && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.gold, background: `${C.gold}15`, padding: "1px 7px", borderRadius: 4, fontWeight: 700 }}>SMART</span>}
+                        {goal.deadline && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim }}>· Due {goal.deadline}</span>}
+                        {goal.checkIn && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.electric }}>· Check-in {goal.checkIn}</span>}
                       </div>
                     </div>
-                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4, flexShrink: 0 }}>✕</button>
+                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4, flexShrink: 0 }}>✕</button>
                   </div>
                   {/* SMART details */}
                   {goal.isSmart && (goal.measurable || goal.actionStep) && (
                     <div style={{ padding: "0 18px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
                       {goal.measurable && (
-                        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
                           <span style={{ color: C.electric, fontWeight: 700 }}>📏 Measure: </span>{goal.measurable}
                         </div>
                       )}
                       {goal.actionStep && (
-                        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, background: C.surfaceSubtle, borderRadius: 8, padding: "8px 12px" }}>
                           <span style={{ color: C.success, fontWeight: 700 }}>First step: </span>{goal.actionStep}
                         </div>
                       )}
@@ -6474,15 +6658,15 @@ function GoalWall() {
           {/* Completed goals */}
           {completed.length > 0 && (
             <>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>✅ Completed</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>✅ Completed</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {completed.map(goal => (
                   <div key={goal.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", background: C.navyCard, border: `1px solid ${C.success}20`, borderRadius: 12, borderLeft: `3px solid ${C.success}`, opacity: 0.65 }}>
-                    <button onClick={() => toggleGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.success, border: "none", color: C.navyDeep, fontSize: 13, cursor: "pointer", fontWeight: 900 }}>✓</button>
+                    <button onClick={() => toggleGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.success, border: "none", color: C.navyDeep, fontSize: "var(--gp-type-compact)", cursor: "pointer", fontWeight: 900 }}>✓</button>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, textDecoration: "line-through" }}>{goal.isSmart ? goal.specific : goal.text}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textDim, textDecoration: "line-through" }}>{goal.isSmart ? goal.specific : goal.text}</span>
                     </div>
-                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 14, opacity: 0.4 }}>✕</button>
+                    <button onClick={() => deleteGoal(goal.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: "var(--gp-type-body)", opacity: 0.4 }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -6517,14 +6701,14 @@ function HubOverview({ setHubTab }) {
           >
             <span style={{ display: "block", marginBottom: 14 }}><SportIcon name={card.icon} size={32} color={card.color} /></span>
             <h3 style={{ fontFamily: FONT_HEAD, fontSize: 17, color: C.textBright, margin: "0 0 8px", letterSpacing: 0.5 }}>{card.title.toUpperCase()}</h3>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0, lineHeight: 1.5 }}>{card.desc}</p>
-            <span style={{ display: "inline-block", marginTop: 14, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: card.color }}>Open →</span>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0, lineHeight: 1.5 }}>{card.desc}</p>
+            <span style={{ display: "inline-block", marginTop: 14, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, color: card.color }}>Open →</span>
           </button>
         ))}
       </div>
       <Card style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 6px", letterSpacing: 1 }}>POSITION FINDER</h3>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: "0 0 18px" }}>Not sure where you fit best? Answer these questions:</p>
         <PositionFinder />
       </Card>
       <Card>
@@ -6740,28 +6924,28 @@ function ScheduleCard() {
             <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: todayFlag ? C.gold : C.textBright, lineHeight: 1 }}>
               {s.date ? new Date(s.date + "T00:00:00").getDate() : "—"}
             </div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>
               {s.date ? new Date(s.date + "T00:00:00").toLocaleString("en-SG", { month: "short" }) : ""}
             </div>
           </div>
           {/* Main content */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-              {todayFlag && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase" }}>Today</span>}
-              {s.type && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: tc, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.type}</span>}
-              {s.division && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: divColor(s.division), letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.division}</span>}
-              {teacherEditUnlocked && <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: sourceColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>{sourceLabel}</span>}
+              {todayFlag && <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.gold, letterSpacing: "0.08em", textTransform: "uppercase" }}>Today</span>}
+              {s.type && <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: tc, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.type}</span>}
+              {s.division && <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: divColor(s.division), letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.division}</span>}
+              {teacherEditUnlocked && <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: sourceColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>{sourceLabel}</span>}
             </div>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.textBright, letterSpacing: 0.5, marginBottom: 4, lineHeight: 1.3 }}>
               {s.title || "—"}
             </div>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              {s.time    && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Time {s.time}</span>}
-              {s.teacher && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Staff {s.teacher}</span>}
-              {s.venue   && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Venue {s.venue}</span>}
+              {s.time    && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Time {s.time}</span>}
+              {s.teacher && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Staff {s.teacher}</span>}
+              {s.venue   && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Venue {s.venue}</span>}
             </div>
             {s.notes && (
-              <div style={{ marginTop: 8, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.55, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 6 }}>
+              <div style={{ marginTop: 8, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.55, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 6 }}>
                 {s.notes}
               </div>
             )}
@@ -6772,7 +6956,7 @@ function ScheduleCard() {
                   style={{
                     padding: "7px 12px", borderRadius: 999, cursor: "pointer",
                     background: `${C.electric}12`, border: `1px solid ${C.electric}28`,
-                    color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                    color: C.electric, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
                   }}
                 >
                   Edit
@@ -6782,7 +6966,7 @@ function ScheduleCard() {
                   style={{
                     padding: "7px 12px", borderRadius: 999, cursor: "pointer",
                     background: `${C.danger}12`, border: `1px solid ${C.danger}28`,
-                    color: C.danger, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+                    color: C.danger, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
                   }}
                 >
                   Delete
@@ -6801,23 +6985,23 @@ function ScheduleCard() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>SCHEDULE</div>
-          {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
+          {lastFetched && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>Updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {!teacherEditUnlocked && (
             <button onClick={() => {
               setShowEditUnlock(v => !v);
               setEditError("");
-            }} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            }} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.gold, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
               Teacher Edit
             </button>
           )}
           {teacherEditUnlocked && (
-            <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+            <button onClick={relockScheduleEdit} style={{ padding: "7px 14px", borderRadius: 999, cursor: "pointer", background: `${C.gold}12`, border: `1px solid ${C.gold}33`, color: C.gold, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
               Lock Edit
             </button>
           )}
-          <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 999, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>
+          <button onClick={fetchSchedule} disabled={loading} style={{ padding: "7px 14px", borderRadius: 999, cursor: loading ? "wait" : "pointer", background: C.navyCard, border: `1px solid ${C.navyBorder}`, color: C.textMid, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>
             {loading ? "Loading…" : "↻ Refresh"}
           </button>
         </div>
@@ -6833,9 +7017,9 @@ function ScheduleCard() {
               if (editError) setEditError("");
             }}
             placeholder="Teacher password"
-            style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: 13, WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
+            style={{ ...makeInputStyle(C), width: "min(240px, 100%)", padding: "9px 12px", fontSize: "var(--gp-type-compact)", WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
           />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, cursor: "pointer" }}>
             <input
               type="checkbox"
               checked={rememberEditAccess}
@@ -6844,10 +7028,10 @@ function ScheduleCard() {
             />
             Remember on this device
           </label>
-          <button type="submit" style={{ padding: "9px 14px", borderRadius: 999, border: "none", background: C.textBright, color: C.navy, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
+          <button type="submit" style={{ padding: "9px 14px", borderRadius: 999, border: "none", background: C.textBright, color: C.navy, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 800, cursor: "pointer" }}>
             Unlock Edit
           </button>
-          {editError && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.danger, fontWeight: 700 }}>{editError}</span>}
+          {editError && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.danger, fontWeight: 700 }}>{editError}</span>}
         </form>
       )}
 
@@ -6858,7 +7042,7 @@ function ScheduleCard() {
               <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.04em" }}>
                 {editingScheduleId ? "EDIT SCHEDULE ITEM" : "ADD SCHEDULE ITEM"}
               </div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
                 Publish fixtures and training updates directly in the app. App items can be edited here. Seeded legacy items stay read-only until migrated.
               </div>
             </div>
@@ -6868,7 +7052,7 @@ function ScheduleCard() {
                 style={{
                   padding: "7px 14px", borderRadius: 999, cursor: "pointer",
                   background: "transparent", border: `1px solid ${C.navyBorder}`,
-                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: 10,
+                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)",
                   letterSpacing: "0.08em", textTransform: "uppercase",
                 }}
               >
@@ -7011,7 +7195,7 @@ function ScheduleCard() {
                 border: `1px solid ${publishMessage.tone === "success" ? `${C.success}25` : `${C.danger}25`}`,
                 color: publishMessage.tone === "success" ? C.success : C.danger,
                 fontFamily: FONT_BODY,
-                fontSize: 12,
+                fontSize: "var(--gp-type-small)",
                 lineHeight: 1.6,
               }}>
                 {publishMessage.text}
@@ -7025,7 +7209,7 @@ function ScheduleCard() {
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {["all", "Training", "Match", "Friendly", "B Div", "C Div"].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
-            padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+            padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700,
             background: filter === f ? C.electric : C.navyCard,
             color: filter === f ? C.navyDeep : C.textMid,
             border: `1px solid ${filter === f ? C.electric : C.navyBorder}`,
@@ -7034,14 +7218,14 @@ function ScheduleCard() {
       </div>
 
       {/* States */}
-      {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>Fetching schedule...</div>}
-      {!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13 }}>{error}</div>}
+      {loading && <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)" }}>Fetching schedule...</div>}
+      {!loading && error && <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)" }}>{error}</div>}
 
       {!loading && !error && sessions.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
           <span style={{ fontSize: 44, display: "block", marginBottom: 12 }}>📭</span>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No sessions in the schedule yet.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>{teacherEditUnlocked ? "Use the composer above to add the first schedule item." : "Check back later for training and match updates."}</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No sessions in the schedule yet.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6 }}>{teacherEditUnlocked ? "Use the composer above to add the first schedule item." : "Check back later for training and match updates."}</p>
         </div>
       )}
 
@@ -7050,7 +7234,7 @@ function ScheduleCard() {
           {/* Upcoming */}
           {upcoming.length > 0 && (
             <>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Upcoming</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.electric, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Upcoming</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
                 {upcoming.map((s) => <SessionCard key={s.id} s={s} />)}
               </div>
@@ -7059,14 +7243,14 @@ function ScheduleCard() {
           {/* Past */}
           {past.length > 0 && (
             <>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent (last 5)</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent (last 5)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {past.map((s) => <SessionCard key={s.id} s={s} dim />)}
               </div>
             </>
           )}
           {upcoming.length === 0 && past.length === 0 && (
-            <div style={{ textAlign: "center", padding: 32, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>No sessions match this filter.</div>
+            <div style={{ textAlign: "center", padding: 32, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)" }}>No sessions match this filter.</div>
           )}
         </>
       )}
@@ -7226,9 +7410,9 @@ function ClusterAttendance() {
   const presentList = activeRoster.filter(p => !!presentIds[p.id]);
   const absentList = activeRoster.filter(p => !presentIds[p.id]);
 
-  const inputSt = { ...inputStyle, padding: "10px 12px", fontSize: 14, flex: 1 };
+  const inputSt = { ...inputStyle, padding: "10px 12px", fontSize: "var(--gp-type-body)", flex: 1 };
   const selectSt = { ...inputSt, cursor: "pointer" };
-  const labelSt = { fontFamily: FONT_BODY, fontSize: 12, color: C.textMid, display: "block", marginBottom: 4 };
+  const labelSt = { fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid, display: "block", marginBottom: 4 };
 
   const summaryText = () => {
     const d = new Date(sessionDate).toLocaleDateString("en-SG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -7254,12 +7438,12 @@ function ClusterAttendance() {
   };
 
   const btnPrimary = (color = C.gold) => ({
-    fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, padding: "10px 18px",
+    fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700, padding: "10px 18px",
     borderRadius: 999, border: "none", cursor: "pointer",
     background: color, color: color === C.gold ? C.navy : C.textBright, transition: "opacity 0.15s ease",
   });
   const btnGhost = (color = C.electric) => ({
-    fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px",
+    fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, padding: "8px 14px",
     borderRadius: 999, border: `1px solid ${color}`, cursor: "pointer",
     background: "transparent", color, transition: "opacity 0.15s ease",
   });
@@ -7277,12 +7461,12 @@ function ClusterAttendance() {
           }}>{v.label}</button>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Session:</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Session:</span>
           <input type="date" value={sessionDate} onChange={e => {
             setSessionDate(e.target.value);
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance) || "{}");
             setPresentIds((saved[e.target.value] || []).reduce((acc, id) => { acc[id] = true; return acc; }, {}));
-          }} style={{ ...inputStyle, padding: "7px 10px", fontSize: 13, width: "auto" }} />
+          }} style={{ ...inputStyle, padding: "7px 10px", fontSize: "var(--gp-type-compact)", width: "auto" }} />
         </div>
       </div>
 
@@ -7297,7 +7481,7 @@ function ClusterAttendance() {
                 borderColor: divFilter === opt.val ? C.gold : C.navyBorder,
                 color: divFilter === opt.val ? C.gold : C.textMid,
                 background: divFilter === opt.val ? C.goldGlow : "transparent",
-                fontSize: 12, padding: "7px 14px",
+                fontSize: "var(--gp-type-small)", padding: "7px 14px",
               }}>{opt.label}</button>
             ))}
           </div>
@@ -7310,19 +7494,19 @@ function ClusterAttendance() {
               { label: "Total", val: roster.length, color: C.electric },
             ].map(s => (
               <div key={s.label} style={{ flex: 1, minWidth: 90, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: s.color, letterSpacing: 1 }}>{s.val}</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textMid, marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: s.color, letterSpacing: 1 }}>{s.val}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textMid, marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
           </div>
 
           {/* Search */}
           <input placeholder="Search by name, school or jersey #" value={search} onChange={e => setSearch(e.target.value)}
-            style={{ ...inputStyle, width: "100%", padding: "11px 14px", fontSize: 14, marginBottom: 16, boxSizing: "border-box" }} />
+            style={{ ...inputStyle, width: "100%", padding: "11px 14px", fontSize: "var(--gp-type-body)", marginBottom: 16, boxSizing: "border-box" }} />
 
           {roster.length === 0 && (
             <Card style={{ textAlign: "center", padding: 32 }}>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>No players in roster yet.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid }}>No players in roster yet.</p>
               <button onClick={() => setView("roster")} style={{ ...btnPrimary(), marginTop: 12 }}>Build Roster First</button>
             </Card>
           )}
@@ -7336,14 +7520,14 @@ function ClusterAttendance() {
               <div key={school} style={{ marginBottom: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontFamily: FONT_HEAD, fontSize: 15, color: C.gold, letterSpacing: 1 }}>{school}</span>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>
+                    <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-lead)", color: C.gold, letterSpacing: 1 }}>{school}</span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid }}>
                       {schoolPresent}/{schoolPlayers.length} present
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => markAllSchool(school, true)} style={{ ...btnGhost(C.success), fontSize: 11, padding: "5px 10px" }}>All In</button>
-                    <button onClick={() => markAllSchool(school, false)} style={{ ...btnGhost(C.danger), fontSize: 11, padding: "5px 10px" }}>Clear</button>
+                    <button onClick={() => markAllSchool(school, true)} style={{ ...btnGhost(C.success), fontSize: "var(--gp-type-caption)", padding: "5px 10px" }}>All In</button>
+                    <button onClick={() => markAllSchool(school, false)} style={{ ...btnGhost(C.danger), fontSize: "var(--gp-type-caption)", padding: "5px 10px" }}>Clear</button>
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
@@ -7360,13 +7544,13 @@ function ClusterAttendance() {
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 16 }}>{isPresent ? "✅" : "⬜"}</span>
                           {player.jersey && (
-                            <span style={{ fontFamily: FONT_HEAD, fontSize: 13, color: isPresent ? C.success : C.textDim, letterSpacing: 1 }}>#{player.jersey}</span>
+                            <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-compact)", color: isPresent ? C.success : C.textDim, letterSpacing: 1 }}>#{player.jersey}</span>
                           )}
-                          {player.div && <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: player.div === "B Div" ? C.electric : C.gold, background: player.div === "B Div" ? C.electricGlow : C.goldGlow, borderRadius: 4, padding: "1px 6px" }}>{player.div}</span>}
-                          {player.walkIn && <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.orange, background: "rgba(251,146,60,0.15)", borderRadius: 4, padding: "1px 5px" }}>WALK-IN</span>}
+                          {player.div && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fontWeight: 700, color: player.div === "B Div" ? C.electric : C.gold, background: player.div === "B Div" ? C.electricGlow : C.goldGlow, borderRadius: 4, padding: "1px 6px" }}>{player.div}</span>}
+                          {player.walkIn && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.orange, background: "rgba(251,146,60,0.15)", borderRadius: 4, padding: "1px 5px" }}>WALK-IN</span>}
                         </div>
-                        <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: isPresent ? C.textBright : C.textMid, lineHeight: 1.3 }}>{player.name}</div>
-                        {player.position && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>{player.position}</div>}
+                        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700, color: isPresent ? C.textBright : C.textMid, lineHeight: 1.3 }}>{player.name}</div>
+                        {player.position && <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>{player.position}</div>}
                       </button>
                     );
                   })}
@@ -7402,7 +7586,7 @@ function ClusterAttendance() {
       {view === "roster" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>{roster.length} players registered across {schools.length} school{schools.length !== 1 ? "s" : ""}</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid }}>{roster.length} players registered across {schools.length} school{schools.length !== 1 ? "s" : ""}</span>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={() => {
                 const existingIds = new Set(roster.map(p => p.id));
@@ -7413,7 +7597,7 @@ function ClusterAttendance() {
                   setRoster(prev => [...prev, ...missing]);
                   showCopyToast(`Added ${missing.length} new player${missing.length === 1 ? "" : "s"} from master list.`, "success");
                 }
-              }} style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 999, border: `1px solid ${C.electric}40`, background: `${C.electric}10`, color: C.electric, cursor: "pointer" }}>
+              }} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, padding: "8px 14px", borderRadius: 999, border: `1px solid ${C.electric}40`, background: `${C.electric}10`, color: C.electric, cursor: "pointer" }}>
                 Sync Master List
               </button>
               <button onClick={() => { setShowAddForm(true); setEditId(null); setNewPlayer({ name: "", school: SCHOOLS[0], div: "B Div", year: "", jersey: "", position: "" }); }} style={{ ...btnPrimary() }}>
@@ -7478,7 +7662,7 @@ function ClusterAttendance() {
             if (sp.length === 0) return null;
             return (
               <div key={school} style={{ marginBottom: 20 }}>
-                <div style={{ fontFamily: FONT_HEAD, fontSize: 15, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>
+                <div style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-lead)", color: C.gold, letterSpacing: 1, marginBottom: 8 }}>
                   {school} — {sp.length} player{sp.length !== 1 ? "s" : ""}
                 </div>
                 <div style={{ display: "grid", gap: 6 }}>
@@ -7487,17 +7671,17 @@ function ClusterAttendance() {
                       {p.jersey && <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.electric, minWidth: 28, letterSpacing: 1 }}>#{p.jersey}</span>}
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: C.textBright }}>{p.name}</span>
-                          {p.div && <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: p.div === "B Div" ? C.electric : C.gold, background: p.div === "B Div" ? C.electricGlow : C.goldGlow, borderRadius: 4, padding: "1px 6px" }}>{p.div}</span>}
+                          <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontWeight: 700, color: C.textBright }}>{p.name}</span>
+                          {p.div && <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fontWeight: 700, color: p.div === "B Div" ? C.electric : C.gold, background: p.div === "B Div" ? C.electricGlow : C.goldGlow, borderRadius: 4, padding: "1px 6px" }}>{p.div}</span>}
                         </div>
-                        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>
+                        <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>
                           {[p.year, p.position].filter(Boolean).join(" · ")}
                           {p.walkIn && <span style={{ marginLeft: 6, color: C.orange }}>(walk-in)</span>}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => startEdit(p)} style={{ ...btnGhost(C.electric), fontSize: 11, padding: "5px 9px" }}>Edit</button>
-                        <button onClick={() => { if (window.confirm(`Remove ${p.name}?`)) deletePlayer(p.id); }} style={{ ...btnGhost(C.danger), fontSize: 11, padding: "5px 9px" }}>✕</button>
+                        <button onClick={() => startEdit(p)} style={{ ...btnGhost(C.electric), fontSize: "var(--gp-type-caption)", padding: "5px 9px" }}>Edit</button>
+                        <button onClick={() => { if (window.confirm(`Remove ${p.name}?`)) deletePlayer(p.id); }} style={{ ...btnGhost(C.danger), fontSize: "var(--gp-type-caption)", padding: "5px 9px" }}>✕</button>
                       </div>
                     </div>
                   ))}
@@ -7508,8 +7692,8 @@ function ClusterAttendance() {
 
           {roster.length === 0 && (
             <Card style={{ textAlign: "center", padding: 40 }}>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: C.textMid, marginBottom: 8 }}>No players yet. Start by adding your cluster roster.</p>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>Tip: Add all regular players once — they'll be available for every session.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-lead)", color: C.textMid, marginBottom: 8 }}>No players yet. Start by adding your cluster roster.</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>Tip: Add all regular players once — they'll be available for every session.</p>
             </Card>
           )}
         </div>
@@ -7522,7 +7706,7 @@ function ClusterAttendance() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: copyToast ? 10 : 16 }}>
               <div>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: "0 0 4px", letterSpacing: 1 }}>ATTENDANCE SUMMARY</h3>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, margin: 0 }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, margin: 0 }}>
                   {new Date(sessionDate).toLocaleDateString("en-SG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </div>
@@ -7532,7 +7716,7 @@ function ClusterAttendance() {
             </div>
             {copyToast && (
               <div style={{
-                marginBottom: 14, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontFamily: FONT_BODY,
+                marginBottom: 14, padding: "8px 14px", borderRadius: 8, fontSize: "var(--gp-type-compact)", fontFamily: FONT_BODY,
                 background: copyToast.type === "error" ? "rgba(248,113,113,0.12)" : "rgba(34,211,165,0.12)",
                 border: `1px solid ${copyToast.type === "error" ? "rgba(248,113,113,0.3)" : "rgba(34,211,165,0.3)"}`,
                 color: copyToast.type === "error" ? C.danger : C.success,
@@ -7550,10 +7734,10 @@ function ClusterAttendance() {
                 if (sp.length === 0) return null;
                 return (
                   <div key={school} style={{ marginBottom: 12 }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 6 }}>{school} ({sp.length})</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700, color: C.gold, marginBottom: 6 }}>{school} ({sp.length})</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {sp.map(p => (
-                        <div key={p.id} style={{ fontFamily: FONT_BODY, fontSize: 13, background: "rgba(34,211,165,0.1)", border: "1px solid rgba(34,211,165,0.25)", borderRadius: 7, padding: "5px 11px", color: C.textBright }}>
+                        <div key={p.id} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", background: "rgba(34,211,165,0.1)", border: "1px solid rgba(34,211,165,0.25)", borderRadius: 7, padding: "5px 11px", color: C.textBright }}>
                           {p.jersey ? `#${p.jersey} ` : ""}{p.name}
                           {p.year ? <span style={{ color: C.textDim, marginLeft: 4 }}>({p.year})</span> : null}
                         </div>
@@ -7562,7 +7746,7 @@ function ClusterAttendance() {
                   </div>
                 );
               })}
-              {presentList.length === 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>No one marked present yet.</p>}
+              {presentList.length === 0 && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>No one marked present yet.</p>}
             </div>
 
             {/* Absent */}
@@ -7573,7 +7757,7 @@ function ClusterAttendance() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {absentList.map(p => (
-                    <div key={p.id} style={{ fontFamily: FONT_BODY, fontSize: 13, background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 7, padding: "5px 11px", color: C.textMid }}>
+                    <div key={p.id} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 7, padding: "5px 11px", color: C.textMid }}>
                       {p.name} <span style={{ color: C.textDim }}>({p.school})</span>
                     </div>
                   ))}
@@ -7589,14 +7773,14 @@ function ClusterAttendance() {
               const ids = attendanceLog[date] || [];
               return (
                 <div key={date} onClick={() => { setSessionDate(date); setPresentIds((ids || []).reduce((acc, id) => { acc[id] = true; return acc; }, {})); setView("take"); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.navyBorder}`, cursor: "pointer" }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textMid }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid }}>
                     {new Date(date).toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short" })}
                   </span>
                   <span style={{ fontFamily: FONT_HEAD, fontSize: 16, color: C.success, letterSpacing: 1 }}>{ids.length} present</span>
                 </div>
               );
             })}
-            {Object.keys(attendanceLog).length === 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>No sessions recorded yet.</p>}
+            {Object.keys(attendanceLog).length === 0 && <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>No sessions recorded yet.</p>}
           </Card>
         </div>
       )}
@@ -7646,7 +7830,7 @@ function TeacherAttendanceGate({ children }) {
         }}>
           <div>
             <div style={{ fontFamily: FONT_HEAD, color: C.textBright, fontSize: 16 }}>Coach Access Enabled</div>
-            <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13 }}>
+            <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)" }}>
               Coach and teacher tools are unlocked until you lock them again on this device.
             </div>
           </div>
@@ -7673,7 +7857,7 @@ function TeacherAttendanceGate({ children }) {
         display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16,
         padding: "8px 12px", borderRadius: 999, background: "rgba(56,189,248,0.1)",
         border: "1px solid rgba(56,189,248,0.2)", color: C.electric,
-        fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
+        fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 800, letterSpacing: "0.08em",
         textTransform: "uppercase",
       }}>
         Coach Only
@@ -7681,7 +7865,7 @@ function TeacherAttendanceGate({ children }) {
       <h3 style={{ margin: "0 0 8px", fontFamily: FONT_HEAD, color: C.textBright, fontSize: 28 }}>
         Coach Tools Locked
       </h3>
-      <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
+      <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>
         Enter the coach password to unlock attendance and the other protected coach or teacher tools here.
       </p>
       <form onSubmit={unlockAttendance} style={{ display: "grid", gap: 14, maxWidth: 420 }}>
@@ -7702,7 +7886,7 @@ function TeacherAttendanceGate({ children }) {
             }}
           />
         </div>
-        <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={rememberAccess}
@@ -7713,7 +7897,7 @@ function TeacherAttendanceGate({ children }) {
         </label>
         {error && (
           <div style={{
-            padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13,
+            padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)",
             color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
           }}>
             {error}
@@ -7722,7 +7906,7 @@ function TeacherAttendanceGate({ children }) {
         <button type="submit" style={{
           width: "fit-content", padding: "12px 18px", borderRadius: 10, border: "none",
           background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep,
-          fontFamily: FONT_BODY, fontSize: 14, fontWeight: 900, cursor: "pointer",
+          fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontWeight: 900, cursor: "pointer",
         }}>
           Unlock Coach Tools
         </button>
@@ -7750,11 +7934,11 @@ function CoachAccessScreen({ onUnlock, onResetProfile }) {
   return (
     <div style={{ minHeight: "100vh", background: C.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 480, background: `linear-gradient(135deg, ${C.navyCard}, ${C.navyDeep})`, border: `1px solid ${C.navyBorder}`, borderRadius: 24, padding: 28, boxShadow: "0 24px 50px rgba(0,0,0,0.28)" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", borderRadius: 999, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: C.electric, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "8px 12px", borderRadius: 999, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: C.electric, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Staff Access
         </div>
         <h2 style={{ margin: "0 0 8px", fontFamily: FONT_HEAD, color: C.textBright, fontSize: 30, letterSpacing: 1 }}>Staff Mode Locked</h2>
-        <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>
+        <p style={{ margin: "0 0 20px", fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>
           This profile is marked as coach or teacher. Enter the shared coach password to access squad, operations, attendance, and other protected tools.
         </p>
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
@@ -7771,7 +7955,7 @@ function CoachAccessScreen({ onUnlock, onResetProfile }) {
               style={{ ...makeInputStyle(C), WebkitTextFillColor: C.textBright, caretColor: C.textBright }}
             />
           </div>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, cursor: "pointer" }}>
             <input
               type="checkbox"
               checked={rememberAccess}
@@ -7781,15 +7965,15 @@ function CoachAccessScreen({ onUnlock, onResetProfile }) {
             Remember on this device
           </label>
           {error && (
-            <div style={{ padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: 13, color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
+            <div style={{ padding: "10px 12px", borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: "#fecaca", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
               {error}
             </div>
           )}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-            <button type="submit" style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
+            <button type="submit" style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: C.navyDeep, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontWeight: 900, cursor: "pointer" }}>
               Unlock Staff Mode
             </button>
-            <button type="button" onClick={onResetProfile} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${C.navyBorder}`, background: C.surfaceSubtle, color: C.textBright, fontFamily: FONT_BODY, fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+            <button type="button" onClick={onResetProfile} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${C.navyBorder}`, background: C.surfaceSubtle, color: C.textBright, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", fontWeight: 800, cursor: "pointer" }}>
               Reset As Player
             </button>
           </div>
@@ -7909,6 +8093,89 @@ function getNextScheduledEvent(events, today = formatLocalDateKey()) {
   return events.find((event) => event.date >= today) || null;
 }
 
+function isLoggableScheduleEvent(event = {}) {
+  const type = String(event.type || inferScheduleType(event.title || "")).toLowerCase();
+  const title = String(event.title || "").toLowerCase();
+  if (title.includes("no training")) return false;
+  return ["training", "match", "friendly"].includes(type);
+}
+
+function getLatestLoggableEvent(events = [], today = formatLocalDateKey()) {
+  return [...(events || [])]
+    .filter((event) => event.date && event.date <= today && isLoggableScheduleEvent(event))
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.title || "").localeCompare(String(b.title || "")))[0] || null;
+}
+
+function buildAccountabilityRows({ roster = [], latestRecords = [], targetEvent = null }) {
+  const targetDate = targetEvent?.date || formatLocalDateKey();
+  const rowsByKey = new Map();
+
+  (roster || []).forEach((player) => {
+    const key = getPlayerRecordKey({ playerName: player.name, id: player.id });
+    if (!key) return;
+    rowsByKey.set(key, {
+      key,
+      name: player.name || "Player",
+      group: [player.div, player.school].filter(Boolean).join(" · "),
+      rosterPlayer: player,
+      record: null,
+    });
+  });
+
+  (latestRecords || []).forEach((record) => {
+    const key = getPlayerRecordKey(record);
+    if (!key) return;
+    const existing = rowsByKey.get(key) || { key, name: record.playerName || record.playerId || "Player", group: record.team || record.squad || "", rosterPlayer: null, record: null };
+    rowsByKey.set(key, {
+      ...existing,
+      name: existing.name || record.playerName || record.playerId || "Player",
+      group: existing.group || record.team || record.squad || "",
+      record,
+    });
+  });
+
+  return [...rowsByKey.values()]
+    .map((row) => {
+      const latestSessionDate = normalizeDateKey(row.record?.latestSessionDate || "");
+      const hasLoggedTarget = latestSessionDate && latestSessionDate >= targetDate;
+      const reason = hasLoggedTarget
+        ? "Logged"
+        : latestSessionDate
+          ? `Last log ${latestSessionDate}`
+          : row.record
+            ? "No session log yet"
+            : "No shared check-in yet";
+      const severity = hasLoggedTarget ? 0 : latestSessionDate ? 1 : 2;
+      return { ...row, latestSessionDate, hasLoggedTarget, reason, severity };
+    })
+    .sort((a, b) => {
+      if (a.hasLoggedTarget !== b.hasLoggedTarget) return a.hasLoggedTarget ? 1 : -1;
+      if (b.severity !== a.severity) return b.severity - a.severity;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+}
+
+function buildReminderMessage({ mode, targetEvent, selectedRows }) {
+  const eventLabel = targetEvent
+    ? `${targetEvent.title || "the latest session"} (${targetEvent.date})`
+    : "the latest training/match session";
+  const names = selectedRows.map((row) => row.name).filter(Boolean);
+  if (mode === "named" && names.length) {
+    return `Accountability check: ${names.join(", ")}. Your ${eventLabel} GamePlan log is still missing. Complete it today. Training and matches are not finished until the reflection is logged.`;
+  }
+  return `Accountability check: ${names.length || "some"} player${names.length === 1 ? "" : "s"} still need to complete the ${eventLabel} GamePlan log. Get it done today. Standards count after the whistle too.`;
+}
+
+function buildPushAudience(profile = {}) {
+  const key = getPlayerRecordKey({ playerId: profile?.playerId, playerName: profile?.name });
+  return {
+    audienceKey: key,
+    playerId: String(profile?.playerId || "").trim(),
+    playerName: String(profile?.name || "").trim(),
+    role: String(profile?.role || "player").trim(),
+  };
+}
+
 function parseSheetBoolean(value) {
   return ["true", "yes", "1"].includes(String(value || "").trim().toLowerCase());
 }
@@ -7957,7 +8224,7 @@ async function fetchAnnouncementEntries() {
   return sortAnnouncementEntries(data);
 }
 
-function AnnouncementBoard({ isCoach = false }) {
+function AnnouncementBoard({ isCoach = false, pushAudience = null }) {
   const C = useTheme();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -8041,7 +8308,7 @@ function AnnouncementBoard({ isCoach = false }) {
     setPushError(null);
     setPushState("working");
     try {
-      await enableAnnouncementPush();
+      await enableAnnouncementPush(pushAudience || {});
       setPushState("enabled");
     } catch (e) {
       setPushError(e.message || "Could not enable notifications.");
@@ -8141,7 +8408,7 @@ function AnnouncementBoard({ isCoach = false }) {
         <div>
           <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: 1 }}>ANNOUNCEMENTS</div>
           {lastFetched && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, marginTop: 2 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 2 }}>
               Last updated {lastFetched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </div>
           )}
@@ -8155,7 +8422,7 @@ function AnnouncementBoard({ isCoach = false }) {
                 padding: "7px 14px", borderRadius: 4, cursor: (pushState === "blocked" || pushState === "working" || pushState === "checking") ? "not-allowed" : "pointer",
                 background: pushState === "enabled" ? `${C.success}18` : "transparent",
                 border: `1px solid ${pushState === "enabled" ? C.success : C.navyBorder}`,
-                color: pushState === "enabled" ? C.success : C.textMid, fontFamily: FONT_SERIF, fontSize: 10, fontWeight: 400,
+                color: pushState === "enabled" ? C.success : C.textMid, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", fontWeight: 400,
                 letterSpacing: "0.08em", textTransform: "uppercase",
                 transition: "border-color 0.15s ease",
               }}
@@ -8172,7 +8439,7 @@ function AnnouncementBoard({ isCoach = false }) {
           <button onClick={fetchAnnouncements} disabled={loading} style={{
             padding: "7px 14px", borderRadius: 4, cursor: loading ? "wait" : "pointer",
             background: "transparent", border: `1px solid ${C.navyBorder}`,
-            color: C.textMid, fontFamily: FONT_SERIF, fontSize: 10, fontWeight: 400,
+            color: C.textMid, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", fontWeight: 400,
             letterSpacing: "0.08em", textTransform: "uppercase",
             transition: "border-color 0.15s ease",
           }}>
@@ -8183,7 +8450,7 @@ function AnnouncementBoard({ isCoach = false }) {
 
       {(pushState === "enabled" || pushState === "blocked" || pushError) && (
         <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 12, background: C.navyCard, border: `1px solid ${C.navyBorder}` }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: pushState === "enabled" ? C.success : C.textMid, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: pushState === "enabled" ? C.success : C.textMid, lineHeight: 1.5 }}>
             {pushError
               ? pushError
               : pushState === "enabled"
@@ -8200,7 +8467,7 @@ function AnnouncementBoard({ isCoach = false }) {
               <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.04em" }}>
                 {editingAnnouncementId ? "EDIT ANNOUNCEMENT" : "POST ANNOUNCEMENT"}
               </div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
                 {editingAnnouncementId
                   ? "Update the announcement here. Editing changes the in-app notice without sending a new push."
                   : "Publish here to show the update in-app and push it to students who enabled alerts."}
@@ -8212,7 +8479,7 @@ function AnnouncementBoard({ isCoach = false }) {
                 style={{
                   padding: "7px 14px", borderRadius: 999, cursor: "pointer",
                   background: "transparent", border: `1px solid ${C.navyBorder}`,
-                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: 10,
+                  color: C.textDim, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)",
                   letterSpacing: "0.08em", textTransform: "uppercase",
                 }}
               >
@@ -8298,7 +8565,7 @@ function AnnouncementBoard({ isCoach = false }) {
                 onChange={(e) => updatePublishDraft({ pinned: e.target.checked })}
                 style={{ width: 16, height: 16, accentColor: C.gold }}
               />
-              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid }}>Pin this announcement to the top</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid }}>Pin this announcement to the top</span>
             </label>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -8322,7 +8589,7 @@ function AnnouncementBoard({ isCoach = false }) {
                 border: `1px solid ${publishMessage.tone === "success" ? `${C.success}25` : `${C.danger}25`}`,
                 color: publishMessage.tone === "success" ? C.success : C.danger,
                 fontFamily: FONT_BODY,
-                fontSize: 12,
+                fontSize: "var(--gp-type-small)",
                 lineHeight: 1.6,
               }}>
                 {publishMessage.text}
@@ -8334,21 +8601,21 @@ function AnnouncementBoard({ isCoach = false }) {
 
       {/* States */}
       {loading && (
-        <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 40, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)" }}>
           Fetching announcements…
         </div>
       )}
 
       {!loading && error && (
-        <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: `${C.danger}10`, border: `1px solid ${C.danger}25`, color: C.danger, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", lineHeight: 1.6 }}>
           {error}
         </div>
       )}
 
       {!loading && !error && !announcements.length && (
         <div style={{ textAlign: "center", padding: 48, background: C.navyCard, borderRadius: 16, border: `1px dashed ${C.navyBorder}` }}>
-          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: 15, fontWeight: 600 }}>No announcements posted right now.</p>
-          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 13, marginTop: 6 }}>{isCoach ? "Use the posting form above to publish the first update." : "No notices have been published yet."}</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textMid, fontSize: "var(--gp-type-lead)", fontWeight: 600 }}>No announcements posted right now.</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-compact)", marginTop: 6 }}>{isCoach ? "Use the posting form above to publish the first update." : "No notices have been published yet."}</p>
         </div>
       )}
 
@@ -8369,22 +8636,22 @@ function AnnouncementBoard({ isCoach = false }) {
               }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
                   {announcement.pinned && (
-                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       Pinned
                     </span>
                   )}
                   {announcement.category && (
-                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                       {announcement.category}
                     </span>
                   )}
                   {isCoach && (
-                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: announcement.source === "netlify" ? C.success : C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: announcement.source === "netlify" ? C.success : C.textDim, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                       {announcement.source === "netlify" ? "App" : "Sheet"}
                     </span>
                   )}
                   {formattedDate && (
-                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, marginLeft: "auto", letterSpacing: "0.06em" }}>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, marginLeft: "auto", letterSpacing: "0.06em" }}>
                       {formattedDate}
                     </span>
                   )}
@@ -8395,7 +8662,7 @@ function AnnouncementBoard({ isCoach = false }) {
                 </div>
 
                 {announcement.body && (
-                  <p style={{ margin: 0, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 12, fontFamily: FONT_BODY, fontSize: 14, color: C.textMid, lineHeight: 1.7 }}>
+                  <p style={{ margin: 0, borderTop: `1px solid ${C.navyBorder}`, paddingTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, lineHeight: 1.7 }}>
                     {announcement.body}
                   </p>
                 )}
@@ -8407,7 +8674,7 @@ function AnnouncementBoard({ isCoach = false }) {
                       style={{
                         padding: "7px 14px", borderRadius: 999, cursor: "pointer",
                         background: "transparent", border: `1px solid ${C.navyBorder}`,
-                        color: C.textMid, fontFamily: FONT_SERIF, fontSize: 10,
+                        color: C.textMid, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)",
                         letterSpacing: "0.08em", textTransform: "uppercase",
                       }}
                     >
@@ -8418,7 +8685,7 @@ function AnnouncementBoard({ isCoach = false }) {
                       style={{
                         padding: "7px 14px", borderRadius: 999, cursor: "pointer",
                         background: "transparent", border: `1px solid ${C.danger}`,
-                        color: C.danger, fontFamily: FONT_SERIF, fontSize: 10,
+                        color: C.danger, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)",
                         letterSpacing: "0.08em", textTransform: "uppercase",
                       }}
                     >
@@ -8435,10 +8702,247 @@ function AnnouncementBoard({ isCoach = false }) {
   );
 }
 
+function AccountabilityReminderPanel({ roster, latestRecords, scheduleEvents, defaultEventId }) {
+  const C = useTheme();
+  const isMobile = useIsMobile(780);
+  const [targetEventId, setTargetEventId] = useState(defaultEventId || "");
+  const [mode, setMode] = useState("team");
+  const [selectedKeys, setSelectedKeys] = useState([]);
+  const [publishSecret, setPublishSecret] = usePersistedState(ANNOUNCEMENT_PUBLISH_SECRET_KEY, "");
+  const [publishState, setPublishState] = useState("idle");
+  const [publishMessage, setPublishMessage] = useState(null);
+
+  const loggableEvents = [...(scheduleEvents || [])]
+    .filter(isLoggableScheduleEvent)
+    .filter((event) => event.date <= formatLocalDateKey())
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 12);
+
+  const targetEvent = loggableEvents.find((event) => event.id === targetEventId)
+    || loggableEvents[0]
+    || null;
+  const rows = buildAccountabilityRows({ roster, latestRecords, targetEvent });
+  const overdueRows = rows.filter((row) => !row.hasLoggedTarget);
+  const selectedRows = overdueRows.filter((row) => selectedKeys.includes(row.key));
+  const reminderBody = buildReminderMessage({ mode, targetEvent, selectedRows });
+  const publishDisabled = publishState === "working" || !publishSecret.trim() || selectedRows.length === 0;
+  const ghostButtonStyle = (color = C.electric) => ({
+    padding: "7px 12px",
+    borderRadius: 999,
+    cursor: "pointer",
+    background: `${color}10`,
+    border: `1px solid ${color}30`,
+    color,
+    fontFamily: FONT_BODY,
+    fontSize: "var(--gp-type-small)",
+    fontWeight: 800,
+  });
+
+  useEffect(() => {
+    if (!targetEventId && defaultEventId) setTargetEventId(defaultEventId);
+  }, [defaultEventId, targetEventId]);
+
+  useEffect(() => {
+    setSelectedKeys(overdueRows.map((row) => row.key));
+  }, [targetEvent?.id, overdueRows.map((row) => row.key).join("|")]);
+
+  const toggleRow = (key) => {
+    setSelectedKeys((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
+  };
+
+  const copyReminder = async () => {
+    try {
+      await navigator.clipboard.writeText(reminderBody);
+      setPublishMessage({ tone: "success", text: "Reminder copied." });
+    } catch {
+      setPublishMessage({ tone: "error", text: "Clipboard copy failed. Select the text manually." });
+    }
+  };
+
+  const publishReminder = async () => {
+    if (publishDisabled) return;
+    const ok = window.confirm(`Send this reminder only to the selected missing-log players with linked notification devices?\n\n${reminderBody}`);
+    if (!ok) return;
+
+    setPublishState("working");
+    setPublishMessage(null);
+    try {
+      const result = await createAnnouncementEntry({
+        title: targetEvent ? `Log your ${targetEvent.type || "session"} entry` : "Log your GamePlan entry",
+        body: reminderBody,
+        date: formatLocalDateKey(),
+        category: targetEvent?.type === "Match" || targetEvent?.type === "Friendly" ? "Match" : "Training",
+        pinned: false,
+        pushOnly: true,
+        targetAudienceKeys: selectedRows.map((row) => row.key),
+      }, publishSecret.trim());
+      setPublishMessage({
+        tone: "success",
+        text: `Targeted reminder sent to ${result.sent ?? 0} device${result.sent === 1 ? "" : "s"}. ${result.skipped ?? 0} non-matching subscription${result.skipped === 1 ? "" : "s"} skipped.`,
+      });
+    } catch (error) {
+      setPublishMessage({ tone: "error", text: error.message || "Could not publish reminder." });
+    } finally {
+      setPublishState("idle");
+    }
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.gold, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Accountability desk</div>
+            <h3 style={{ fontFamily: FONT_HEAD, fontSize: 24, color: C.textBright, margin: 0, letterSpacing: 0.5 }}>Missing GamePlan logs</h3>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, lineHeight: 1.65, margin: "10px 0 0" }}>
+              Track who still owes a training or match reflection, then publish a reminder through announcements.
+            </p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(90px, 1fr))", gap: 10, minWidth: 300 }}>
+            {[
+              { label: "Players tracked", value: rows.length, tone: C.gold },
+              { label: "Outstanding", value: overdueRows.length, tone: overdueRows.length ? C.orange : C.success },
+              { label: "Selected", value: selectedRows.length, tone: selectedRows.length ? C.electric : C.textDim },
+            ].map((item) => (
+              <div key={item.label} style={{ padding: "12px 12px", borderRadius: 12, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${item.tone}` }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.2 }}>{item.label}</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: item.tone, marginTop: 6 }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1.2fr) minmax(220px, 0.8fr)", gap: 14 }}>
+          <div>
+            <label style={makeLabelStyle(C)}>Session or match to check</label>
+            <select
+              value={targetEvent?.id || ""}
+              onChange={(e) => setTargetEventId(e.target.value)}
+              style={{ ...makeInputStyle(C), border: `1px solid ${C.surfaceBorder}`, borderRadius: 12, padding: "11px 12px" }}
+            >
+              {loggableEvents.length === 0 && <option value="">No logged schedule event available</option>}
+              {loggableEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.date} · {event.type || "Session"} · {event.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={makeLabelStyle(C)}>Reminder style</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 4 }}>
+              <Pill active={mode === "team"} onClick={() => setMode("team")} color={C.electric}>Team nudge</Pill>
+              <Pill active={mode === "named"} onClick={() => setMode("named")} color={C.orange}>Name players</Pill>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(300px, 0.9fr)", gap: 20 }}>
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+            <div>
+              <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: 0 }}>Outstanding players</h3>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 4 }}>
+                {targetEvent ? `${targetEvent.title} · ${targetEvent.date}` : "Select a schedule item first."}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <button onClick={() => setSelectedKeys(overdueRows.map((row) => row.key))} style={ghostButtonStyle(C.success)}>Select All</button>
+              <button onClick={() => setSelectedKeys([])} style={ghostButtonStyle(C.textDim)}>Clear</button>
+            </div>
+          </div>
+
+          {overdueRows.length === 0 ? (
+            <div style={{ padding: "18px 16px", borderRadius: 14, background: `${C.success}10`, border: `1px solid ${C.success}25`, color: C.success, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", lineHeight: 1.6 }}>
+              No outstanding logs for this event. That is the standard.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {overdueRows.map((row) => {
+                const selected = selectedKeys.includes(row.key);
+                return (
+                  <button
+                    key={row.key}
+                    type="button"
+                    onClick={() => toggleRow(row.key)}
+                    style={{
+                      textAlign: "left",
+                      padding: "13px 14px",
+                      borderRadius: 14,
+                      background: selected ? `${C.gold}10` : C.surfaceSubtle,
+                      border: `1px solid ${selected ? `${C.gold}45` : C.navyBorder}`,
+                      cursor: "pointer",
+                      display: "grid",
+                      gridTemplateColumns: "22px minmax(0, 1fr)",
+                      gap: 12,
+                      alignItems: "start",
+                    }}
+                  >
+                    <span style={{ width: 18, height: 18, borderRadius: 4, border: `1px solid ${selected ? C.gold : C.surfaceBorder}`, background: selected ? C.gold : "transparent", color: selected ? C.navy : C.textDim, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", fontWeight: 900 }}>{selected ? "✓" : ""}</span>
+                    <span>
+                      <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textBright, fontWeight: 800 }}>{row.name}</span>
+                      <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 3, lineHeight: 1.45 }}>
+                        {row.reason}{row.group ? ` · ${row.group}` : ""}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: "0 0 14px" }}>Reminder composer</h3>
+          <div style={{ padding: "14px 14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textMid, lineHeight: 1.65, marginBottom: 14 }}>
+            {reminderBody}
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div>
+              <label style={makeLabelStyle(C)}>Staff publish passcode</label>
+              <input
+                type="password"
+                value={publishSecret}
+                onChange={(e) => setPublishSecret(e.target.value)}
+                placeholder="Same passcode as announcements"
+                style={makeInputStyle(C)}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <GoldButton onClick={publishReminder} disabled={publishDisabled} style={{ minWidth: 160 }}>
+                {publishState === "working" ? "Publishing..." : "Publish Reminder"}
+              </GoldButton>
+              <GoldButton onClick={copyReminder} secondary style={{ minWidth: 120 }}>Copy Text</GoldButton>
+            </div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.55 }}>
+              This sends push only to selected players whose devices are linked to their GamePlan profile. It does not post to the public announcement board.
+            </div>
+            {publishMessage && (
+              <div style={{
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: publishMessage.tone === "success" ? `${C.success}10` : `${C.danger}10`,
+                border: `1px solid ${publishMessage.tone === "success" ? `${C.success}25` : `${C.danger}25`}`,
+                color: publishMessage.tone === "success" ? C.success : C.danger,
+                fontFamily: FONT_BODY,
+                fontSize: "var(--gp-type-small)",
+                lineHeight: 1.6,
+              }}>
+                {publishMessage.text}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════
 //  TEAM HUB
 // ══════════════════════════════════════════════════
-function TeamHubSection({ isCoach = false }) {
+function TeamHubSection({ isCoach = false, pushAudience = null }) {
   const C = useTheme();
   const [hubTab, setHubTab] = useState("announce");
   const tabs = [
@@ -8459,7 +8963,7 @@ function TeamHubSection({ isCoach = false }) {
           </Pill>
         ))}
       </div>
-      {hubTab === "announce"   && <AnnouncementBoard isCoach={isCoach} />}
+      {hubTab === "announce"   && <AnnouncementBoard isCoach={isCoach} pushAudience={pushAudience} />}
       {hubTab === "schedule"   && <ScheduleCard />}
       {hubTab === "culture"    && <LegendsSection />}
       {hubTab === "quiz"       && <FootballIQQuiz />}
@@ -8524,14 +9028,14 @@ function QuickReadinessWidget() {
   if (alreadyLogged) {
     return (
       <Card style={{ borderRadius: 20, border: `1px solid ${scoreTone(todayEntry.readinessScore)}30` }}>
-        <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Readiness — Today</div>
+        <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Readiness — Today</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: FONT_HEAD, fontSize: 42, color: scoreTone(todayEntry.readinessScore), letterSpacing: 1, lineHeight: 1 }}>{todayEntry.readinessScore}%</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 42, color: scoreTone(todayEntry.readinessScore), letterSpacing: 1, lineHeight: 1 }}>{todayEntry.readinessScore}%</div>
           <div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, fontWeight: 600, marginBottom: 4 }}>{getReadinessDirective(todayEntry.readinessScore)}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textBright, fontWeight: 600, marginBottom: 4 }}>{getReadinessDirective(todayEntry.readinessScore)}</div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[{ k: "Sleep", v: todayEntry.sleep }, { k: "Energy", v: todayEntry.energy }, { k: "Soreness", v: todayEntry.soreness }].map(({ k, v }) => (
-                <span key={k} style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim }}>{k} {v}/5</span>
+                <span key={k} style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim }}>{k} {v}/5</span>
               ))}
             </div>
           </div>
@@ -8542,15 +9046,15 @@ function QuickReadinessWidget() {
 
   return (
     <Card style={{ borderRadius: 20 }}>
-      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
         {saved ? <span style={{ color: C.success }}>Readiness logged</span> : "Log readiness — today"}
       </div>
       <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
         {rows.map(({ label, desc, value, set, inverse }) => (
           <div key={label}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
-              <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim }}>{desc}</span>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim }}>{desc}</span>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
               {[1, 2, 3, 4, 5].map(v => {
@@ -8562,7 +9066,7 @@ function QuickReadinessWidget() {
                     background: active ? `${col}22` : C.surfaceSubtle,
                     outline: active ? `1.5px solid ${col}` : `1px solid ${C.navyBorder}`,
                     color: active ? col : C.textDim,
-                    fontFamily: FONT_SERIF, fontSize: 13, fontWeight: active ? 700 : 400,
+                    fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", fontWeight: active ? 700 : 400,
                     transition: "all 0.12s",
                   }}>{v}</button>
                 );
@@ -8572,15 +9076,15 @@ function QuickReadinessWidget() {
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ fontFamily: FONT_HEAD, fontSize: 32, color: scoreTone(readinessScore), letterSpacing: 1, minWidth: 64 }}>{readinessScore}%</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: scoreTone(readinessScore), letterSpacing: 1, minWidth: 64 }}>{readinessScore}%</div>
         <button onClick={handleSave} style={{
           flex: 1, padding: "11px 0", borderRadius: 999, cursor: "pointer",
           background: C.gold, border: "none",
-          color: C.navyDeep, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+          color: C.navyDeep, fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", fontWeight: 700,
         }}>Save readiness</button>
       </div>
       {syncError && (
-        <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 12, color: C.danger }}>
+        <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.danger }}>
           {syncError}
         </div>
       )}
@@ -8746,7 +9250,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
               }}>
                 {squad.photo
                   ? <img src={squad.photo} alt={firstName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontFamily: FONT_HEAD, fontSize: isMobile ? 26 : 34, color: availability.color, letterSpacing: 1 }}>
+                  : <span style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 26 : 34, color: availability.color, letterSpacing: 1 }}>
                       {name.slice(0, 2).toUpperCase()}
                     </span>
                 }
@@ -8754,29 +9258,29 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
               <div style={{
                 position: "absolute", bottom: 2, right: 2, width: 22, height: 22,
                 borderRadius: "50%", background: C.navyCard, border: `2px solid ${C.navyBorder}`,
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--gp-type-micro)",
               }}>✎</div>
             </button>
 
             {/* Greeting + status badges */}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
                 FC NBSS · {position} · Lvl {level.level}
               </div>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(22px, 5vw, 38px)", color: C.textBright, letterSpacing: "0.03em", lineHeight: 1.1, marginBottom: 10 }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(24px, 5.4vw, 40px)", color: C.textBright, letterSpacing: "0.045em", lineHeight: 1, marginBottom: 12, maxWidth: "100%", overflowWrap: "break-word" }}>
                 {greeting}, {firstName}.
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${availability.color}15`, border: `1px solid ${availability.color}40`, color: availability.color, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", padding: "4px 10px", borderRadius: 999, background: `${availability.color}15`, border: `1px solid ${availability.color}40`, color: availability.color, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {availability.label}
                 </span>
                 {latestReady !== null && (
-                  <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${readinessTone}15`, border: `1px solid ${readinessTone}40`, color: readinessTone, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", padding: "4px 10px", borderRadius: 999, background: `${readinessTone}15`, border: `1px solid ${readinessTone}40`, color: readinessTone, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                     Readiness {latestReady}%
                   </span>
                 )}
                 {streak > 1 && (
-                  <span style={{ fontFamily: FONT_SERIF, fontSize: 10, padding: "4px 10px", borderRadius: 999, background: `${C.success}12`, border: `1px solid ${C.success}35`, color: C.success, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", padding: "4px 10px", borderRadius: 999, background: `${C.success}12`, border: `1px solid ${C.success}35`, color: C.success, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                     {streak} session streak
                   </span>
                 )}
@@ -8785,7 +9289,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
 
             {/* Last updated — top right, desktop only */}
             {!isMobile && (
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, flexShrink: 0, alignSelf: "flex-start" }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, flexShrink: 0, alignSelf: "flex-start" }}>
                 Updated {formatDate(last?.date)}
               </div>
             )}
@@ -8797,7 +9301,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
 
           {/* Next up */}
           <Card style={{ borderRadius: 20 }}>
-            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>Next up</div>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>Next up</div>
             {nextEvent ? (
               <>
                 {/* Urgency badge */}
@@ -8806,7 +9310,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                     background: daysUntil === 0 ? `${C.danger}15` : daysUntil <= 2 ? `${C.orange}12` : `${C.gold}10`,
                     border: `1px solid ${daysUntil === 0 ? C.danger : daysUntil <= 2 ? C.orange : C.gold}35`,
                   }}>
-                    <span style={{ fontFamily: FONT_SERIF, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", letterSpacing: "0.08em", textTransform: "uppercase",
                       color: daysUntil === 0 ? C.danger : daysUntil <= 2 ? C.orange : C.gold,
                       fontWeight: 700,
                     }}>
@@ -8817,20 +9321,20 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1.2, marginBottom: 8 }}>
                   {nextEvent.title}
                 </div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim }}>
                   {nextEvent.date}{nextEvent.time ? ` · ${nextEvent.time}` : ""}
                 </div>
                 {nextEvent.venue && (
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 4 }}>{nextEvent.venue}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 4 }}>{nextEvent.venue}</div>
                 )}
-                <button onClick={() => setActive("hub")} style={{ marginTop: 14, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11, padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
+                <button onClick={() => setActive("hub")} style={{ marginTop: 14, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
                   Full schedule →
                 </button>
               </>
             ) : (
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.6 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textDim, lineHeight: 1.6 }}>
                 No upcoming event scheduled.
-                <button onClick={() => setActive("hub")} style={{ display: "block", marginTop: 12, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: 11, padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
+                <button onClick={() => setActive("hub")} style={{ display: "block", marginTop: 12, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textDim, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", padding: "6px 14px", borderRadius: 999, cursor: "pointer" }}>
                   Check schedule →
                 </button>
               </div>
@@ -8839,7 +9343,7 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
 
           {/* Smart checklist */}
           <Card style={{ borderRadius: 20 }}>
-            <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+            <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
               Before {isMatchEvent ? "match day" : "training"}
             </div>
             <div style={{ display: "grid", gap: 10 }}>
@@ -8855,13 +9359,13 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                     background: item.done ? `${C.success}20` : "transparent",
                     border: `2px solid ${item.done ? C.success : C.navyBorder}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, color: C.success, lineHeight: 1,
+                    fontSize: "var(--gp-type-micro)", color: C.success, lineHeight: 1,
                   }}>{item.done ? "✓" : ""}</div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: item.done ? C.textDim : C.textBright, fontWeight: item.done ? 400 : 600, textDecoration: item.done ? "line-through" : "none" }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: item.done ? C.textDim : C.textBright, fontWeight: item.done ? 400 : 600, textDecoration: item.done ? "line-through" : "none" }}>
                       {item.label}
                     </div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.4, marginTop: 1 }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.4, marginTop: 1 }}>
                       {item.note}
                     </div>
                   </div>
@@ -8878,8 +9382,8 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
 
         {/* ── RECOMMENDATION ── */}
         <div style={{ padding: "14px 18px", borderRadius: 14, background: `${C.gold}08`, border: `1px solid ${C.gold}20`, marginBottom: 20 }}>
-          <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.gold, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Today&apos;s recommendation</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textBright, lineHeight: 1.65 }}>{recommendation}</div>
+          <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.gold, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Today&apos;s recommendation</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textBright, lineHeight: 1.65 }}>{recommendation}</div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 20 }}>
@@ -8892,9 +9396,9 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
             { label: "Energy", value: latestEnergy !== null ? latestEnergy : "-", sub: "Latest self-report", color: C.success },
           ].map((card, idx) => (
             <div key={idx} style={{ padding: "18px 16px", borderRadius: 16, background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${card.color}` }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{card.label}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 34, color: card.color, letterSpacing: 1 }}>{card.value}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.5 }}>{card.sub}</div>
             </div>
           ))}
         </div>
@@ -8903,17 +9407,17 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
           <Card style={{ borderRadius: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Load trend</h3>
-              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open performance</button>
+              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>Open performance</button>
             </div>
             {loadTrend.length < 2 ? (
-              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Add at least two sessions with duration and RPE to unlock load trend analysis.</div>
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>Add at least two sessions with duration and RPE to unlock load trend analysis.</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={loadTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
-                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <YAxis tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <YAxis tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                   <Line type="monotone" dataKey="acute" stroke={C.orange} strokeWidth={2.4} dot={{ fill: C.orange, r: 3 }} name="Acute" />
                   <Line type="monotone" dataKey="chronic" stroke={C.electric} strokeWidth={2.4} dot={{ fill: C.electric, r: 3 }} name="Chronic" />
                 </LineChart>
@@ -8924,10 +9428,10 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
           <Card style={{ borderRadius: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recovery trend</h3>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Trend vs recent baseline</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Trend vs recent baseline</div>
             </div>
             {readinessTrend.length < 2 ? (
-              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Track sleep, energy, and soreness to unlock recovery trend analysis.</div>
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>Track sleep, energy, and soreness to unlock recovery trend analysis.</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={readinessTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -8935,9 +9439,9 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                   <ReferenceArea y1={60} y2={75}  fill={C.orange}  fillOpacity={0.06} />
                   <ReferenceArea y1={75} y2={100} fill={C.success} fillOpacity={0.05} />
                   <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
-                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                   <ReferenceLine y={75} stroke={C.success} strokeDasharray="4 2" strokeOpacity={0.7} />
                   <ReferenceLine y={60} stroke={C.danger}  strokeDasharray="4 2" strokeOpacity={0.5} />
                   <Line type="monotone" dataKey="readiness" stroke={C.success} strokeWidth={2.4} dot={{ fill: C.success, r: 3 }} name="Readiness" />
@@ -8952,12 +9456,12 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>ACWR</h3>
               <div style={{ display: "flex", gap: 12 }}>
                 {[{ label: "< 0.8 Under", c: C.electric }, { label: "0.8–1.3 Optimal", c: C.success }, { label: "1.3–1.5 Caution", c: C.orange }, { label: "> 1.5 Risk", c: C.danger }].map(z => (
-                  <span key={z.label} style={{ fontFamily: FONT_BODY, fontSize: 10, color: z.c, letterSpacing: 0.3 }}>{z.label}</span>
+                  <span key={z.label} style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: z.c, letterSpacing: 0.3 }}>{z.label}</span>
                 ))}
               </div>
             </div>
             {loadTrend.length < 2 ? (
-              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>Log at least two sessions with RPE and duration to unlock ACWR tracking.</div>
+              <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>Log at least two sessions with RPE and duration to unlock ACWR tracking.</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={loadTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -8966,9 +9470,9 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                   <ReferenceArea y1={1.3} y2={1.5} fill={C.orange}   fillOpacity={0.07} />
                   <ReferenceArea y1={1.5} y2={2.5} fill={C.danger}   fillOpacity={0.07} />
                   <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
-                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <YAxis domain={[0, 2.5]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <YAxis domain={[0, 2.5]} tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                   <ReferenceLine y={0.8} stroke={C.electric} strokeDasharray="3 2" strokeOpacity={0.5} />
                   <ReferenceLine y={1.3} stroke={C.orange}   strokeDasharray="3 2" strokeOpacity={0.5} />
                   <ReferenceLine y={1.5} stroke={C.danger}   strokeDasharray="3 2" strokeOpacity={0.5} />
@@ -8983,9 +9487,9 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
           <Card style={{ borderRadius: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
               <h3 style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, margin: 0, letterSpacing: 1 }}>Recent sessions</h3>
-              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700 }}>Open full log</button>
+              <button onClick={() => setActive("performance")} style={{ background: "none", border: "none", color: C.gold, cursor: "pointer", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 700 }}>Open full log</button>
             </div>
-            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
+            {recent.length === 0 ? <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>No performance data yet. Log your first session and this page will start working for you.</div> : <div style={{ display: "grid", gap: 10 }}>{recent.map((entry) => (<div key={entry.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}><div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textBright, fontWeight: 700 }}>{(entry.type || "session").toUpperCase()}</div><div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{formatDate(entry.date)}</div></div><div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid }}><span>Rating: {Number(entry.rating || 0).toFixed(1)}</span><span>Load: {entry.load || "-"}</span><span>Readiness: {entry.readinessScore != null ? `${entry.readinessScore}%` : "-"}</span></div></div>))}</div>}
           </Card>
 
           <Card style={{ borderRadius: 20 }}>
@@ -9018,8 +9522,8 @@ function PlayerDashboardPage({ setActive, setPerfInitTab, profile, sessions }) {
                 },
               ].map((item, idx) => (
                 <div key={idx} style={{ padding: "14px 16px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: item.tone, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>{item.label}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textMid, lineHeight: 1.65 }}>{item.text}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: item.tone, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>{item.label}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textMid, lineHeight: 1.65 }}>{item.text}</div>
                 </div>
               ))}
             </div>
@@ -9083,7 +9587,7 @@ function PlayerPerformancePage({ initialTab, onTabConsumed }) {
   return (
     <PlayerPerformanceSurface
       theme={C}
-      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
       summary={{
         title: "PERFORMANCE",
         subtitle: `${squad.position?.trim() || profile?.position?.trim() || "Midfielder"} · Level ${level.level} ${level.title}. Training quality, recovery signals, and performance direction are prioritised first.`,
@@ -9127,7 +9631,7 @@ function PlayerPerformancePage({ initialTab, onTabConsumed }) {
           <SquadSection />
           <LocalTrustPanel
             theme={C}
-            fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+            fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
             title="Local Data Integrity"
             description="This device stores your performance records locally. Export backups regularly and import them when moving to a new device."
             storageItems={playerTrustItems}
@@ -9192,7 +9696,7 @@ function PlayerMatchPage() {
   return (
     <PlayerMatchSurface
       theme={C}
-      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
       summary={{
         title: "MATCH",
         subtitle: "Preparation, execution review, and match output are organised into one serious workflow.",
@@ -9328,14 +9832,14 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
   const clubBadge = (
     <div>
       <div style={{ fontFamily: FONT_HEAD, fontSize: 18, color: C.textBright, letterSpacing: "0.08em" }}>FC NBSS</div>
-      <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
+      <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>Naval Base Secondary School · Football CCA</div>
     </div>
   );
 
   return (
     <CoachDashboardSurface
       theme={C}
-      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
       clubBadge={clubBadge}
       summary={{
         title: "SQUAD BOARD",
@@ -9415,7 +9919,7 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
                   border: `1px solid ${C.navyBorder}`,
                   color: C.textDim,
                   fontFamily: FONT_BODY,
-                  fontSize: 12,
+                  fontSize: "var(--gp-type-small)",
                   fontWeight: 700,
                 }}
               >
@@ -9424,7 +9928,7 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
             )}
           </div>
           <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 11, color: C.textDim }}>
+          <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim }}>
             Square photos work best. Stored on this device only.
           </div>
         </>
@@ -9441,12 +9945,14 @@ function CoachSquadPage() {
   const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
   const [playerInputsError, setPlayerInputsError] = useState("");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState("");
+  const [scheduleEvents, setScheduleEvents] = useState([]);
   const activeIssues = (wellnessLogs || []).filter(log => !log.resolved);
   const sharedDataset = buildCoachPlayerDataset(playerInputsData.playerInputs);
   const sharedSummary = playerInputsData.summary;
   const sharedEnabled = Boolean(sharedSummary?.totalSubmissions || sharedDataset.latestRecords.length);
   const sharedAvailability = sharedSummary?.availability || { available: 0, modified: 0, unavailable: 0 };
   const playerDetail = buildCoachPlayerDetail(playerInputsData.playerInputs, selectedPlayerKey);
+  const latestLoggableEvent = getLatestLoggableEvent(scheduleEvents);
 
   useEffect(() => {
     let active = true;
@@ -9479,6 +9985,14 @@ function CoachSquadPage() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    fetchScheduleEntries()
+      .then((events) => { if (active) setScheduleEvents(events); })
+      .catch(() => { if (active) setScheduleEvents(mergeScheduleEntries([])); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (!sharedEnabled) {
       if (selectedPlayerKey) setSelectedPlayerKey("");
       return;
@@ -9499,7 +10013,7 @@ function CoachSquadPage() {
   return (
     <CoachSquadSurface
       theme={C}
-      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
       summary={{
         title: "SQUAD",
         subtitle: sharedEnabled ? "Every player check-in rolls up here for staff-side squad planning." : "Availability, roster status, and attendance access are organised into one surface.",
@@ -9552,9 +10066,9 @@ function CoachSquadPage() {
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
               <div>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Player detail</div>
+                <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Player detail</div>
                 <div style={{ fontFamily: FONT_HEAD, fontSize: 24, color: C.textBright, letterSpacing: 1 }}>{detailRecord.playerName || detailRecord.playerId || "Player"}</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textDim, marginTop: 6 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textDim, marginTop: 6 }}>
                   Last update {formatDateTime(detailRecord.updatedAt || detailRecord.date)}
                 </div>
               </div>
@@ -9568,7 +10082,7 @@ function CoachSquadPage() {
                   background: C.surfaceSubtle,
                   color: C.textMid,
                   fontFamily: FONT_BODY,
-                  fontSize: 12,
+                  fontSize: "var(--gp-type-small)",
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
@@ -9584,16 +10098,16 @@ function CoachSquadPage() {
                 { label: "Active issues", value: detailRecord.activeIssueCount || 0, note: detailRecord.activeIssueCount ? "Needs monitoring" : "No active issues in latest submission", tone: detailRecord.activeIssueCount ? C.orange : C.success },
               ].map((item) => (
                 <div key={item.label} style={{ padding: "16px 14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}`, borderTop: `3px solid ${item.tone}` }}>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{item.label}</div>
-                  <div style={{ fontFamily: FONT_HEAD, fontSize: 28, color: item.tone, letterSpacing: 1 }}>{item.value}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.textDim, lineHeight: 1.55 }}>{item.note}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>{item.label}</div>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: item.tone, letterSpacing: 1 }}>{item.value}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: C.textDim, lineHeight: 1.55 }}>{item.note}</div>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 14, background: `${C.gold}08`, border: `1px solid ${C.gold}20` }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>Coaching recommendation</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.textBright, lineHeight: 1.65 }}>{detailRecommendation}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, marginTop: 10 }}>Focus areas: {detailFocus}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>Coaching recommendation</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-compact)", color: C.textBright, lineHeight: 1.65 }}>{detailRecommendation}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, marginTop: 10 }}>Focus areas: {detailFocus}</div>
             </div>
           </Card>
 
@@ -9601,10 +10115,10 @@ function CoachSquadPage() {
             <Card>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: 0, letterSpacing: 1 }}>Readiness history</h3>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{playerDetail.readinessTrend.length} data point{playerDetail.readinessTrend.length === 1 ? "" : "s"}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{playerDetail.readinessTrend.length} data point{playerDetail.readinessTrend.length === 1 ? "" : "s"}</div>
               </div>
               {playerDetail.readinessTrend.length < 2 ? (
-                <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: 14, lineHeight: 1.7 }}>More player check-ins are needed to show a useful readiness trend.</div>
+                <div style={{ fontFamily: FONT_BODY, color: C.textDim, fontSize: "var(--gp-type-body)", lineHeight: 1.7 }}>More player check-ins are needed to show a useful readiness trend.</div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={playerDetail.readinessTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -9612,9 +10126,9 @@ function CoachSquadPage() {
                     <ReferenceArea y1={60} y2={75} fill={C.orange} fillOpacity={0.06} />
                     <ReferenceArea y1={75} y2={100} fill={C.success} fillOpacity={0.05} />
                     <CartesianGrid strokeDasharray="3 3" stroke={C.navyBorder} />
-                    <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                    <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: 10, fill: C.textDim }} tickLine={false} />
-                    <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: 12 }} />
+                    <XAxis dataKey="date" tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-micro)", fill: C.textDim }} tickLine={false} />
+                    <Tooltip contentStyle={{ background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 10, fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)" }} />
                     <ReferenceLine y={75} stroke={C.success} strokeDasharray="4 2" strokeOpacity={0.7} />
                     <ReferenceLine y={60} stroke={C.danger} strokeDasharray="4 2" strokeOpacity={0.5} />
                     <Line type="monotone" dataKey="readiness" stroke={C.success} strokeWidth={2.4} dot={{ fill: C.success, r: 3 }} name="Readiness" />
@@ -9626,21 +10140,21 @@ function CoachSquadPage() {
             <Card>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                 <h3 style={{ fontFamily: FONT_HEAD, fontSize: 20, color: C.textBright, margin: 0, letterSpacing: 1 }}>Submission history</h3>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>Latest {playerDetail.history.length}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>Latest {playerDetail.history.length}</div>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 {playerDetail.history.slice(0, 8).map((record) => (
                   <div key={record.id} style={{ padding: "14px", borderRadius: 14, background: C.surfaceSubtle, border: `1px solid ${C.navyBorder}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textBright, fontWeight: 700 }}>{record.date || "-"}</div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim }}>{record.updatedAt ? formatDateTime(record.updatedAt) : "-"}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textBright, fontWeight: 700 }}>{record.date || "-"}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim }}>{record.updatedAt ? formatDateTime(record.updatedAt) : "-"}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 12, color: C.textMid }}>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textMid }}>
                       <span>{String(record.availability || "available").toUpperCase()}</span>
                       <span>{record.readiness != null ? `Readiness ${record.readiness}%` : "No readiness"}</span>
                       <span>{record.sessionType ? `${record.sessionType}${record.sessionLoad != null ? ` · Load ${record.sessionLoad}` : ""}` : "No session context"}</span>
                     </div>
-                    {record.note ? <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.textDim, lineHeight: 1.55, marginTop: 8 }}>{record.note}</div> : null}
+                    {record.note ? <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.55, marginTop: 8 }}>{record.note}</div> : null}
                   </div>
                 ))}
               </div>
@@ -9649,7 +10163,7 @@ function CoachSquadPage() {
         </div>
       ) : (
         <Card>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: C.textDim, lineHeight: 1.7 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", color: C.textDim, lineHeight: 1.7 }}>
             Select a player from the overview list to open the dedicated player detail view.
           </div>
         </Card>
@@ -9658,6 +10172,14 @@ function CoachSquadPage() {
         <TeacherAttendanceGate>
           <ClusterAttendance />
         </TeacherAttendanceGate>
+      )}
+      renderAccountability={() => (
+        <AccountabilityReminderPanel
+          roster={roster || []}
+          latestRecords={sharedDataset.latestRecords}
+          scheduleEvents={scheduleEvents}
+          defaultEventId={latestLoggableEvent?.id || ""}
+        />
       )}
     />
   );
@@ -9699,7 +10221,7 @@ function CoachOperationsPage() {
   return (
     <CoachOperationsSurface
       theme={C}
-      fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+      fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
       summary={{
         title: "OPERATIONS",
         subtitle: "Schedule control, lineups, and outbound communication stay inside one operational surface.",
@@ -9729,10 +10251,10 @@ function CoachOperationsPage() {
       renderLineups={() => <LineupBuilderSection />}
       renderAnnouncements={() => (
         <>
-          <AnnouncementBoard isCoach />
+          <AnnouncementBoard isCoach pushAudience={buildPushAudience({ role: "staff" })} />
           <LocalTrustPanel
             theme={C}
-            fonts={{ head: FONT_HEAD, body: FONT_BODY }}
+            fonts={{ head: FONT_HEAD, body: FONT_BODY, display: FONT_DISPLAY }}
             title="Operations Backup"
             description="Operational records are stored on this device. Export backups before device changes and import them to restore coach-side data."
             storageItems={coachTrustItems}
@@ -9750,6 +10272,10 @@ export default function App() {
   const [active, setActive] = useState("dashboard");
   const [perfInitTab, setPerfInitTab] = useState(null);
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", photo: "", onboarded: false });
+
+  // Helper modal — shown once per session for players; dismissible; re-openable via FAB
+  const [helperOpen, setHelperOpen] = useState(false);
+  const helperShownKey = "nbss-helper-shown-session";
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [coachAccessGranted, setCoachAccessGranted] = useState(() => hasCoachAccessSession());
   const [isDark, setIsDark] = useState(() => {
@@ -9813,6 +10339,25 @@ export default function App() {
     if (!validRouteIds.includes(active)) setActive("dashboard");
   }, [active, validRouteIds]);
 
+  // Auto-open helper once per browser session for players, after onboarding
+  useEffect(() => {
+    if (!profile?.onboarded) return;
+    if (isStaffRole(profile?.role)) return;
+    try {
+      if (!sessionStorage.getItem(helperShownKey)) {
+        setHelperOpen(true);
+        sessionStorage.setItem(helperShownKey, "1");
+      }
+    } catch {}
+  // Only run when onboarded status changes (i.e. just completed onboarding or first load)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.onboarded]);
+
+  const handleHelperNavigate = (dest, tab) => {
+    if (tab && dest === "performance") setPerfInitTab(tab);
+    setActive(dest);
+  };
+
   const handleOnboardingComplete = (data) => {
     setProfile({
       ...data,
@@ -9868,7 +10413,7 @@ export default function App() {
           color: theme.gold === "#FFFFFF" ? "#fff" : "#000",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "12px 20px", gap: 12,
-          fontFamily: FONT_SERIF, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase",
+          fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", letterSpacing: "0.08em", textTransform: "uppercase",
           borderTop: `2px solid ${theme.gold}`,
         }}>
           <span>Update available — new version ready</span>
@@ -9877,7 +10422,7 @@ export default function App() {
             style={{
               background: theme.gold, color: theme.navy,
               border: "none", borderRadius: 4, cursor: "pointer",
-              fontFamily: FONT_SERIF, fontSize: 11, fontWeight: 700,
+              fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", fontWeight: 700,
               letterSpacing: "0.08em", textTransform: "uppercase",
               padding: "6px 16px", whiteSpace: "nowrap",
             }}
@@ -9887,8 +10432,21 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
+        :root {
+          --gp-type-micro: 0.75rem;
+          --gp-type-caption: 0.8125rem;
+          --gp-type-small: 0.875rem;
+          --gp-type-compact: 0.9375rem;
+          --gp-type-body: 1rem;
+          --gp-type-lead: 1.0625rem;
+        }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
+        html {
+          scroll-behavior: smooth;
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
+          font-kerning: normal;
+        }
         body {
           background: ${theme.navy};
           color: ${theme.textBright};
@@ -9896,7 +10454,10 @@ export default function App() {
           -webkit-font-smoothing: antialiased;
           transition: background 0.3s ease, color 0.3s ease;
           padding-top: 36px;
+          line-height: 1.55;
         }
+        button, input, select, textarea { font: inherit; }
+        p, li { max-width: 68ch; }
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: ${theme.navyCard}; }
@@ -9922,6 +10483,16 @@ export default function App() {
         }
 
         @media (max-width: 768px) {
+          :root {
+            --gp-type-micro: 0.8125rem;
+            --gp-type-caption: 0.875rem;
+            --gp-type-small: 0.9375rem;
+            --gp-type-compact: 1rem;
+            --gp-type-body: 1rem;
+            --gp-type-lead: 1.0625rem;
+          }
+          p, li { line-height: 1.7; }
+          button, input, select, textarea { min-height: 44px; }
           .mob-btn { display: block !important; }
           .nav-l {
             display: none !important;
@@ -9936,6 +10507,14 @@ export default function App() {
         }
       `}</style>
 
+      {/* Player helper modal -- shown once per session, re-openable via FAB */}
+      {helperOpen && !effectiveIsCoach && !coachLocked && profile?.onboarded && (
+        <PlayerHelperModal
+          onNavigate={handleHelperNavigate}
+          onClose={() => setHelperOpen(false)}
+        />
+      )}
+
       {!coachLocked && (
         <>
           <Navbar
@@ -9948,24 +10527,47 @@ export default function App() {
           {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
           <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
+          {/* ── HELPER FAB — players only, re-opens the "what do you want to do" modal ── */}
+          {!effectiveIsCoach && profile?.onboarded && (
+            <button
+              onClick={() => setHelperOpen(true)}
+              aria-label="Open helper"
+              title="What do you want to do?"
+              style={{
+                position: "fixed", bottom: 28, right: 20, zIndex: 9980,
+                width: 48, height: 48, borderRadius: 999,
+                background: theme.textBright, color: theme.navy,
+                border: "none", cursor: "pointer",
+                fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: `0 4px 20px ${theme.navy}80`,
+                transition: "transform 0.15s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              ?
+            </button>
+          )}
+
           {!effectiveIsCoach && active === "dashboard" && <PlayerDashboardPage setActive={setActive} setPerfInitTab={setPerfInitTab} profile={profile} sessions={sessions} />}
           {!effectiveIsCoach && active === "performance" && <PlayerPerformancePage initialTab={perfInitTab} onTabConsumed={() => setPerfInitTab(null)} />}
           {!effectiveIsCoach && active === "match" && <PlayerMatchPage />}
-          {!effectiveIsCoach && active === "hub" && <TeamHubSection isCoach={false} />}
+          {!effectiveIsCoach && active === "hub" && <TeamHubSection isCoach={false} pushAudience={buildPushAudience(profile)} />}
           {!effectiveIsCoach && active === "profile" && <SquadSection />}
 
           {effectiveIsCoach && active === "dashboard" && <CoachDashboardPage setActive={setActive} profile={profile} setProfile={setProfile} />}
           {effectiveIsCoach && active === "squad" && <CoachSquadPage />}
           {effectiveIsCoach && active === "operations" && <CoachOperationsPage />}
-          {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach />}
+          {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach pushAudience={buildPushAudience(profile)} />}
 
           <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Powered by</span>
-              <span style={{ fontFamily: FONT_HEAD, fontSize: 14, color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: theme.textDim }}>Performance and Development Platform</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: theme.textDim }}>Powered by</span>
+              <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: theme.textDim }}>Performance and Development Platform</span>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: theme.textDim, margin: "16px 0 0" }}>Created by: <span style={{ color: theme.gold, fontWeight: 700 }}>Muhammad Herwanto</span></p>
           </footer>
         </>
       )}

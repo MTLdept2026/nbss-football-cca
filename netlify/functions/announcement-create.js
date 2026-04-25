@@ -10,20 +10,36 @@ export async function handler(event) {
     const secret = getSecretValidation(event);
     if (!secret.ok) return json(secret.statusCode, { error: secret.message });
 
-    const announcement = normalizeAnnouncement(parseJSONBody(event));
+    const body = parseJSONBody(event);
+    const announcement = normalizeAnnouncement(body);
+    const pushOnly = Boolean(body.pushOnly);
+    const targetAudienceKeys = Array.isArray(body.targetAudienceKeys)
+      ? new Set(body.targetAudienceKeys.map((key) => String(key || "").trim().toLowerCase()).filter(Boolean))
+      : null;
     const announcementsStore = getAnnouncementsStore(event);
     const subscriptionsStore = getSubscriptionsStore(event);
 
-    await announcementsStore.setJSON(announcementKey(announcement.id), announcement);
+    if (!pushOnly) {
+      await announcementsStore.setJSON(announcementKey(announcement.id), announcement);
+    }
 
     const { blobs } = await subscriptionsStore.list({ prefix: "subscription/" });
     let sent = 0;
     let removed = 0;
+    let skipped = 0;
 
     await Promise.all(blobs.map(async ({ key }) => {
       const record = await subscriptionsStore.get(key, { type: "json" });
       const subscription = record?.subscription;
       if (!subscription?.endpoint) return;
+
+      if (targetAudienceKeys?.size) {
+        const audienceKey = String(record?.audience?.audienceKey || "").trim().toLowerCase();
+        if (!audienceKey || !targetAudienceKeys.has(audienceKey)) {
+          skipped += 1;
+          return;
+        }
+      }
 
       try {
         await sendPushNotification(subscription, {
@@ -45,7 +61,7 @@ export async function handler(event) {
       }
     }));
 
-    return json(200, { ok: true, announcement, sent, removed });
+    return json(200, { ok: true, announcement, sent, removed, skipped, pushOnly });
   } catch (error) {
     return json(500, { error: error.message || "Could not create announcement." });
   }

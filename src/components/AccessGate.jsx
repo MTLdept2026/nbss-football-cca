@@ -54,11 +54,12 @@ export default function AccessGate({ children }) {
 }
 
 // ── Nothing Design Language — locked screen ──
-// OLED black · Space Mono labels · Space Grotesk body · no color except data status
+// OLED black · Space Mono labels · Space Grotesk reading text · no color except data status
 // Flat surfaces · border separation · no shadows · no blur · no gradients
-const FONT_HEAD  = "'Doto', 'Space Mono', monospace";
+const FONT_HEAD  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
 const FONT_BODY  = "'Space Grotesk', 'DM Sans', system-ui, sans-serif";
 const FONT_SERIF = "'Space Mono', monospace";
+const FONT_DISPLAY = "'Doto', 'Space Mono', monospace";
 
 function LockedScreen() {
   return (
@@ -66,7 +67,27 @@ function LockedScreen() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #000000; }
+        :root {
+          --gp-type-micro: 0.75rem;
+          --gp-type-caption: 0.8125rem;
+          --gp-type-small: 0.875rem;
+          --gp-type-compact: 0.9375rem;
+          --gp-type-body: 1rem;
+          --gp-type-lead: 1.0625rem;
+        }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body { background: #000000; line-height: 1.55; }
+        button, input, select, textarea { font: inherit; }
+        @media (max-width: 640px) {
+          :root {
+            --gp-type-micro: 0.8125rem;
+            --gp-type-caption: 0.875rem;
+            --gp-type-small: 0.9375rem;
+            --gp-type-compact: 1rem;
+            --gp-type-body: 1rem;
+            --gp-type-lead: 1.0625rem;
+          }
+        }
       `}</style>
       <div style={{
         minHeight: "100vh",
@@ -92,11 +113,11 @@ function LockedScreen() {
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
-              <span style={{ fontFamily: FONT_SERIF, fontSize: 11, color: "#000000", letterSpacing: "0.08em" }}>GP</span>
+              <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: "#000000", letterSpacing: "0.08em" }}>GP</span>
             </div>
             <div>
-              <div style={{ fontFamily: FONT_HEAD, fontSize: 16, color: "#FFFFFF", letterSpacing: "0.06em" }}>GAMEPLAN</div>
-              <div style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#666666", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>NBSS Football CCA</div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: 16, color: "#FFFFFF", letterSpacing: "0.06em" }}>GAMEPLAN</div>
+              <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: "#666666", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>NBSS Football CCA</div>
             </div>
           </div>
 
@@ -106,27 +127,27 @@ function LockedScreen() {
           {/* Status indicator */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
             <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D71921", flexShrink: 0 }} />
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#D71921", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: "#D71921", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Restricted Access
             </span>
           </div>
 
           {/* Headline */}
-          <div style={{ fontFamily: FONT_HEAD, fontSize: "clamp(28px, 6vw, 40px)", color: "#FFFFFF", letterSpacing: "0.02em", lineHeight: 0.95, marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 6vw, 40px)", color: "#FFFFFF", letterSpacing: "0.02em", lineHeight: 0.95, marginBottom: 20 }}>
             MEMBERS ONLY
           </div>
 
           {/* Body text */}
-          <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "#999999", marginBottom: 12 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", lineHeight: 1.7, color: "#999999", marginBottom: 12 }}>
             This platform is exclusively for members of the NBSS Football CCA.
           </p>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "#999999", marginBottom: 0 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-body)", lineHeight: 1.7, color: "#999999", marginBottom: 0 }}>
             Access is granted via an invite link from your teacher-in-charge. Approach your coach or CCA leader if you are a member without a link.
           </p>
 
           {/* Footer */}
           <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #222222" }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 10, color: "#444444", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: "#444444", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               Naval Base Secondary School · Football CCA
             </span>
           </div>

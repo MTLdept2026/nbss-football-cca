@@ -30,3 +30,10 @@
 30 - has an IQ of 160
 31 - is obsessed with personal agency
 32 - does not have an ego that needs protecting.
+
+33 GITHUB WORKFLOW :
+34 - Remote is `origin` at `https://github.com/MTLdept2026/nbss-football-cca.git`.
+35 - Branch `main` tracks `origin/main`.
+36 - After code changes, show the user what changed and wait for explicit approval before committing or pushing.
+37 - When the user approves, commit the approved local changes and push to GitHub.
+38 - Do not push unapproved changes, generated noise, secrets, or unrelated local files.

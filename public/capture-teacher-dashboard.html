@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capture Teacher Dashboard</title>
+  </head>
+  <body>
+    <script>
+      const profile = {
+        name: "Mr Herwanto",
+        position: "Teacher-in-Charge",
+        level: null,
+        firstGoal: "Improve attendance, welfare visibility, and shared staff decisions.",
+        photo: "",
+        role: "teacher",
+        onboarded: true,
+        version: 3,
+        playerId: "",
+      };
+
+      const sessions = [
+        { id: "staff-01", date: "2026-04-08", title: "C Div Training Review", readinessScore: 76, availability: "modified" },
+        { id: "staff-02", date: "2026-04-11", title: "B Div Match Review", readinessScore: 81, availability: "available" },
+      ];
+
+      const roster = [
+        { id: "r-01", name: "Aqil", school: "Yishun Town Sec", div: "B Div" },
+        { id: "r-02", name: "Jairus", school: "Northland Sec", div: "C Div" },
+        { id: "r-03", name: "Faris", school: "Chung Cheng High (Yishun)", div: "B Div" },
+      ];
+
+      const attendance = {
+        "2026-04-15": ["r-01", "r-02"],
+        "2026-04-11": ["r-01", "r-03"]
+      };
+
+      const schedule = [
+        {
+          id: "sched-01",
+          date: "2026-04-18",
+          title: "B Div Training",
+          type: "Training",
+          division: "B Div",
+          time: "3pm to 5pm",
+          teacher: "Mr Herwanto",
+          venue: "School Field",
+          notes: "Focus on readiness and small-group load adjustments.",
+          source: "netlify",
+        }
+      ];
+
+      document.cookie = "nbssfc_access=true; path=/; SameSite=Strict";
+      localStorage.setItem("nbss-profile", JSON.stringify(profile));
+      localStorage.setItem("nbss-sessions", JSON.stringify(sessions));
+      localStorage.setItem("nbss-cluster-roster", JSON.stringify(roster));
+      localStorage.setItem("nbss-attendance-log", JSON.stringify(attendance));
+      localStorage.setItem("nbss-theme", "light");
+      localStorage.setItem("nbss-coach-access-remembered", "true");
+      localStorage.setItem("nbss-schedule-publish-secret", JSON.stringify("configured"));
+      localStorage.setItem("nbss-app-version", "capture");
+      window.location.replace("/?ref=");
+    </script>
+  </body>
+</html>
