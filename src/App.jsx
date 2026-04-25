@@ -1692,7 +1692,7 @@ function NotificationNudgeBanner({ pushAudience }) {
 }
 
 // ══════════════════════════════════════════════════
-//  PLAYER HELPER MODAL
+//  QUICK ACTION HELPER
 // ══════════════════════════════════════════════════
 const HELPER_ACTIONS = [
   {
@@ -1745,7 +1745,50 @@ const HELPER_ACTIONS = [
   },
 ];
 
-function PlayerHelperModal({ onNavigate, onClose }) {
+const STAFF_HELPER_ACTIONS = [
+  {
+    id: "staff-command",
+    label: "Open command centre",
+    sub: "Start from the main staff dashboard",
+    icon: "chart",
+    dest: "dashboard",
+    tab: null,
+  },
+  {
+    id: "staff-squad",
+    label: "Check player status",
+    sub: "See readiness, availability, and player details",
+    icon: "battery",
+    dest: "squad",
+    tab: null,
+  },
+  {
+    id: "staff-attendance",
+    label: "Take attendance",
+    sub: "Open the squad area, then use the attendance tab",
+    icon: "note",
+    dest: "squad",
+    tab: null,
+  },
+  {
+    id: "staff-schedule",
+    label: "Manage schedule",
+    sub: "Add or update training, matches, and events",
+    icon: "target",
+    dest: "operations",
+    tab: null,
+  },
+  {
+    id: "staff-announcements",
+    label: "Post announcement",
+    sub: "Send team updates from the hub",
+    icon: "megaphone",
+    dest: "hub",
+    tab: null,
+  },
+];
+
+function PlayerHelperModal({ actions = HELPER_ACTIONS, title = "WHAT DO YOU WANT TO DO?", subtitle = "SELECT AN ACTION -- WE'LL TAKE YOU THERE", dismissLabel = "dismiss -- i know where to go", onNavigate, onClose }) {
   const C = useTheme();
   const [hovered, setHovered] = useState(null);
 
@@ -1774,10 +1817,10 @@ function PlayerHelperModal({ onNavigate, onClose }) {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <div style={{ fontFamily: FONT_HEAD, fontSize: 22, color: C.textBright, letterSpacing: "0.04em", lineHeight: 1 }}>
-              WHAT DO YOU WANT TO DO?
+              {title}
             </div>
             <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", color: C.textDim, marginTop: 6, letterSpacing: "0.06em" }}>
-              SELECT AN ACTION -- WE'LL TAKE YOU THERE
+              {subtitle}
             </div>
           </div>
           <button
@@ -1795,7 +1838,7 @@ function PlayerHelperModal({ onNavigate, onClose }) {
 
         {/* Action grid */}
         <div style={{ display: "grid", gap: 10 }}>
-          {HELPER_ACTIONS.map((action) => {
+          {actions.map((action) => {
             const isHov = hovered === action.id;
             return (
               <button
@@ -1866,7 +1909,7 @@ function PlayerHelperModal({ onNavigate, onClose }) {
               textTransform: "uppercase",
             }}
           >
-            dismiss -- i know where to go
+            {dismissLabel}
           </button>
         </div>
       </div>
@@ -2269,6 +2312,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
   const [scrolled, setScrolled] = useState(false);
   const staffModeLabel = accountRole === "teacher" ? "Teacher" : "Coach";
   const staffModeShortLabel = accountRole === "teacher" ? "T" : "C";
+  const navControlSize = isMobile ? 44 : 36;
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", h);
@@ -2288,39 +2332,52 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
       paddingLeft: "max(env(safe-area-inset-left, 0px), 0px)",
       paddingRight: "max(env(safe-area-inset-right, 0px), 0px)",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: 8, minWidth: 0 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 10px 0 8px" : "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: isMobile ? 6 : 8, minWidth: 0, position: "relative" }}>
         {/* Logo + coach/player toggle */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexShrink: 1 }}>
-          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "none", border: "none" }} onClick={() => setActive("dashboard")}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 4,
-              background: C.textBright,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "var(--gp-type-caption)", fontFamily: FONT_SERIF, letterSpacing: "0.08em",
-              color: C.navy, fontWeight: 400,
-            }}>GP</div>
-            <div className="gp-wordmark">
-              <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-body)", color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
-              {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
-            </div>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flexShrink: 1 }}>
+          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 104 : 44, flexShrink: 0 }} onClick={() => setActive("dashboard")}>
+            {isMobile ? (
+              <div style={{
+                height: 44,
+                display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start",
+                color: C.textBright,
+              }}>
+                <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", letterSpacing: "0.12em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
+                {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "0.62rem", color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: 1, marginTop: 5 }}>{roleLabel}</div>}
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 4,
+                  background: C.textBright,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "var(--gp-type-caption)", fontFamily: FONT_SERIF, letterSpacing: "0.08em",
+                  color: C.navy, fontWeight: 400,
+                }}>GP</div>
+                <div className="gp-wordmark">
+                  <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-body)", color: C.textBright, letterSpacing: "0.1em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
+                  {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", marginTop: 2 }}>{roleLabel}</div>}
+                </div>
+              </>
+            )}
           </button>
           {/* Staff ↔ Player view toggle — label reflects actual staff role */}
           {isCoach && onToggleView && (
-            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0, ...(isMobile ? { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" } : null) }}>
               <button
                 onClick={() => { onToggleView(false); }}
-                style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 9px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
               >{isMobile ? staffModeShortLabel : staffModeLabel}</button>
               <button
                 onClick={() => { onToggleView(true); }}
-                style={{ padding: isMobile ? "4px 8px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 9px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
               >{isMobile ? "P" : "Player"}</button>
             </div>
           )}
         </div>
 
         {/* Right side: Instagram link, theme toggle + hamburger */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 6, flexShrink: 0 }}>
           <a
             href="https://www.instagram.com/nbssfootball/"
             target="_blank"
@@ -2331,8 +2388,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               background: "none",
               border: `1px solid ${C.navyBorder}`,
               color: C.textMid,
-              width: 36,
-              height: 36,
+              width: navControlSize,
+              height: navControlSize,
               borderRadius: 4,
               cursor: "pointer",
               display: "inline-flex",
@@ -2355,7 +2412,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               background: "none",
               border: `1px solid ${C.navyBorder}`,
               color: C.textMid,
-              width: 36, height: 36, borderRadius: 4, cursor: "pointer",
+              width: navControlSize, height: navControlSize, borderRadius: 4, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", letterSpacing: "0.06em",
               textTransform: "uppercase", transition: "color 0.15s", flexShrink: 0,
@@ -2363,8 +2420,12 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4, flexShrink: 0, whiteSpace: "nowrap" }}>
-            {open ? "✕" : "≡"}
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0 }}>
+            <span aria-hidden="true" style={{ width: 18, display: "grid", gap: open ? 0 : 4 }}>
+              <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(2px) rotate(45deg)" : "none", transition: "transform 0.15s ease" }} />
+              <span style={{ height: 2, background: C.textBright, borderRadius: 2, opacity: open ? 0 : 1, transition: "opacity 0.15s ease" }} />
+              <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(-2px) rotate(-45deg)" : "none", transition: "transform 0.15s ease" }} />
+            </span>
           </button>
         </div>
 
@@ -8198,93 +8259,6 @@ function getNextScheduledEvent(events, today = formatLocalDateKey()) {
   return events.find((event) => event.date >= today) || null;
 }
 
-function isLoggableScheduleEvent(event = {}) {
-  const type = String(event.type || inferScheduleType(event.title || "")).toLowerCase();
-  const title = String(event.title || "").toLowerCase();
-  if (title.includes("no training")) return false;
-  return ["training", "match", "friendly"].includes(type);
-}
-
-function getLatestLoggableEvent(events = [], today = formatLocalDateKey()) {
-  return [...(events || [])]
-    .filter((event) => event.date && event.date <= today && isLoggableScheduleEvent(event))
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.title || "").localeCompare(String(b.title || "")))[0] || null;
-}
-
-function buildAccountabilityRows({ roster = [], latestRecords = [], targetEvent = null }) {
-  const targetDate = targetEvent?.date || formatLocalDateKey();
-  const rowsByKey = new Map();
-
-  // Build a name -> record lookup so roster entries can be matched to their
-  // synced player record (which carries the playerId-based key used for push targeting)
-  const recordByName = new Map();
-  (latestRecords || []).forEach((record) => {
-    const name = String(record.playerName || "").trim().toLowerCase();
-    if (name) recordByName.set(name, record);
-  });
-
-  (roster || []).forEach((player) => {
-    const rosterName = String(player.name || "").trim().toLowerCase();
-    // Prefer the playerId-based key from the synced record so it matches push subscriptions
-    const matchedRecord = recordByName.get(rosterName) || null;
-    const key = matchedRecord
-      ? getPlayerRecordKey(matchedRecord)
-      : getPlayerRecordKey({ playerName: player.name, id: player.id });
-    if (!key) return;
-    rowsByKey.set(key, {
-      key,
-      name: player.name || "Player",
-      group: [player.div, player.school].filter(Boolean).join(" · "),
-      rosterPlayer: player,
-      record: matchedRecord,
-    });
-  });
-
-  // Add any synced records not matched to a roster entry
-  (latestRecords || []).forEach((record) => {
-    const key = getPlayerRecordKey(record);
-    if (!key || rowsByKey.has(key)) return;
-    rowsByKey.set(key, {
-      key,
-      name: record.playerName || record.playerId || "Player",
-      group: record.team || record.squad || "",
-      rosterPlayer: null,
-      record,
-    });
-  });
-
-  return [...rowsByKey.values()]
-    .map((row) => {
-      const latestSessionDate = normalizeDateKey(row.record?.latestSessionDate || "");
-      const hasLoggedTarget = latestSessionDate && latestSessionDate >= targetDate;
-      const reason = hasLoggedTarget
-        ? "Logged"
-        : latestSessionDate
-          ? `Last log ${latestSessionDate}`
-          : row.record
-            ? "No session log yet"
-            : "No shared check-in yet";
-      const severity = hasLoggedTarget ? 0 : latestSessionDate ? 1 : 2;
-      return { ...row, latestSessionDate, hasLoggedTarget, reason, severity };
-    })
-    .sort((a, b) => {
-      if (a.hasLoggedTarget !== b.hasLoggedTarget) return a.hasLoggedTarget ? 1 : -1;
-      if (b.severity !== a.severity) return b.severity - a.severity;
-      return String(a.name || "").localeCompare(String(b.name || ""));
-    });
-}
-
-function buildReminderMessage({ mode, targetEvent, selectedRows }) {
-  const eventLabel = targetEvent
-    ? `${targetEvent.title || "the latest session"} (${targetEvent.date})`
-    : "the latest training/match session";
-  const names = selectedRows.map((row) => row.name).filter(Boolean);
-  if (mode === "named" && names.length) {
-    return `Accountability check: ${names.join(", ")}. Your ${eventLabel} GamePlan log is still missing. Complete it today. Training and matches are not finished until the reflection is logged.`;
-  }
-  return `Accountability check: ${names.length || "some"} player${names.length === 1 ? "" : "s"} still need to complete the ${eventLabel} GamePlan log. Get it done today. Standards count after the whistle too.`;
-}
-
 function buildPushAudience(profile = {}) {
   const key = getPlayerRecordKey({ playerId: profile?.playerId, playerName: profile?.name });
   return {
@@ -10085,7 +10059,6 @@ function CoachDashboardPage({ setActive, profile, setProfile }) {
 function CoachSquadPage() {
   const C = useTheme();
   const NO_PLAYER_SELECTED = "__none__";
-  const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
   const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
   const [playerInputsError, setPlayerInputsError] = useState("");
@@ -10418,9 +10391,8 @@ export default function App() {
   const [perfInitTab, setPerfInitTab] = useState(null);
   const [profile, setProfile] = usePersistedState(STORAGE_KEYS.profile, { name: "", position: "Midfielder", level: "beginner", firstGoal: "", photo: "", onboarded: false });
 
-  // Helper modal — shown once per session for players; dismissible; re-openable via FAB
+  // Helper modal — shown on every app load for players; dismissible; re-openable via FAB
   const [helperOpen, setHelperOpen] = useState(false);
-  const helperShownKey = "nbss-helper-shown-session";
   const [sessions] = usePersistedState(STORAGE_KEYS.sessions, []);
   const [coachAccessGranted, setCoachAccessGranted] = useState(() => hasCoachAccessSession());
   const [isDark, setIsDark] = useState(() => {
@@ -10469,6 +10441,9 @@ export default function App() {
   // Staff can preview the app as a player — viewAsPlayer toggles this
   const effectiveIsCoach = isCoach && coachAccessGranted && !viewAsPlayer;
   const navItems = effectiveIsCoach ? COACH_PRIMARY_NAV : PLAYER_PRIMARY_NAV;
+  const helperActions = effectiveIsCoach ? STAFF_HELPER_ACTIONS : HELPER_ACTIONS;
+  const helperTitle = effectiveIsCoach ? "WHAT DO YOU NEED?" : "WHAT DO YOU WANT TO DO?";
+  const helperSubtitle = effectiveIsCoach ? "TAP ONE OPTION -- GAMEPLAN WILL OPEN IT" : "SELECT AN ACTION -- WE'LL TAKE YOU THERE";
 
   // Compute streak + daysSinceLast for global ticker
   const _sessionsSorted = [...(sessions || [])].filter(s => s?.date).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -10489,19 +10464,12 @@ export default function App() {
     if (!validRouteIds.includes(active)) setActive("dashboard");
   }, [active, validRouteIds]);
 
-  // Auto-open helper once per browser session for players, after onboarding
+  // Auto-open helper on every app refresh for players, after onboarding
   useEffect(() => {
     if (!profile?.onboarded) return;
     if (isStaffRole(profile?.role)) return;
-    try {
-      if (!sessionStorage.getItem(helperShownKey)) {
-        setHelperOpen(true);
-        sessionStorage.setItem(helperShownKey, "1");
-      }
-    } catch {}
-  // Only run when onboarded status changes (i.e. just completed onboarding or first load)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.onboarded]);
+    setHelperOpen(true);
+  }, [profile?.onboarded, profile?.role]);
 
   const handleHelperNavigate = (dest, tab) => {
     if (tab && dest === "performance") setPerfInitTab(tab);
@@ -10685,9 +10653,13 @@ export default function App() {
         }
       `}</style>
 
-      {/* Player helper modal -- shown once per session, re-openable via FAB */}
-      {helperOpen && !effectiveIsCoach && !coachLocked && profile?.onboarded && (
+      {/* Helper modal -- shown on every player app load, re-openable for all onboarded users */}
+      {helperOpen && !coachLocked && profile?.onboarded && (
         <PlayerHelperModal
+          actions={helperActions}
+          title={helperTitle}
+          subtitle={helperSubtitle}
+          dismissLabel="close helper"
           onNavigate={handleHelperNavigate}
           onClose={() => setHelperOpen(false)}
         />
@@ -10705,12 +10677,12 @@ export default function App() {
           {/* ── GLOBAL PERSISTENT TICKER — always visible on every page ── */}
           <HeroTicker profile={profile} sessions={sessions} streak={_tickerStreak} daysSinceLast={_daysSinceLast} />
 
-          {/* ── HELPER FAB — players only, re-opens the "what do you want to do" modal ── */}
-          {!effectiveIsCoach && profile?.onboarded && (
+          {/* ── HELPER FAB — quick actions for players and staff ── */}
+          {profile?.onboarded && (
             <button
               onClick={() => setHelperOpen(true)}
               aria-label="Open helper"
-              title="What do you want to do?"
+              title={effectiveIsCoach ? "Open staff helper" : "What do you want to do?"}
               style={{
                 position: "fixed", bottom: 28, right: 20, zIndex: 9980,
                 width: 48, height: 48, borderRadius: 999,
