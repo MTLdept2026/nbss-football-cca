@@ -2338,7 +2338,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
 
   return (
     <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+      position: "fixed", top: 0, left: 0, right: "auto", zIndex: 1000,
+      width: "100dvw", maxWidth: "100vw", overflow: "hidden", boxSizing: "border-box",
       background: navBg,
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
       transition: "border-color 0.2s ease",
@@ -10605,6 +10606,9 @@ export default function App() {
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
           font-kerning: normal;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
         }
         body {
           background: ${theme.navy};
@@ -10615,6 +10619,14 @@ export default function App() {
           padding-top: calc(36px + max(env(safe-area-inset-top, 0px), 36px));
           padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
           line-height: 1.55;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
+        #root {
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
         }
         button, input, select, textarea { font: inherit; }
         p, li { max-width: 68ch; }
