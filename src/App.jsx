@@ -2285,9 +2285,9 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
       transition: "border-color 0.2s ease",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: 8, minWidth: 0 }}>
         {/* Logo + coach/player toggle */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexShrink: 1 }}>
           <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "none", border: "none" }} onClick={() => setActive("dashboard")}>
             <div style={{
               width: 32, height: 32, borderRadius: 4,
@@ -2317,7 +2317,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
         </div>
 
         {/* Right side: Instagram link, theme toggle + hamburger */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <a
             href="https://www.instagram.com/nbssfootball/"
             target="_blank"
@@ -9042,6 +9042,16 @@ function AccountabilityReminderPanel({ roster, latestRecords, scheduleEvents, de
                 {publishState === "working" ? "Publishing..." : "Publish Reminder"}
               </GoldButton>
               <GoldButton onClick={copyReminder} secondary style={{ minWidth: 120 }}>Copy Text</GoldButton>
+              <GoldButton onClick={async () => {
+                if (!publishSecret.trim()) { setPublishMessage({ tone: "error", text: "Enter passcode first." }); return; }
+                try {
+                  const res = await fetch("/.netlify/functions/debug-subscriptions", { headers: { "x-announcement-secret": publishSecret.trim() } });
+                  const data = await res.json();
+                  if (!res.ok) { setPublishMessage({ tone: "error", text: data.error || "Audit failed." }); return; }
+                  const lines = (data.subscriptions || []).map(s => `${s.playerName || s.playerId || "?"} → key: ${s.audienceKey || "(none)"}`);
+                  setPublishMessage({ tone: "success", text: `${data.count} subscription(s):\n${lines.join("\n") || "(none)"}` });
+                } catch (e) { setPublishMessage({ tone: "error", text: e.message }); }
+              }} secondary style={{ minWidth: 120 }}>Audit Subs</GoldButton>
             </div>
             <div style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", color: C.textDim, lineHeight: 1.55 }}>
               This sends push only to selected players whose devices are linked to their GamePlan profile. It does not post to the public announcement board.
@@ -9056,6 +9066,7 @@ function AccountabilityReminderPanel({ roster, latestRecords, scheduleEvents, de
                 fontFamily: FONT_BODY,
                 fontSize: "var(--gp-type-small)",
                 lineHeight: 1.6,
+                whiteSpace: "pre-line",
               }}>
                 {publishMessage.text}
               </div>
