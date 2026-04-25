@@ -8877,6 +8877,18 @@ function AccountabilityReminderPanel({ roster, latestRecords, scheduleEvents, de
 
   const publishReminder = async () => {
     if (publishDisabled) return;
+
+    // Send both the row key (playerId-based) and a name-based slug per player.
+    // This covers subscriptions registered under either format.
+    const sanitizeKey = (v) => String(v || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const targetKeys = [...new Set(
+      selectedRows.flatMap((row) => [
+        row.key,
+        sanitizeKey(row.record?.playerId || ""),
+        sanitizeKey(row.record?.playerName || row.name || ""),
+      ].filter(Boolean))
+    )];
+
     const ok = window.confirm(`Send this reminder only to the selected missing-log players with linked notification devices?\n\n${reminderBody}`);
     if (!ok) return;
 
@@ -8890,7 +8902,7 @@ function AccountabilityReminderPanel({ roster, latestRecords, scheduleEvents, de
         category: targetEvent?.type === "Match" || targetEvent?.type === "Friendly" ? "Match" : "Training",
         pinned: false,
         pushOnly: true,
-        targetAudienceKeys: selectedRows.map((row) => row.key),
+        targetAudienceKeys: targetKeys,
       }, publishSecret.trim());
       setPublishMessage({
         tone: "success",
