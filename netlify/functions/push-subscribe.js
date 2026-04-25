@@ -9,18 +9,28 @@ function isValidSubscription(subscription) {
   );
 }
 
+function sanitizeKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 function normalizeAudience(body = {}) {
   const audience = body.audience || {};
-  const audienceKey = String(audience.audienceKey || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  const playerId = String(audience.playerId || "").trim();
+  const playerName = String(audience.playerName || "").trim();
+
+  // audienceKey is whatever the client sends (usually playerId-based slug).
+  // Also store playerIdKey and playerNameKey as explicit fallbacks so the
+  // backend can match subscriptions regardless of which format was used at subscribe time.
+  const audienceKey = sanitizeKey(audience.audienceKey || playerId || playerName);
+  const playerIdKey = sanitizeKey(playerId);
+  const playerNameKey = sanitizeKey(playerName);
 
   return {
     audienceKey,
-    playerId: String(audience.playerId || "").trim(),
-    playerName: String(audience.playerName || "").trim(),
+    playerIdKey,
+    playerNameKey,
+    playerId,
+    playerName,
     role: String(audience.role || "").trim(),
   };
 }

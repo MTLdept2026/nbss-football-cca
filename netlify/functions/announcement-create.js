@@ -13,9 +13,13 @@ export async function handler(event) {
     const body = parseJSONBody(event);
     const announcement = normalizeAnnouncement(body);
     const pushOnly = Boolean(body.pushOnly);
+
+    // Accept an array of candidate keys — the sender may include both playerId-based
+    // and name-based slugs per player to handle subscriptions registered under either format.
     const targetAudienceKeys = Array.isArray(body.targetAudienceKeys)
       ? new Set(body.targetAudienceKeys.map((key) => String(key || "").trim().toLowerCase()).filter(Boolean))
       : null;
+
     const announcementsStore = getAnnouncementsStore(event);
     const subscriptionsStore = getSubscriptionsStore(event);
 
@@ -28,14 +32,27 @@ export async function handler(event) {
     let removed = 0;
     let skipped = 0;
 
+    function sanitizeKey(value) {
+      return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
+
     await Promise.all(blobs.map(async ({ key }) => {
       const record = await subscriptionsStore.get(key, { type: "json" });
       const subscription = record?.subscription;
       if (!subscription?.endpoint) return;
 
       if (targetAudienceKeys?.size) {
-        const audienceKey = String(record?.audience?.audienceKey || "").trim().toLowerCase();
-        if (!audienceKey || !targetAudienceKeys.has(audienceKey)) {
+        // Match on any candidate key the subscription might be stored under:
+        // audienceKey (whatever was sent at subscribe time), playerId slug, or playerName slug
+        const audience = record?.audience || {};
+        const candidateKeys = [
+          audience.audienceKey,
+          sanitizeKey(audience.playerId),
+          sanitizeKey(audience.playerName),
+        ].filter(Boolean);
+
+        const matched = candidateKeys.some((k) => targetAudienceKeys.has(k));
+        if (!matched) {
           skipped += 1;
           return;
         }
