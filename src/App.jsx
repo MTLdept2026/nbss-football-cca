@@ -417,6 +417,21 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+function useIsTouchDevice() {
+  const [isTouch, setIsTouch] = useState(
+    () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches
+  );
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const query = window.matchMedia("(pointer: coarse)");
+    const handler = () => setIsTouch(query.matches);
+    handler();
+    query.addEventListener?.("change", handler);
+    return () => query.removeEventListener?.("change", handler);
+  }, []);
+  return isTouch;
+}
+
 // ── THEME CONTEXT ──
 const ThemeContext = createContext(DARK_C);
 const useTheme = () => useContext(ThemeContext);
@@ -2307,7 +2322,7 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", accountRole = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
   const C = useTheme();
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile() || useIsTouchDevice();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const staffModeLabel = accountRole === "teacher" ? "Teacher" : "Coach";
@@ -2430,7 +2445,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
         </div>
 
         {/* Nav items — Nothing bracket/underline treatment, Space Mono ALL CAPS */}
-        <div className={`nav-l ${open ? "nav-open" : ""}`} style={{ display: "flex", gap: 0, alignItems: "center" }}>
+        <div className={`nav-l ${open ? "nav-open" : ""}`} style={{ display: isMobile ? (open ? "flex" : "none") : "flex", gap: 0, alignItems: "center" }}>
           {navItems.map(g => (
             <button key={g.id} onClick={() => { setActive(g.id); setOpen(false); }} style={{
               background: "transparent",
@@ -10684,7 +10699,7 @@ export default function App() {
               aria-label="Open helper"
               title={effectiveIsCoach ? "Open staff helper" : "What do you want to do?"}
               style={{
-                position: "fixed", bottom: "calc(max(env(safe-area-inset-bottom, 0px), 12px) + 18px)", right: 14, zIndex: 9980,
+                position: "fixed", bottom: "calc(max(env(safe-area-inset-bottom, 0px), 12px) + 18px)", left: 14, zIndex: 9980,
                 width: effectiveIsCoach ? "auto" : 48, minWidth: 48, height: 48, borderRadius: 999,
                 background: theme.textBright, color: theme.navy,
                 border: "none", cursor: "pointer",
