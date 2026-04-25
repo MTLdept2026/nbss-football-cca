@@ -2311,8 +2311,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const staffModeLabel = accountRole === "teacher" ? "Teacher" : "Coach";
-  const staffModeShortLabel = accountRole === "teacher" ? "T" : "C";
-  const navControlSize = isMobile ? 44 : 36;
+  const navControlSize = isMobile ? 40 : 36;
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", h);
@@ -2332,18 +2331,19 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
       paddingLeft: "max(env(safe-area-inset-left, 0px), 0px)",
       paddingRight: "max(env(safe-area-inset-right, 0px), 0px)",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 10px 0 8px" : "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: isMobile ? 6 : 8, minWidth: 0, position: "relative" }}>
+      <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 8px" : "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: isMobile ? 4 : 8, minWidth: 0, overflow: "hidden", position: "relative" }}>
         {/* Logo + coach/player toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flexShrink: 1 }}>
-          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 104 : 44, flexShrink: 0 }} onClick={() => setActive("dashboard")}>
+          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 0 : 44, maxWidth: isMobile ? 112 : undefined, flexShrink: 1, overflow: "hidden" }} onClick={() => setActive("dashboard")}>
             {isMobile ? (
               <div style={{
                 height: 44,
+                maxWidth: "100%",
                 display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start",
                 color: C.textBright,
               }}>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", letterSpacing: "0.12em", lineHeight: 1, textTransform: "uppercase" }}>GamePlan</div>
-                {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "0.62rem", color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: 1, marginTop: 5 }}>{roleLabel}</div>}
+                <div style={{ fontFamily: FONT_SERIF, fontSize: "0.84rem", letterSpacing: "0.06em", lineHeight: 1, textTransform: "uppercase", whiteSpace: "nowrap" }}>GamePlan</div>
+                {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "0.6rem", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", lineHeight: 1, marginTop: 5, whiteSpace: "nowrap" }}>{roleLabel}</div>}
               </div>
             ) : (
               <>
@@ -2363,21 +2363,21 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           </button>
           {/* Staff ↔ Player view toggle — label reflects actual staff role */}
           {isCoach && onToggleView && (
-            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0, ...(isMobile ? { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" } : null) }}>
+            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0, ...(isMobile ? { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 1 } : null) }}>
               <button
                 onClick={() => { onToggleView(false); }}
-                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 9px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >{isMobile ? staffModeShortLabel : staffModeLabel}</button>
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >{staffModeLabel}</button>
               <button
                 onClick={() => { onToggleView(true); }}
-                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 9px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >{isMobile ? "P" : "Player"}</button>
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+              >Player</button>
             </div>
           )}
         </div>
 
         {/* Right side: Instagram link, theme toggle + hamburger */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 3 : 6, flexShrink: 0, marginLeft: "auto", zIndex: 2 }}>
           <a
             href="https://www.instagram.com/nbssfootball/"
             target="_blank"
@@ -2412,7 +2412,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               background: "none",
               border: `1px solid ${C.navyBorder}`,
               color: C.textMid,
-              width: navControlSize, height: navControlSize, borderRadius: 4, cursor: "pointer",
+              width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, borderRadius: 4, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontFamily: FONT_SERIF, fontSize: "var(--gp-type-micro)", letterSpacing: "0.06em",
               textTransform: "uppercase", transition: "color 0.15s", flexShrink: 0,
@@ -2420,7 +2420,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0 }}>
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0 }}>
             <span aria-hidden="true" style={{ width: 18, display: "grid", gap: open ? 0 : 4 }}>
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(2px) rotate(45deg)" : "none", transition: "transform 0.15s ease" }} />
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, opacity: open ? 0 : 1, transition: "opacity 0.15s ease" }} />
@@ -10684,19 +10684,21 @@ export default function App() {
               aria-label="Open helper"
               title={effectiveIsCoach ? "Open staff helper" : "What do you want to do?"}
               style={{
-                position: "fixed", bottom: 28, right: 20, zIndex: 9980,
-                width: 48, height: 48, borderRadius: 999,
+                position: "fixed", bottom: "calc(max(env(safe-area-inset-bottom, 0px), 12px) + 18px)", right: 14, zIndex: 9980,
+                width: effectiveIsCoach ? "auto" : 48, minWidth: 48, height: 48, borderRadius: 999,
                 background: theme.textBright, color: theme.navy,
                 border: "none", cursor: "pointer",
                 fontFamily: FONT_SERIF, fontSize: "var(--gp-type-compact)", fontWeight: 700,
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: effectiveIsCoach ? "0 14px" : 0,
                 boxShadow: `0 4px 20px ${theme.navy}80`,
                 transition: "transform 0.15s ease",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.08)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             >
-              ?
+              <span>?</span>
+              {effectiveIsCoach && <span style={{ fontSize: "var(--gp-type-caption)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Help</span>}
             </button>
           )}
 
