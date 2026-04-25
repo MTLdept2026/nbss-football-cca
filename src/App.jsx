@@ -2360,8 +2360,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4 }}>
-            {open ? "[ X ]" : "[ = ]"}
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: "none", background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, fontFamily: FONT_SERIF, fontSize: "var(--gp-type-caption)", letterSpacing: "0.06em", cursor: "pointer", padding: "6px 10px", borderRadius: 4, flexShrink: 0, whiteSpace: "nowrap" }}>
+            {open ? "✕" : "≡"}
           </button>
         </div>
 
@@ -10538,6 +10538,32 @@ export default function App() {
     if (profile?.role !== "player" || profile?.playerId) return;
     setProfile((prev) => ({ ...prev, playerId: prev?.playerId || generatePlayerId() }));
   }, [profile?.playerId, profile?.role, setProfile]);
+
+  // Re-register push subscription with audience data on every load for players.
+  // This silently patches any anonymous subscriptions (registered without identity)
+  // so targeted reminders can reach them. Safe to call repeatedly — push-subscribe
+  // is idempotent and only updates the stored audience record.
+  useEffect(() => {
+    if (!profile?.onboarded || isStaffRole(profile?.role)) return;
+    if (!profile?.playerId && !profile?.name) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    const reRegister = async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const existing = await reg.pushManager.getSubscription();
+        if (!existing) return; // not subscribed — nothing to patch
+        const audience = buildPushAudience(profile);
+        await postFunctionJSON("push-subscribe", { subscription: existing, audience });
+      } catch {
+        // silent — non-critical background operation
+      }
+    };
+
+    reRegister();
+  // Run whenever profile identity settles (name or playerId populated)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.playerId, profile?.name, profile?.onboarded]);
 
   return (
     <ThemeContext.Provider value={theme}>
