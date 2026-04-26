@@ -2339,7 +2339,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: "auto", zIndex: 1000,
-      width: "100dvw", maxWidth: "100vw", overflow: "hidden", boxSizing: "border-box",
+      width: "100dvw", maxWidth: "100vw", overflow: open && isMobile ? "visible" : "hidden", boxSizing: "border-box",
       background: navBg,
       borderBottom: `1px solid ${scrolled ? C.navyBorder : "transparent"}`,
       transition: "border-color 0.2s ease",
@@ -2436,7 +2436,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
           >{isDark ? "LT" : "DK"}</button>
 
           {/* Hamburger — mobile only */}
-          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0, position: "relative" }}>
+          <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0, position: "relative" }}>
             <span aria-hidden="true" style={{ width: 18, display: "grid", gap: open ? 0 : 4, position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, transform: open ? "translateY(2px) rotate(45deg)" : "none", transition: "transform 0.15s ease" }} />
               <span style={{ height: 2, background: C.textBright, borderRadius: 2, opacity: open ? 0 : 1, transition: "opacity 0.15s ease" }} />
@@ -10669,12 +10669,13 @@ export default function App() {
           .gp-wordmark { display: none !important; }
           .nav-l {
             display: none !important;
-            position: absolute; top: calc(64px + max(env(safe-area-inset-top, 0px), 36px)); left: 0; right: 0;
+            position: fixed; top: calc(64px + max(env(safe-area-inset-top, 0px), 36px)); left: 0; right: 0;
             background: ${isDark ? "rgba(5,15,30,0.98)" : "rgba(240,244,248,0.98)"};
             backdrop-filter: blur(20px);
             flex-direction: column; padding: 16px;
             border-bottom: 1px solid ${theme.navyBorder};
             box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            z-index: 999;
           }
           .nav-l.nav-open { display: flex !important; }
         }
