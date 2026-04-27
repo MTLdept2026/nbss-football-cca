@@ -10076,6 +10076,7 @@ function CoachSquadPage() {
   const C = useTheme();
   const NO_PLAYER_SELECTED = "__none__";
   const [wellnessLogs] = usePersistedState(STORAGE_KEYS.wellnessLog, []);
+  const [roster] = usePersistedState(STORAGE_KEYS.roster, []);
   const [playerInputsData, setPlayerInputsData] = useState({ playerInputs: [], summary: null });
   const [playerInputsError, setPlayerInputsError] = useState("");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState("");
