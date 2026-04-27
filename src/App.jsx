@@ -8275,6 +8275,65 @@ function getNextScheduledEvent(events, today = formatLocalDateKey()) {
   return events.find((event) => event.date >= today) || null;
 }
 
+function isLoggableScheduleEvent(event = {}) {
+  const type = String(event.type || inferScheduleType(event.title || "")).toLowerCase();
+  return Boolean(event.date && event.title && ["training", "match", "friendly"].includes(type));
+}
+
+function getLatestLoggableEvent(events = [], today = formatLocalDateKey()) {
+  return [...(events || [])]
+    .filter(isLoggableScheduleEvent)
+    .filter((event) => event.date <= today)
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(a.title || "").localeCompare(String(b.title || "")))[0] || null;
+}
+
+function buildAccountabilityRows({ roster = [], latestRecords = [], targetEvent = null }) {
+  const recordByKey = new Map();
+  (latestRecords || []).forEach((record) => {
+    const key = getPlayerRecordKey(record);
+    if (key) recordByKey.set(key, record);
+  });
+
+  const rosterRows = (roster || []).map((player) => {
+    const key = getPlayerRecordKey({ playerId: player.id, playerName: player.name });
+    const record = recordByKey.get(key) || null;
+    const logDate = normalizeDateKey(record?.latestSessionDate || record?.date);
+    return {
+      key,
+      name: player.name || record?.playerName || "Player",
+      team: player.div || player.school || record?.team || "",
+      record,
+      hasLoggedTarget: Boolean(targetEvent?.date && logDate >= targetEvent.date),
+    };
+  }).filter((row) => row.key);
+
+  const rosterKeys = new Set(rosterRows.map((row) => row.key));
+  const inputOnlyRows = (latestRecords || []).map((record) => {
+    const key = getPlayerRecordKey(record);
+    const logDate = normalizeDateKey(record?.latestSessionDate || record?.date);
+    return {
+      key,
+      name: record.playerName || record.playerId || "Player",
+      team: record.team || record.squad || "",
+      record,
+      hasLoggedTarget: Boolean(targetEvent?.date && logDate >= targetEvent.date),
+    };
+  }).filter((row) => row.key && !rosterKeys.has(row.key));
+
+  return [...rosterRows, ...inputOnlyRows].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function buildReminderMessage({ mode = "team", targetEvent = null, selectedRows = [] }) {
+  const eventLabel = targetEvent
+    ? `${targetEvent.title}${targetEvent.date ? ` (${targetEvent.date})` : ""}`
+    : "the latest GamePlan session";
+  const names = (selectedRows || []).map((row) => row.name).filter(Boolean);
+  if (mode === "direct" && names.length === 1) return `${names[0]}, log your GamePlan entry for ${eventLabel}.`;
+  if (mode === "direct") return `Missing GamePlan logs for ${eventLabel}: ${names.join(", ")}. Complete your entry today.`;
+  return `Team reminder: complete your GamePlan log for ${eventLabel}. Outstanding: ${names.length || 0}.`;
+}
+
+
 function buildPushAudience(profile = {}) {
   const key = getPlayerRecordKey({ playerId: profile?.playerId, playerName: profile?.name });
   return {
