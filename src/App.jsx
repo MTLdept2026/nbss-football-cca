@@ -584,6 +584,37 @@ function getDaysUntilDate(value, from = new Date()) {
   return Math.round((target - localStart) / 86400000);
 }
 
+// Resolve the end-of-event timestamp from { date, time }. Handles ranges like
+// "3pm to 5:30pm" and "3-5.30pm", and single-time inputs like "Kick off 845am"
+// or "Kick off 3pm" (assumes a 3-hour duration). Returns null if the time
+// string cannot be parsed, in which case callers should fall back to a
+// date-only comparison.
+function getEventEndTimestamp(event) {
+  const dateKey = normalizeDateKey(event?.date);
+  if (!dateKey) return null;
+  const raw = String(event?.time || "").toLowerCase().replace(/\s+/g, "");
+  if (!raw) return null;
+  const tokens = [...raw.matchAll(/(\d{1,2})(?::|\.)?(\d{2})?(am|pm)/g)];
+  if (!tokens.length) return null;
+  const last = tokens[tokens.length - 1];
+  let hour = parseInt(last[1], 10);
+  const minutes = last[2] ? parseInt(last[2], 10) : 0;
+  const meridiem = last[3];
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+  const [year, month, day] = dateKey.split("-").map((v) => parseInt(v, 10));
+  const end = new Date(year, month - 1, day, hour, minutes, 0, 0);
+  if (Number.isNaN(end.getTime())) return null;
+  if (tokens.length === 1) end.setHours(end.getHours() + 3);
+  return end.getTime();
+}
+
+function isEventOver(event, now = Date.now()) {
+  const end = getEventEndTimestamp(event);
+  if (end === null) return false;
+  return end <= now;
+}
+
 function stampRecord(record, previous = null) {
   const now = new Date().toISOString();
   return {
@@ -2503,7 +2534,13 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
 
   // Derive next match and next training separately from the full event list
   const today = formatLocalDateKey();
-  const upcoming = allEvents.filter((e) => normalizeDateKey(e.date) >= today);
+  const nowTs = Date.now();
+  const upcoming = allEvents.filter((e) => {
+    const key = normalizeDateKey(e.date);
+    if (!key || key < today) return false;
+    if (key === today && isEventOver(e, nowTs)) return false;
+    return true;
+  });
   const nextMatch    = upcoming.find(e => e.type === "Match" || e.type === "Friendly") || null;
   const nextTraining = upcoming.find(e => e.type === "Training") || null;
   const nextEvent    = upcoming[0] || null;
@@ -8271,8 +8308,12 @@ async function fetchScheduleEntries() {
   }
 }
 
-function getNextScheduledEvent(events, today = formatLocalDateKey()) {
-  return events.find((event) => event.date >= today) || null;
+function getNextScheduledEvent(events, today = formatLocalDateKey(), now = Date.now()) {
+  return events.find((event) => {
+    if (!event?.date || event.date < today) return false;
+    if (event.date === today && isEventOver(event, now)) return false;
+    return true;
+  }) || null;
 }
 
 function isLoggableScheduleEvent(event = {}) {
@@ -10730,7 +10771,7 @@ export default function App() {
           .nav-l {
             display: none !important;
             position: fixed; top: calc(64px + max(env(safe-area-inset-top, 0px), 36px)); left: 0; right: 0;
-            background: ${isDark ? "rgba(5,15,30,0.98)" : "rgba(240,244,248,0.98)"};
+            background: ${isDark ? theme.navy : "rgba(240,244,248,0.98)"};
             backdrop-filter: blur(20px);
             flex-direction: column; padding: 16px;
             border-bottom: 1px solid ${theme.navyBorder};
