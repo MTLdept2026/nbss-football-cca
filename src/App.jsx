@@ -477,6 +477,13 @@ const STORAGE_KEYS = {
   roster: "nbss-cluster-roster", attendance: "nbss-attendance-log",
   matchHistory: "nbss-match-history", wellnessLog: "nbss-wellness-log",
 };
+const FONT_SIZE_STORAGE_KEY = "nbss-font-size";
+const FONT_SIZE_OPTIONS = [
+  { id: "small", label: "Small", short: "90%", scale: 0.9 },
+  { id: "default", label: "Default", short: "100%", scale: 1 },
+  { id: "large", label: "Large", short: "110%", scale: 1.1 },
+  { id: "xl", label: "XL", short: "120%", scale: 1.2 },
+];
 const DRAFT_KEYS = {
   trackerForm: "gameplan-draft-session-entry",
   wellnessForm: "gameplan-draft-availability-entry",
@@ -680,6 +687,10 @@ function getRoleLabel(role = "") {
   if (role === "coach") return "Coach";
   if (role === "teacher") return "Teacher";
   return "Player";
+}
+
+function getFontSizeOption(id = "default") {
+  return FONT_SIZE_OPTIONS.find((option) => option.id === id) || FONT_SIZE_OPTIONS[1];
 }
 
 function usePersistedState(key, defaultVal) {
@@ -2351,7 +2362,7 @@ function ProgressGroup({ profile, setActive }) {
 // ══════════════════════════════════════════════════
 //  NAVBAR
 // ══════════════════════════════════════════════════
-function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleLabel = "", accountRole = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
+function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default", onChangeFontSize, navItems = [], roleLabel = "", accountRole = "", isCoach = false, viewAsPlayer = false, onToggleView = null }) {
   const C = useTheme();
   const isMobile = useIsMobile() || useIsTouchDevice();
   const [open, setOpen] = useState(false);
@@ -2426,6 +2437,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
         {/* Right side: Instagram link, theme toggle + hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 3 : 6, flexShrink: 0, marginLeft: "auto", zIndex: 2 }}>
           <a
+            className="gp-nav-instagram"
             href="https://www.instagram.com/nbssfootball/"
             target="_blank"
             rel="noreferrer"
@@ -2465,6 +2477,48 @@ function Navbar({ active, setActive, isDark, onToggleTheme, navItems = [], roleL
               textTransform: "uppercase", transition: "color 0.15s", flexShrink: 0,
             }}
           >{isDark ? "LT" : "DK"}</button>
+
+          <label
+            title="Change text size"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: isMobile ? 3 : 5,
+              height: navControlSize,
+              padding: isMobile ? "0 4px" : "0 7px",
+              border: `1px solid ${C.navyBorder}`,
+              borderRadius: 4,
+              color: C.textMid,
+              fontFamily: FONT_SERIF,
+              fontSize: "var(--gp-type-micro)",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              flexShrink: 0,
+            }}
+          >
+            <span aria-hidden="true" style={{ color: C.textBright }}>A</span>
+            <select
+              aria-label="Text size"
+              value={fontSize}
+              onChange={(event) => onChangeFontSize?.(event.target.value)}
+              style={{
+                width: isMobile ? 50 : 72,
+                border: "none",
+                background: "transparent",
+                color: C.textMid,
+                cursor: "pointer",
+                outline: "none",
+                fontFamily: FONT_SERIF,
+                fontSize: "var(--gp-type-micro)",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
+              {FONT_SIZE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>{isMobile ? option.short : option.label}</option>
+              ))}
+            </select>
+          </label>
 
           {/* Hamburger — mobile only */}
           <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0, position: "relative" }}>
@@ -10515,8 +10569,10 @@ export default function App() {
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("nbss-theme") !== "light"; } catch { return true; }
   });
+  const [fontSize, setFontSize] = usePersistedState(FONT_SIZE_STORAGE_KEY, "default");
   const [viewAsPlayer, setViewAsPlayer] = useState(false);
   const theme = isDark ? DARK_C : LIGHT_C;
+  const fontSizeOption = getFontSizeOption(fontSize);
 
   // PWA update detection
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
@@ -10694,14 +10750,16 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
         :root {
-          --gp-type-micro: 0.75rem;
-          --gp-type-caption: 0.8125rem;
-          --gp-type-small: 0.875rem;
-          --gp-type-compact: 0.9375rem;
-          --gp-type-body: 1rem;
-          --gp-type-lead: 1.0625rem;
+          --gp-font-scale: ${fontSizeOption.scale};
+          --gp-type-micro: calc(0.75rem * var(--gp-font-scale));
+          --gp-type-caption: calc(0.8125rem * var(--gp-font-scale));
+          --gp-type-small: calc(0.875rem * var(--gp-font-scale));
+          --gp-type-compact: calc(0.9375rem * var(--gp-font-scale));
+          --gp-type-body: calc(1rem * var(--gp-font-scale));
+          --gp-type-lead: calc(1.0625rem * var(--gp-font-scale));
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        * { min-width: 0; }
         html {
           scroll-behavior: smooth;
           -webkit-text-size-adjust: 100%;
@@ -10730,7 +10788,13 @@ export default function App() {
           overflow-x: hidden;
         }
         button, input, select, textarea { font: inherit; }
+        p, li, h1, h2, h3, h4, h5, h6, span, div, button, label, a {
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
         p, li { max-width: 68ch; }
+        img, svg, canvas, video { max-width: 100%; }
+        input, select, textarea { max-width: 100%; }
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: ${theme.navyCard}; }
@@ -10757,17 +10821,18 @@ export default function App() {
 
         @media (max-width: 768px) {
           :root {
-            --gp-type-micro: 0.8125rem;
-            --gp-type-caption: 0.875rem;
-            --gp-type-small: 0.9375rem;
-            --gp-type-compact: 1rem;
-            --gp-type-body: 1rem;
-            --gp-type-lead: 1.0625rem;
+            --gp-type-micro: calc(0.8125rem * var(--gp-font-scale));
+            --gp-type-caption: calc(0.875rem * var(--gp-font-scale));
+            --gp-type-small: calc(0.9375rem * var(--gp-font-scale));
+            --gp-type-compact: calc(1rem * var(--gp-font-scale));
+            --gp-type-body: calc(1rem * var(--gp-font-scale));
+            --gp-type-lead: calc(1.0625rem * var(--gp-font-scale));
           }
           p, li { line-height: 1.7; }
           button, input, select, textarea { min-height: 44px; }
           .mob-btn { display: block !important; }
           .gp-wordmark { display: none !important; }
+          .gp-nav-instagram { display: none !important; }
           .nav-l {
             display: none !important;
             position: fixed; top: calc(64px + max(env(safe-area-inset-top, 0px), 36px)); left: 0; right: 0;
@@ -10798,6 +10863,7 @@ export default function App() {
         <>
           <Navbar
             active={active} setActive={setActive} isDark={isDark} onToggleTheme={toggleTheme}
+            fontSize={fontSizeOption.id} onChangeFontSize={setFontSize}
             navItems={navItems} roleLabel={effectiveIsCoach ? getRoleLabel(profile?.role) : "Player"} accountRole={profile?.role}
             isCoach={isCoach && coachAccessGranted} viewAsPlayer={viewAsPlayer}
             onToggleView={(asPlayer) => { setViewAsPlayer(asPlayer); setActive("dashboard"); }}
@@ -10843,7 +10909,7 @@ export default function App() {
           {effectiveIsCoach && active === "hub" && <TeamHubSection isCoach pushAudience={buildPushAudience(profile)} />}
 
           <footer style={{ textAlign: "center", padding: "48px 24px", borderTop: `1px solid ${theme.navyBorder}`, background: theme.navyDeep, transition: "background 0.3s ease" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}`, whiteSpace: "nowrap" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 8, maxWidth: "100%", padding: "8px 16px", borderRadius: 8, background: theme.navyCard, border: `1px solid ${theme.navyBorder}` }}>
               <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: theme.textDim }}>Powered by</span>
               <span style={{ fontFamily: FONT_HEAD, fontSize: "var(--gp-type-body)", color: theme.gold, letterSpacing: 1 }}>GamePlan</span>
               <span style={{ fontFamily: FONT_BODY, fontSize: "var(--gp-type-caption)", color: theme.textDim }}>Performance and Development Platform</span>
