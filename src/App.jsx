@@ -2716,7 +2716,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   });
 
   // Separator dot
-  const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none" }}>•</span>;
+  const DOT = <span style={{ color: `${C.gold}60`, margin: "0 10px", fontSize: 16, userSelect: "none", whiteSpace: "nowrap", overflowWrap: "normal" }}>•</span>;
 
   // Double items for seamless loop
   const doubled = [...items, ...items];
@@ -2726,7 +2726,7 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
   const tickerText = C.navy === "#000000" ? "#FFFFFF" : "#000000";
 
   return (
-    <div style={{
+    <div data-nowrap="true" style={{
       position: "fixed", top: "calc(64px + max(env(safe-area-inset-top, 0px), 36px))", left: 0, right: 0, zIndex: 990,
       overflow: "hidden", height: 36,
       background: TICKER_BG,
@@ -2741,17 +2741,22 @@ function HeroTicker({ profile, sessions, streak, daysSinceLast }) {
         display: "inline-flex", alignItems: "center",
         animation: `tickerScroll ${Math.max(35, items.length * 6)}s linear infinite`,
         whiteSpace: "nowrap",
+        overflowWrap: "normal",
+        flexShrink: 0,
         willChange: "transform",
       }}>
         {doubled.map((item, i) => (
           <span key={i} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "0 20px",
-            fontFamily: FONT_BODY, fontSize: "var(--gp-type-small)", fontWeight: 600,
+            fontFamily: FONT_BODY, fontSize: "0.875rem", fontWeight: 600,
             color: tickerText, letterSpacing: 0.3,
+            whiteSpace: "nowrap",
+            overflowWrap: "normal",
+            flexShrink: 0,
           }}>
             <span style={{ display: "inline-flex", alignItems: "center" }}><SportIcon name={item.icon} size={14} weight="regular" color={item.color || tickerText} /></span>
-            <span>{item.text}</span>
+            <span style={{ whiteSpace: "nowrap", overflowWrap: "normal" }}>{item.text}</span>
             {DOT}
           </span>
         ))}
@@ -10788,9 +10793,14 @@ export default function App() {
           overflow-x: hidden;
         }
         button, input, select, textarea { font: inherit; }
-        p, li, h1, h2, h3, h4, h5, h6, span, div, button, label, a {
+        p, li, h1, h2, h3, h4, h5, h6, button, label, a {
           overflow-wrap: anywhere;
           word-break: normal;
+        }
+        [data-nowrap="true"], [data-nowrap="true"] * {
+          overflow-wrap: normal;
+          word-break: normal;
+          white-space: nowrap;
         }
         p, li { max-width: 68ch; }
         img, svg, canvas, video { max-width: 100%; }
