@@ -2391,8 +2391,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
     }}>
       <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 8px" : "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: isMobile ? 4 : 8, minWidth: 0, overflow: "hidden", position: "relative" }}>
         {/* Logo + coach/player toggle */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
-          <button type="button" aria-label="Open dashboard" style={{ display: isMobile && isCoach ? "none" : "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 0 : 44, maxWidth: isMobile ? 112 : undefined, flexShrink: 1, overflow: "hidden" }} onClick={() => setActive("dashboard")}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 8, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
+          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 54 : 44, maxWidth: isMobile ? (isCoach ? 72 : 112) : undefined, flexShrink: 1, overflow: "hidden" }} onClick={() => setActive("dashboard")}>
             {isMobile ? (
               <div style={{
                 height: 44,
@@ -2400,8 +2400,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
                 display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start",
                 color: C.textBright,
               }}>
-                <div style={{ fontFamily: FONT_SERIF, fontSize: "0.84rem", letterSpacing: "0.06em", lineHeight: 1, textTransform: "uppercase", whiteSpace: "nowrap" }}>GamePlan</div>
-                {roleLabel && <div style={{ fontFamily: FONT_SERIF, fontSize: "0.6rem", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", lineHeight: 1, marginTop: 5, whiteSpace: "nowrap" }}>{roleLabel}</div>}
+                <div style={{ fontFamily: FONT_SERIF, fontSize: isCoach ? "0.7rem" : "0.84rem", letterSpacing: isCoach ? "0.03em" : "0.06em", lineHeight: 1, textTransform: "uppercase", whiteSpace: "nowrap" }}>GamePlan</div>
+                {roleLabel && !isCoach && <div style={{ fontFamily: FONT_SERIF, fontSize: "0.6rem", color: C.textDim, letterSpacing: "0.08em", textTransform: "uppercase", lineHeight: 1, marginTop: 5, whiteSpace: "nowrap" }}>{roleLabel}</div>}
               </div>
             ) : (
               <>
@@ -2421,7 +2421,7 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
           </button>
           {/* Staff ↔ Player view toggle — label reflects actual staff role */}
           {isCoach && onToggleView && (
-            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 1, maxWidth: isMobile ? 132 : undefined }}>
+            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 1, maxWidth: isMobile ? 118 : undefined }}>
               <button
                 onClick={() => { onToggleView(false); }}
                 style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
