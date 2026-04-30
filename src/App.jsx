@@ -2391,8 +2391,8 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
     }}>
       <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 8px" : "0 16px 0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: isMobile ? 4 : 8, minWidth: 0, overflow: "hidden", position: "relative" }}>
         {/* Logo + coach/player toggle */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flexShrink: 1 }}>
-          <button type="button" aria-label="Open dashboard" style={{ display: "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 0 : 44, maxWidth: isMobile ? 112 : undefined, flexShrink: 1, overflow: "hidden" }} onClick={() => setActive("dashboard")}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
+          <button type="button" aria-label="Open dashboard" style={{ display: isMobile && isCoach ? "none" : "flex", alignItems: "center", gap: isMobile ? 0 : 10, cursor: "pointer", background: "none", border: "none", padding: isMobile ? 0 : undefined, minWidth: isMobile ? 0 : 44, maxWidth: isMobile ? 112 : undefined, flexShrink: 1, overflow: "hidden" }} onClick={() => setActive("dashboard")}>
             {isMobile ? (
               <div style={{
                 height: 44,
@@ -2421,14 +2421,14 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
           </button>
           {/* Staff ↔ Player view toggle — label reflects actual staff role */}
           {isCoach && onToggleView && (
-            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 0, ...(isMobile ? { position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 1 } : null) }}>
+            <div style={{ display: "inline-flex", alignItems: "center", background: C.navyCard, border: `1px solid ${C.navyBorder}`, borderRadius: 999, overflow: "hidden", flexShrink: 1, maxWidth: isMobile ? 132 : undefined }}>
               <button
                 onClick={() => { onToggleView(false); }}
-                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
-              >{staffModeLabel}</button>
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: !viewAsPlayer ? C.textBright : "transparent", color: !viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+              >{isMobile ? (accountRole === "teacher" ? "Tchr" : "Coach") : staffModeLabel}</button>
               <button
                 onClick={() => { onToggleView(true); }}
-                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap" }}
+                style={{ minHeight: isMobile ? 34 : undefined, padding: isMobile ? "4px 7px" : "4px 12px", border: "none", cursor: "pointer", fontFamily: FONT_SERIF, fontSize: 9, fontWeight: 400, letterSpacing: isMobile ? "0.04em" : "0.08em", textTransform: "uppercase", background: viewAsPlayer ? C.textBright : "transparent", color: viewAsPlayer ? C.navy : C.textDim, transition: "all 0.15s", whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
               >Player</button>
             </div>
           )}
@@ -2478,47 +2478,78 @@ function Navbar({ active, setActive, isDark, onToggleTheme, fontSize = "default"
             }}
           >{isDark ? "LT" : "DK"}</button>
 
-          <label
-            title="Change text size"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: isMobile ? 3 : 5,
-              height: navControlSize,
-              padding: isMobile ? "0 4px" : "0 7px",
-              border: `1px solid ${C.navyBorder}`,
-              borderRadius: 4,
-              color: C.textMid,
-              fontFamily: FONT_SERIF,
-              fontSize: "var(--gp-type-micro)",
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              flexShrink: 0,
-            }}
-          >
-            <span aria-hidden="true" style={{ color: C.textBright }}>A</span>
-            <select
-              aria-label="Text size"
-              value={fontSize}
-              onChange={(event) => onChangeFontSize?.(event.target.value)}
+          {isMobile ? (
+            <button
+              type="button"
+              aria-label="Change text size"
+              title="Change text size"
+              onClick={() => {
+                const idx = FONT_SIZE_OPTIONS.findIndex((option) => option.id === fontSize);
+                const next = FONT_SIZE_OPTIONS[(idx + 1) % FONT_SIZE_OPTIONS.length] || FONT_SIZE_OPTIONS[1];
+                onChangeFontSize?.(next.id);
+              }}
               style={{
-                width: isMobile ? 50 : 72,
-                border: "none",
+                width: 68,
+                height: navControlSize,
+                minWidth: 68,
+                minHeight: navControlSize,
+                border: `1px solid ${C.navyBorder}`,
+                borderRadius: 4,
                 background: "transparent",
                 color: C.textMid,
                 cursor: "pointer",
-                outline: "none",
                 fontFamily: FONT_SERIF,
                 fontSize: "var(--gp-type-micro)",
                 letterSpacing: "0.04em",
                 textTransform: "uppercase",
+                flexShrink: 0,
               }}
             >
-              {FONT_SIZE_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>{isMobile ? option.short : option.label}</option>
-              ))}
-            </select>
-          </label>
+              A {getFontSizeOption(fontSize).short}
+            </button>
+          ) : (
+            <label
+              title="Change text size"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                height: navControlSize,
+                padding: "0 7px",
+                border: `1px solid ${C.navyBorder}`,
+                borderRadius: 4,
+                color: C.textMid,
+                fontFamily: FONT_SERIF,
+                fontSize: "var(--gp-type-micro)",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                flexShrink: 0,
+              }}
+            >
+              <span aria-hidden="true" style={{ color: C.textBright }}>A</span>
+              <select
+                aria-label="Text size"
+                value={fontSize}
+                onChange={(event) => onChangeFontSize?.(event.target.value)}
+                style={{
+                  width: 72,
+                  border: "none",
+                  background: "transparent",
+                  color: C.textMid,
+                  cursor: "pointer",
+                  outline: "none",
+                  fontFamily: FONT_SERIF,
+                  fontSize: "var(--gp-type-micro)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {/* Hamburger — mobile only */}
           <button className="mob-btn" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => setOpen(!open)} style={{ display: isMobile ? "inline-flex" : "none", alignItems: "center", justifyContent: "center", width: navControlSize, height: navControlSize, minWidth: navControlSize, minHeight: navControlSize, background: "none", border: `1px solid ${C.navyBorder}`, color: C.textBright, cursor: "pointer", padding: 0, borderRadius: 4, flexShrink: 0, position: "relative" }}>
